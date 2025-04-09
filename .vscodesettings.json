@@ -1,0 +1,4 @@
+{
+    "terminal.integrated.shellArgs.linux": ["-l", "-c", "nvm use 20 && exec bash"]
+  }
+  
