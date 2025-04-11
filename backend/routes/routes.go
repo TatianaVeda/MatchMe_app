@@ -1,59 +1,95 @@
 package routes
 
 import (
-	"m/backend/controllers"
-	"m/backend/middleware"
-	"net/http"
+	"backend/handlers"
+	"backend/middlewares"
 
-	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
+	"github.com/gin-gonic/gin"
 )
 
-// InitRoutes инициализирует все маршруты приложения.
-func InitRoutes(router *mux.Router, db *gorm.DB) {
-	logrus.Info("Initializing routes...")
-	// Инициализируем контроллеры с подключением к базе данных.
-	controllers.InitUserController(db)
-	// Инициализируем контроллер для рекомендаций через сервисный слой.
-	controllers.InitRecommendationControllerService(db)
-	controllers.InitConnectionsController(db)
-	controllers.InitChatsController(db)
-	controllers.InitProfileController(db)  // Инициализация контроллеров профиля
-	controllers.InitFixturesController(db) // Инициализация фикстур
+// RegisterRoutes initializes all application routes
+func RegisterRoutes(router *gin.Engine) {
+	// Public Routes
+	api := router.Group("/api")
+	{
+		api.POST("/login", handlers.LoginUser)
+		api.POST("/register", handlers.RegisterUser)
+	}
 
-	// --- Публичные эндпоинты пользователей ---
-	router.HandleFunc("/users/{id}", controllers.GetUser).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}/bio", controllers.GetUserBio).Methods(http.MethodGet)
+	// Protected Routes with Authentication Middleware
+	authenticated := api.Group("")
+	authenticated.Use(middlewares.AuthMiddleware())
+	{
+		registerProfileRoutes(authenticated)
+		registerUserRoutes(authenticated)
+		registerRecommendationRoutes(authenticated)
+		registerConnectionRoutes(authenticated)
+		registerChatRoutes(authenticated)
+	}
+}
 
-	// --- Эндпоинты для аутентифицированного пользователя ---
-	// Создаем subrouter для защищенных маршрутов и подключаем AuthMiddleware.
-	authRouter := router.PathPrefix("/").Subrouter()
-	authRouter.Use(controllers.AuthMiddleware) // Подключаем middleware аутентификации
+func registerProfileRoutes(r *gin.RouterGroup) {
+	profile := r.Group("/me")
+	{
+		profile.GET("", handlers.GetUserProfile)
+		profile.GET("/profile", handlers.GetUserProfileDetails)
+		profile.GET("/bio", handlers.GetUserFavorites)
+		profile.GET("/email", handlers.GetUserEmail)
+		profile.PUT("", handlers.UpdateUserProfile)
+		profile.PUT("/avatar", handlers.UpdateUserAvatar)
+		profile.DELETE("/avatar", handlers.ResetUserAvatar)
+	}
+}
 
-	authRouter.HandleFunc("/me", controllers.GetCurrentUser).Methods(http.MethodGet)
-	// Обновление профиля и биографии через PUT-метод.
-	authRouter.HandleFunc("/me/profile", controllers.UpdateCurrentUserProfile).Methods(http.MethodPut)
-	authRouter.HandleFunc("/me/bio", controllers.UpdateCurrentUserBio).Methods(http.MethodPut)
-	// Загрузка фотографии профиля.
-	authRouter.HandleFunc("/me/photo", controllers.UploadUserPhoto).Methods(http.MethodPost)
+func registerUserRoutes(r *gin.RouterGroup) {
+	users := r.Group("/users/:id")
+	{
+		users.GET("", handlers.GetUserNameAndPic)
+		users.GET("/profile", handlers.GetUserInfo)
+		users.GET("/bio", handlers.GetUserFavs)
+	}
 
-	// --- Остальные эндпоинты (рекомендации, связи, чат) ---
-	authRouter.HandleFunc("/recommendations", controllers.GetRecommendations).Methods(http.MethodGet)
-	authRouter.HandleFunc("/connections", controllers.GetConnections).Methods(http.MethodGet)
-	authRouter.HandleFunc("/connections/{id}", controllers.PostConnection).Methods(http.MethodPost)
-	authRouter.HandleFunc("/connections/{id}", controllers.PutConnection).Methods(http.MethodPut)
-	authRouter.HandleFunc("/connections/{id}", controllers.DeleteConnection).Methods(http.MethodDelete)
-	authRouter.HandleFunc("/chats", controllers.GetChats).Methods(http.MethodGet)
-	authRouter.HandleFunc("/chats/{chat_id}", controllers.GetChatHistory).Methods(http.MethodGet)
-	authRouter.HandleFunc("/chats/{chat_id}/messages", controllers.PostMessage).Methods(http.MethodPost)
+	bio := r.Group("/me/bio")
+	{
+		bio.GET("/locations", handlers.GetLocations)
+		bio.GET("/genres", handlers.GetGenres)
+		bio.GET("/movies", handlers.GetMovies)
+		bio.GET("/directors", handlers.GetDirectors)
+		bio.GET("/actors", handlers.GetActors)
+		bio.GET("/actresses", handlers.GetActresses)
+	}
+}
 
-	// --- Административные эндпоинты ---
-	// Создаем отдельный subrouter для администрирования и применяем к нему AdminOnly middleware.
-	adminRouter := authRouter.PathPrefix("/admin").Subrouter()
-	adminRouter.Use(middleware.AdminOnly(db))
-	adminRouter.HandleFunc("/reset-fixtures", controllers.ResetFixtures).Methods(http.MethodPost)
+func registerRecommendationRoutes(r *gin.RouterGroup) {
+	recs := r.Group("/recommendations")
+	{
+		recs.GET("", handlers.MatchUsers)
+		recs.POST("/scores", handlers.GetRecommendations)
+		recs.PUT("/radius", handlers.SetRadius)
+		recs.GET("/radius", handlers.SetRadius)
+		recs.POST("/dismiss", handlers.DismissUser)
+	}
+}
 
-	logrus.Info("Routes successfully initialized")
+func registerConnectionRoutes(r *gin.RouterGroup) {
+	conn := r.Group("/connections")
+	{
+		conn.POST("/request", handlers.SendConnectionRequest)
+		conn.GET("/requests", handlers.GetConnectionRequests)
+		conn.POST("/accept", handlers.AcceptConnectionRequest)
+		conn.POST("/reject", handlers.RejectConnectionRequest)
+		conn.GET("", handlers.GetConnectedUsers)
+		conn.POST("/remove", handlers.RemoveConnection)
+	}
+}
+
+func registerChatRoutes(r *gin.RouterGroup) {
+	chat := r.Group("/chat")
+	{
+		chat.POST("/send", handlers.SendChatMessage)
+		chat.GET("/messages", handlers.FetchChatMessages)
+		chat.GET("/last-message", handlers.RetrieveLastMessageTimestamp)
+		chat.POST("/mark-read", handlers.MarkMessagesRead)
+		chat.GET("/unread", handlers.FetchUnreadMessageCounts)
+	}
 }

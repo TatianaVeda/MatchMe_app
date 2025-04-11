@@ -2,8 +2,9 @@ package models
 
 import (
 	"errors"
-	"m/backend/utils"
 	"time"
+
+	"backend/utils"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"

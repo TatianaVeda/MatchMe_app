@@ -14,15 +14,17 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const success = await register(formData)
-    if (success) {
-      toast.success('Registration successful! Please sign in.')
-      navigate('/login')
-    } else {
-      if (error.response && error.response.data && error.response.data.error) {
-        toast.error(error.response.data.error);
+    try {
+      const success = await register(formData)
+      if (success) {
+        toast.success('Registration successful! Please sign in.')
+        navigate('/login')
+      }
+    } catch (error) {
+      if (error.response?.data?.error) {
+        toast.error(error.response.data.error)
       } else {
-        toast.error('Registration failed. Please try again.');
+        toast.error('Registration failed. Please try again.')
       }
     }
   }

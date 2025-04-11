@@ -16,19 +16,17 @@ export const useAuthStore = create((set) => ({
       return true
     } catch (error) {
       console.error('Login failed:', error)
-      return false
+      throw error
     }
   },
 
   register: async (userData) => {
     try {
-      const response = await axios.post('/api/register', userData)
+      await axios.post('/api/register', userData)
       return true
     } catch (error) {
-      console.error('Registration failed:', error);
-      console.error('Registration failed message:', error.message);
-      console.error('Registration failed response:', error.response);
-      return false
+      console.error('Registration failed:', error)
+      throw error
     }
   },
 
