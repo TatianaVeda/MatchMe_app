@@ -1,12 +1,12 @@
 package main
 
 import (
-	"backend/database"
-	"backend/models"
-	"backend/routes"
-	"backend/websocket"
 	"fmt"
 	"log"
+	"m/backend/database"
+	"m/backend/models"
+	"m/backend/routes"
+	"m/backend/websocket"
 	"os"
 
 	"github.com/gin-contrib/cors"

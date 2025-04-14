@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"backend/database"
-	"backend/models"
 	"fmt"
+	"m/backend/database"
+	"m/backend/models"
 )
 
 func GeneratePredefinedUsers() {
