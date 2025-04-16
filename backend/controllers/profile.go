@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"m/backend/config"
@@ -234,6 +235,60 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logrus.Infof("Profile photo for user %s updated successfully", currentUserID)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(profile)
+}
+
+// DeleteUserPhoto – endpoint для удаления (сброса) фотографии профиля
+func DeleteUserPhoto(w http.ResponseWriter, r *http.Request) {
+	// Получаем ID текущего пользователя из контекста (установленный в AuthMiddleware)
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		logrus.Error("DeleteUserPhoto: userID не найден в контексте")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	currentUserID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		logrus.Errorf("DeleteUserPhoto: неверный userID: %v", err)
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	// Загружаем профиль пользователя
+	var profile models.Profile
+	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
+		logrus.Errorf("DeleteUserPhoto: профиль для пользователя %s не найден: %v", currentUserID, err)
+		http.Error(w, "Profile not found", http.StatusNotFound)
+		return
+	}
+
+	// Значение по умолчанию для фото (установленное при инициализации профиля)
+	defaultPhotoURL := "/static/images/default.png"
+
+	// Если фото не является значением по умолчанию, попробуем удалить физический файл
+	if profile.PhotoURL != "" && profile.PhotoURL != defaultPhotoURL {
+		uploadDir := config.AppConfig.MediaUploadDir // например, "./static/images"
+		// Предполагаем, что profile.PhotoURL имеет вид "/static/images/имя_файла.ext"
+		fileName := strings.TrimPrefix(profile.PhotoURL, "/static/images/")
+		filePath := filepath.Join(uploadDir, fileName)
+		if err := os.Remove(filePath); err != nil {
+			// Если файла нет или возникла другая ошибка, можно залогировать предупреждение, но не прерывать выполнение
+			logrus.Warnf("DeleteUserPhoto: ошибка удаления файла %s: %v", filePath, err)
+		} else {
+			logrus.Infof("DeleteUserPhoto: файл %s успешно удалён", filePath)
+		}
+	}
+
+	// Сброс значения photo_url до значения по умолчанию
+	profile.PhotoURL = defaultPhotoURL
+	if err := profileDB.Save(&profile).Error; err != nil {
+		logrus.Errorf("DeleteUserPhoto: ошибка обновления профиля для пользователя %s: %v", currentUserID, err)
+		http.Error(w, "Error updating profile", http.StatusInternalServerError)
+		return
+	}
+
+	logrus.Infof("DeleteUserPhoto: фото профиля для пользователя %s сброшено на значение по умолчанию", currentUserID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(profile)
 }

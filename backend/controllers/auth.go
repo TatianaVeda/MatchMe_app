@@ -4,9 +4,11 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"m/backend/config"
 	"m/backend/models"
+	"m/backend/services"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/sirupsen/logrus"
@@ -53,6 +55,20 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		if !ok {
 			logrus.Error("AuthMiddleware: неверные claims токена")
 			http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+			return
+		}
+
+		// Дополнительная проверка срока действия токена.
+		if claims.ExpiresAt < time.Now().Unix() {
+			logrus.Warn("AuthMiddleware: срок действия токена истёк")
+			http.Error(w, "Token expired", http.StatusUnauthorized)
+			return
+		}
+
+		// Проверка, не находится ли токен в чёрном списке.
+		if services.IsBlacklisted(tokenString) {
+			logrus.Warn("AuthMiddleware: токен находится в чёрном списке (отозван)")
+			http.Error(w, "Token revoked", http.StatusUnauthorized)
 			return
 		}
 

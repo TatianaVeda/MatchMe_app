@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
@@ -20,8 +21,8 @@ import (
 // User представляет таблицу пользователей.
 type User struct {
 	// Используем UUID в качестве первичного ключа.
-	//ID           uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
-	ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	ID uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	//ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	Email        string    `gorm:"unique;not null" json:"-"` // email не будет сериализован в JSON
 	PasswordHash string    `gorm:"not null" json:"-"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
@@ -185,4 +186,31 @@ func Migrate(db *gorm.DB) error {
 		logrus.Info("Migrate: миграция выполнена успешно")
 	}
 	return err
+}
+
+// m/backend/models/auth.go
+
+// Access token будет иметь короткий срок жизни (например, 15 минут).
+func GenerateAccessToken(userID uuid.UUID, secret string) (string, error) {
+	claims := JWTClaims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // access token действует 15 минут
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
+func GenerateRefreshToken(userID uuid.UUID, secret string, expiresInMinutes int) (string, error) {
+	claims := JWTClaims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresInMinutes) * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
 }

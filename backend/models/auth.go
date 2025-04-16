@@ -110,6 +110,8 @@ func AuthenticateUser(db *gorm.DB, email, password string) (*User, error) {
 // JWTClaims определяет полезную нагрузку для JWT-токена.
 type JWTClaims struct {
 	UserID uuid.UUID `json:"user_id"`
+	// Добавляем явное поле ExpiresAt, если вам нужно контролировать его отдельно
+	ExpiresAt int64 `json:"exp"`
 	jwt.RegisteredClaims
 }
 

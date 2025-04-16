@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -26,10 +27,13 @@ func InitChatsController(db *gorm.DB) {
 
 // ChatSummary представляет сводную информацию о чате.
 type ChatSummary struct {
-	ChatID      uint           `json:"chat_id"`
-	OtherUserID uuid.UUID      `json:"other_user_id"`
-	LastMessage MessageSummary `json:"last_message"`
-	UnreadCount int            `json:"unread_count"`
+	ChatID          uint           `json:"chat_id"`
+	OtherUserID     uuid.UUID      `json:"other_user_id"`
+	LastMessage     MessageSummary `json:"last_message"`
+	UnreadCount     int            `json:"unread_count"`
+	OtherUserOnline bool           `json:"other_user_online"`
+	IsTyping        bool           `json:"is_typing"`
+	ChatCreatedAt   time.Time      `json:"-"` // Используется для сортировки, но не возвращается клиенту
 }
 
 // MessageSummary представляет сводную информацию о последнем сообщении.
@@ -110,13 +114,46 @@ func GetChats(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		summaries = append(summaries, ChatSummary{
-			ChatID:      chat.ID,
-			OtherUserID: otherUserID,
-			LastMessage: lastMessageSummary,
-			UnreadCount: int(unreadCount),
-		})
+		// Извлекаем профиль другого пользователя для индикатора онлайн/офлайн.
+		var otherProfile models.Profile
+		otherOnline := false
+		if err := chatsDB.First(&otherProfile, "user_id = ?", otherUserID).Error; err == nil {
+			otherOnline = otherProfile.Online
+		}
+
+		summary := ChatSummary{
+			ChatID:          chat.ID,
+			OtherUserID:     otherUserID,
+			LastMessage:     lastMessageSummary,
+			UnreadCount:     int(unreadCount),
+			OtherUserOnline: otherOnline,
+			IsTyping:        false,          // Изначально false; реальное обновление происходит в режиме реального времени через WebSocket.
+			ChatCreatedAt:   chat.CreatedAt, // Сохраняем время создания чата для сортировки
+		}
+		// Проверяем, набирает ли текст другой пользователь в этом чате
+		if sockets.IsUserTypingInChat(summary.ChatID, summary.OtherUserID.String()) {
+			summary.IsTyping = true
+		}
+		summaries = append(summaries, summary)
 	}
+
+	// Сортируем чаты по времени последней активности.
+	sort.Slice(summaries, func(i, j int) bool {
+		var timeI, timeJ time.Time
+		// Если чат имеет последнее сообщение, используем его Timestamp, иначе – время создания чата.
+		if !summaries[i].LastMessage.Timestamp.IsZero() {
+			timeI = summaries[i].LastMessage.Timestamp
+		} else {
+			timeI = summaries[i].ChatCreatedAt
+		}
+		if !summaries[j].LastMessage.Timestamp.IsZero() {
+			timeJ = summaries[j].LastMessage.Timestamp
+		} else {
+			timeJ = summaries[j].ChatCreatedAt
+		}
+		// Сортировка по убыванию времени (более активные чаты наверху)
+		return timeI.After(timeJ)
+	})
 
 	logrus.Infof("GetChats: получено %d чатов для пользователя %s", len(summaries), currentUserID)
 	w.Header().Set("Content-Type", "application/json")

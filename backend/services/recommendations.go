@@ -49,6 +49,16 @@ func (rs *RecommendationService) GetRecommendationsForUser(currentUserID uuid.UU
 		return nil, errors.New("заполните профиль и биографию для получения рекомендаций")
 	}
 
+	if currentUser.Profile.FirstName == "" || currentUser.Profile.LastName == "" {
+		logrus.Warnf("GetRecommendationsForUser: профиль пользователя %s не заполнен полностью", currentUserID)
+		return nil, errors.New("пожалуйста, заполните ваш профиль (имя и фамилия)")
+	}
+
+	if currentUser.Bio.Interests == "" || currentUser.Bio.Hobbies == "" {
+		logrus.Warnf("GetRecommendationsForUser: биография пользователя %s не заполнена полностью", currentUserID)
+		return nil, errors.New("пожалуйста, заполните вашу биографию (интересы, хобби)")
+	}
+
 	// Извлекаем кандидатов – всех пользователей, кроме текущего.
 	var candidates []models.User
 	if err := rs.DB.

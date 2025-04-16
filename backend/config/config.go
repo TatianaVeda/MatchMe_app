@@ -10,16 +10,17 @@ import (
 )
 
 type Config struct {
-	ServerPort     string
-	WebSocketPort  string
-	DatabaseURL    string
-	JWTSecret      string
-	JWTExpiresIn   int // время в минутах
-	MediaUploadDir string
-	Environment    string
-	IsDev          bool
-	IsProd         bool
-	AllowedOrigins []string // для CORS
+	ServerPort          string
+	WebSocketPort       string
+	DatabaseURL         string
+	JWTSecret           string
+	JWTExpiresIn        int // время в минутах
+	JWTRefreshExpiresIn int // время в минутах
+	MediaUploadDir      string
+	Environment         string
+	IsDev               bool
+	IsProd              bool
+	AllowedOrigins      []string // для CORS
 
 	// Новые параметры:
 	SMTPServer   string
@@ -38,14 +39,15 @@ var AppConfig *Config
 // LoadConfig загружает конфигурацию из переменных окружения.
 func LoadConfig() {
 	AppConfig = &Config{
-		ServerPort:     getEnv("SERVER_PORT", "8080"),
-		WebSocketPort:  getEnv("WEBSOCKET_PORT", "8081"),
-		DatabaseURL:    getEnv("DATABASE_URL", "postgres://user:pass@localhost:5432/sopostavmenya?sslmode=disable"),
-		JWTSecret:      getEnv("JWT_SECRET", "supersecretjwtkey"),
-		JWTExpiresIn:   getEnvAsInt("JWT_EXPIRES_IN", 60),
-		MediaUploadDir: getEnv("MEDIA_UPLOAD_DIR", "./static/images"),
-		Environment:    strings.ToLower(getEnv("ENVIRONMENT", "development")),
-		AllowedOrigins: strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000"), ","),
+		ServerPort:          getEnv("SERVER_PORT", "8080"),
+		WebSocketPort:       getEnv("WEBSOCKET_PORT", "8081"),
+		DatabaseURL:         getEnv("DATABASE_URL", "postgres://user:pass@localhost:5432/sopostavmenya?sslmode=disable"),
+		JWTSecret:           getEnv("JWT_SECRET", "supersecretjwtkey"),
+		JWTExpiresIn:        getEnvAsInt("JWT_EXPIRES_IN", 60),
+		JWTRefreshExpiresIn: getEnvAsInt("JWT_REFRESH_EXPIRES_IN", 10080),
+		MediaUploadDir:      getEnv("MEDIA_UPLOAD_DIR", "./static/images"),
+		Environment:         strings.ToLower(getEnv("ENVIRONMENT", "development")),
+		AllowedOrigins:      strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000"), ","),
 
 		// Новые параметры:
 		SMTPServer:   getEnv("SMTP_SERVER", "smtp.example.com"),

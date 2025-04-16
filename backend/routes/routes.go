@@ -19,13 +19,17 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	controllers.InitRecommendationControllerService(db)
 	controllers.InitConnectionsController(db)
 	controllers.InitChatsController(db)
-	controllers.InitProfileController(db)  // Инициализация контроллеров профиля
-	controllers.InitFixturesController(db) // Инициализация фикстур
+	controllers.InitProfileController(db)        // Инициализация контроллеров профиля
+	controllers.InitFixturesController(db)       // Инициализация фикстур
+	controllers.InitAuthenticationController(db) // Добавляем инициализацию нашего нового контроллера
 
 	// --- Публичные эндпоинты пользователей ---
+	router.HandleFunc("/signup", controllers.Signup).Methods(http.MethodPost)
 	router.HandleFunc("/users/{id}", controllers.GetUser).Methods(http.MethodGet)
 	router.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
 	router.HandleFunc("/users/{id}/bio", controllers.GetUserBio).Methods(http.MethodGet)
+	// Эндпоинт для обновления токенов не требует аутентификации (он принимает refresh токен)
+	router.HandleFunc("/refresh", controllers.RefreshToken).Methods(http.MethodPost)
 
 	// --- Эндпоинты для аутентифицированного пользователя ---
 	// Создаем subrouter для защищенных маршрутов и подключаем AuthMiddleware.
@@ -38,6 +42,8 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	authRouter.HandleFunc("/me/bio", controllers.UpdateCurrentUserBio).Methods(http.MethodPut)
 	// Загрузка фотографии профиля.
 	authRouter.HandleFunc("/me/photo", controllers.UploadUserPhoto).Methods(http.MethodPost)
+	authRouter.HandleFunc("/me/photo", controllers.DeleteUserPhoto).Methods(http.MethodDelete)
+	authRouter.HandleFunc("/logout", controllers.Logout).Methods(http.MethodPost) // Новый endpoint для выхода
 
 	// --- Остальные эндпоинты (рекомендации, связи, чат) ---
 	authRouter.HandleFunc("/recommendations", controllers.GetRecommendations).Methods(http.MethodGet)

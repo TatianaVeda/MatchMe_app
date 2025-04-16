@@ -26,7 +26,9 @@ type Client struct {
 	UserID string          // Идентификатор пользователя (например, извлекается из запроса)
 	Send   chan []byte     // Канал для отправки сообщений клиенту
 	Chats  map[uint]bool   // Список подписанных чатов (chatID -> true)
-	Mutex  sync.Mutex      // Для синхронизации доступа к полю Chats
+	// Новое поле: для хранения состояния набора текста для каждого чата
+	TypingChats map[uint]bool
+	Mutex       sync.Mutex // Для синхронизации доступа к полю Chats
 }
 
 // Hub управляет клиентами и рассылкой сообщений по чатам.
@@ -46,6 +48,27 @@ var hub = Hub{
 	Broadcast:         make(chan BroadcastMessage),
 	Register:          make(chan *Client),
 	Unregister:        make(chan *Client),
+}
+
+// IsUserTypingInChat проверяет, набирает ли пользователь с заданным userID текст в чате chatID.
+func IsUserTypingInChat(chatID uint, userID string) bool {
+	hub.Mutex.RLock()
+	defer hub.Mutex.RUnlock()
+	subs, ok := hub.ChatSubscriptions[chatID]
+	if !ok {
+		return false
+	}
+	for client := range subs {
+		if client.UserID == userID {
+			client.Mutex.Lock()
+			typing, exists := client.TypingChats[chatID]
+			client.Mutex.Unlock()
+			if exists && typing {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // RunHub запускает цикл обработки регистрации, отмены регистрации и рассылки сообщений.
@@ -127,10 +150,11 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		Conn:   conn,
-		Send:   make(chan []byte, 256),
-		UserID: userID,
-		Chats:  make(map[uint]bool),
+		Conn:        conn,
+		Send:        make(chan []byte, 256),
+		UserID:      userID,
+		Chats:       make(map[uint]bool),
+		TypingChats: make(map[uint]bool),
 	}
 
 	hub.Register <- client
@@ -167,46 +191,135 @@ func (c *Client) readPump() {
 			break
 		}
 
+		// var req struct {
+		// 	Action   string `json:"action"`
+		// 	ChatID   string `json:"chat_id"`   // для подписки/отписки, если необходимо
+		// 	IsOnline *bool  `json:"is_online"` // для heartbeat-сообщения
+		// }
+		// if err := json.Unmarshal(msg, &req); err != nil {
+		// 	logrus.Errorf("readPump: ошибка разбора сообщения от клиента %s: %v", c.UserID, err)
+		// 	continue
+		// }
+
+		// chatID, err := strconv.ParseUint(req.ChatID, 10, 64)
+		// if err != nil {
+		// 	logrus.Warnf("readPump: неверный chat_id '%s' от клиента %s", req.ChatID, c.UserID)
+		// 	continue
+		// }
+
+		// c.Mutex.Lock()
+		// switch req.Action {
+		// case "subscribe":
+		// 	c.Chats[uint(chatID)] = true
+		// 	hub.Mutex.Lock()
+		// 	if hub.ChatSubscriptions[uint(chatID)] == nil {
+		// 		hub.ChatSubscriptions[uint(chatID)] = make(map[*Client]bool)
+		// 	}
+		// 	hub.ChatSubscriptions[uint(chatID)][c] = true
+		// 	hub.Mutex.Unlock()
+		// 	logrus.Infof("readPump: клиент %s подписался на чат %d", c.UserID, chatID)
+		// case "unsubscribe":
+		// 	delete(c.Chats, uint(chatID))
+		// 	hub.Mutex.Lock()
+		// 	if subs, exists := hub.ChatSubscriptions[uint(chatID)]; exists {
+		// 		delete(subs, c)
+		// 		if len(subs) == 0 {
+		// 			delete(hub.ChatSubscriptions, uint(chatID))
+		// 		}
+		// 	}
+		// 	hub.Mutex.Unlock()
+		// 	logrus.Infof("readPump: клиент %s отписался от чата %d", c.UserID, chatID)
+		// case "heartbeat":
+		// 	// Если клиент отправил heartbeat, то ожидаем, что поле is_online передано
+		// 	if req.IsOnline != nil {
+		// 		logrus.Debugf("readPump: получен heartbeat от клиента %s, is_online: %v", c.UserID, *req.IsOnline)
+		// 		// Обновляем онлайн-статус пользователя в базе данных.
+		// 		go updateUserOnlineStatus(c.UserID, *req.IsOnline)
+		// 	} else {
+		// 		logrus.Warnf("readPump: heartbeat от клиента %s без поля is_online", c.UserID)
+		// 	}
+		// default:
+		// 	logrus.Warnf("readPump: неизвестное действие '%s' от клиента %s", req.Action, c.UserID)
+		// }
+
 		var req struct {
-			Action string `json:"action"`
-			ChatID string `json:"chat_id"`
+			Action   string `json:"action"`
+			ChatID   string `json:"chat_id"`   // требуется только для subscribe/unsubscribe
+			IsOnline *bool  `json:"is_online"` // используется для heartbeat
+			IsTyping *bool  `json:"is_typing"` // новое поле для набора текста
 		}
 		if err := json.Unmarshal(msg, &req); err != nil {
 			logrus.Errorf("readPump: ошибка разбора сообщения от клиента %s: %v", c.UserID, err)
 			continue
 		}
 
-		chatID, err := strconv.ParseUint(req.ChatID, 10, 64)
-		if err != nil {
-			logrus.Warnf("readPump: неверный chat_id '%s' от клиента %s", req.ChatID, c.UserID)
-			continue
-		}
-
-		c.Mutex.Lock()
 		switch req.Action {
-		case "subscribe":
-			c.Chats[uint(chatID)] = true
-			hub.Mutex.Lock()
-			if hub.ChatSubscriptions[uint(chatID)] == nil {
-				hub.ChatSubscriptions[uint(chatID)] = make(map[*Client]bool)
+		case "subscribe", "unsubscribe":
+			chatID, err := strconv.ParseUint(req.ChatID, 10, 64)
+			if err != nil {
+				logrus.Warnf("readPump: неверный chat_id '%s' от клиента %s", req.ChatID, c.UserID)
+				continue
 			}
-			hub.ChatSubscriptions[uint(chatID)][c] = true
-			hub.Mutex.Unlock()
-			logrus.Infof("readPump: клиент %s подписался на чат %d", c.UserID, chatID)
-		case "unsubscribe":
-			delete(c.Chats, uint(chatID))
-			hub.Mutex.Lock()
-			if subs, exists := hub.ChatSubscriptions[uint(chatID)]; exists {
-				delete(subs, c)
-				if len(subs) == 0 {
-					delete(hub.ChatSubscriptions, uint(chatID))
+			c.Mutex.Lock()
+			if req.Action == "subscribe" {
+				// логика подписки
+				c.Chats[uint(chatID)] = true
+				hub.Mutex.Lock()
+				if hub.ChatSubscriptions[uint(chatID)] == nil {
+					hub.ChatSubscriptions[uint(chatID)] = make(map[*Client]bool)
 				}
+				hub.ChatSubscriptions[uint(chatID)][c] = true
+				hub.Mutex.Unlock()
+				logrus.Infof("readPump: клиент %s подписался на чат %d", c.UserID, chatID)
+			} else {
+				// логика отписки
+				delete(c.Chats, uint(chatID))
+				hub.Mutex.Lock()
+				if subs, exists := hub.ChatSubscriptions[uint(chatID)]; exists {
+					delete(subs, c)
+					if len(subs) == 0 {
+						delete(hub.ChatSubscriptions, uint(chatID))
+					}
+				}
+				hub.Mutex.Unlock()
+				logrus.Infof("readPump: клиент %s отписался от чата %d", c.UserID, chatID)
 			}
-			hub.Mutex.Unlock()
-			logrus.Infof("readPump: клиент %s отписался от чата %d", c.UserID, chatID)
+			c.Mutex.Unlock()
+		case "heartbeat":
+			if req.IsOnline != nil {
+				logrus.Debugf("readPump: получен heartbeat от клиента %s, is_online: %v", c.UserID, *req.IsOnline)
+				go updateUserOnlineStatus(c.UserID, *req.IsOnline)
+			} else {
+				logrus.Warnf("readPump: heartbeat от клиента %s без поля is_online", c.UserID)
+			}
+
+		case "typing":
+			// Обработка события набора текста
+			chatID, err := strconv.ParseUint(req.ChatID, 10, 64)
+			if err != nil {
+				logrus.Warnf("readPump: неверный chat_id '%s' в сообщении typing от клиента %s", req.ChatID, c.UserID)
+				continue
+			}
+			if req.IsTyping == nil {
+				logrus.Warnf("readPump: поле is_typing отсутствует в сообщении typing от клиента %s", c.UserID)
+				continue
+			}
+			c.Mutex.Lock()
+			// Обновляем состояние набора текста для конкретного чата
+			c.TypingChats[uint(chatID)] = *req.IsTyping
+			c.Mutex.Unlock()
+			// Отправляем уведомление другим участникам чата
+			uid, err := uuid.Parse(c.UserID)
+			if err != nil {
+				logrus.Errorf("readPump: не удалось распарсить userID клиента %s: %v", c.UserID, err)
+				continue
+			}
+			go BroadcastTypingNotification(uid, uint(chatID), *req.IsTyping)
+
 		default:
 			logrus.Warnf("readPump: неизвестное действие '%s' от клиента %s", req.Action, c.UserID)
 		}
+
 		c.Mutex.Unlock()
 	}
 }

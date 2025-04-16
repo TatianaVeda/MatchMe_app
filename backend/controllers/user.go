@@ -273,9 +273,18 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Если некоторые важные поля пустые, можно вернуть информативное сообщение
+	if profile.FirstName == "" || profile.LastName == "" {
+		http.Error(w, "Пожалуйста, заполните ваше имя и фамилию в профиле", http.StatusBadRequest)
+		return
+	}
+
 	logrus.Infof("Profile for current user %s retrieved", userID)
 	response := map[string]interface{}{
-		"about": profile.About,
+		"about":      profile.About,
+		"first_name": profile.FirstName,
+		"last_name":  profile.LastName,
+		"photo_url":  profile.PhotoURL,
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -294,6 +303,11 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	if err := db.First(&bio, "user_id = ?", userID).Error; err != nil {
 		logrus.Errorf("GetCurrentUserBio: bio for user %s not found: %v", userID, err)
 		http.Error(w, "Bio not found", http.StatusNotFound)
+		return
+	}
+	// Если обязательные поля биографии пусты, возвращаем сообщение с просьбой заполнить данные.
+	if bio.Interests == "" || bio.Hobbies == "" {
+		http.Error(w, "Пожалуйста, заполните вашу биографию (интересы, хобби)", http.StatusBadRequest)
 		return
 	}
 
