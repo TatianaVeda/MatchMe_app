@@ -8,9 +8,6 @@
 # testing
 /coverage
 
-#/frontend
-/tests
-
 # production
 /build
 

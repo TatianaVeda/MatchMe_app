@@ -370,7 +370,18 @@ func (c *Client) writePump() {
 
 // BroadcastNewMessage сериализует объект модели (например, models.Message) и отправляет его в hub.
 func BroadcastNewMessage(msg models.Message) error {
-	data, err := json.Marshal(msg)
+	//data, err := json.Marshal(msg)
+	// ▶ оборачиваем сообщение в единый протокол с полем type
+	payload := map[string]interface{}{
+		"type":      "message",
+		"chat_id":   msg.ChatID,
+		"id":        msg.ID,
+		"sender_id": msg.SenderID.String(),
+		"content":   msg.Content,
+		"timestamp": msg.Timestamp.Unix(),
+		"read":      msg.Read,
+	}
+	data, err := json.Marshal(payload)
 	if err != nil {
 		logrus.Errorf("BroadcastNewMessage: ошибка маршалинга сообщения: %v", err)
 		return err
