@@ -27,19 +27,25 @@ func InitChatsController(db *gorm.DB) {
 
 // ChatSummary представляет сводную информацию о чате.
 type ChatSummary struct {
-	ChatID          uint           `json:"chat_id"`
-	OtherUserID     uuid.UUID      `json:"other_user_id"`
-	LastMessage     MessageSummary `json:"last_message"`
-	UnreadCount     int            `json:"unread_count"`
-	OtherUserOnline bool           `json:"other_user_online"`
-	IsTyping        bool           `json:"is_typing"`
+	ChatID      uint      `json:"chatId"`
+	OtherUserID uuid.UUID `json:"otherUserId"`
+	OtherUser   *struct {
+		ID        uuid.UUID `json:"id"`
+		FirstName string    `json:"firstName"`
+		LastName  string    `json:"lastName"`
+		PhotoURL  string    `json:"photoUrl"`
+	} `json:"otherUser"`
+	LastMessage     MessageSummary `json:"lastMessage"`
+	UnreadCount     int            `json:"unreadCount"`
+	OtherUserOnline bool           `json:"otherUserOnline"`
+	IsTyping        bool           `json:"isTyping"`
 	ChatCreatedAt   time.Time      `json:"-"` // Используется для сортировки, но не возвращается клиенту
 }
 
 // MessageSummary представляет сводную информацию о последнем сообщении.
 type MessageSummary struct {
 	ID        uint      `json:"id"`
-	SenderID  uuid.UUID `json:"sender_id"`
+	SenderID  uuid.UUID `json:"senderId"`
 	Content   string    `json:"content"`
 	Timestamp time.Time `json:"timestamp"`
 	Read      bool      `json:"read"`
@@ -129,7 +135,19 @@ func GetChats(w http.ResponseWriter, r *http.Request) {
 			OtherUserOnline: otherOnline,
 			IsTyping:        false,          // Изначально false; реальное обновление происходит в режиме реального времени через WebSocket.
 			ChatCreatedAt:   chat.CreatedAt, // Сохраняем время создания чата для сортировки
+			OtherUser: &struct {
+				ID        uuid.UUID `json:"id"`
+				FirstName string    `json:"firstName"`
+				LastName  string    `json:"lastName"`
+				PhotoURL  string    `json:"photoUrl"`
+			}{
+				ID:        otherUserID,
+				FirstName: otherProfile.FirstName,
+				LastName:  otherProfile.LastName,
+				PhotoURL:  otherProfile.PhotoURL,
+			},
 		}
+
 		// Проверяем, набирает ли текст другой пользователь в этом чате
 		if sockets.IsUserTypingInChat(summary.ChatID, summary.OtherUserID.String()) {
 			summary.IsTyping = true

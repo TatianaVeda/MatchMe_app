@@ -15,7 +15,7 @@ func TestGetRecommendationsForUser(t *testing.T) {
 	// Если переменная candidate2 не используется, её можно убрать.
 	// candidate2 := CreateTestUser(db, "cand2@example.com", "Candidate2", "cooking travel", "swimming")
 
-	recService := services.NewRecommendationService(db)
+	recService := services.NewRecommendationService(db, nil)
 	recIDs, err := recService.GetRecommendationsForUser(currentUser.ID)
 	if err != nil {
 		t.Fatalf("Ошибка получения рекомендаций: %v", err)

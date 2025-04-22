@@ -81,6 +81,14 @@ class WebSocketService {
     this.send({ action: 'heartbeat', is_online: isOnline });
   }
 
+  // новые методы подписки на чат
+  subscribe(chatId) {
+      this.send({ action: 'subscribe', chat_id: String(chatId) });
+    }
+    unsubscribe(chatId) {
+      this.send({ action: 'unsubscribe', chat_id: String(chatId) });
+    }
+
   addListener(cb) {
     if (!this.listeners.has(cb)) {
       this.listeners.add(cb);

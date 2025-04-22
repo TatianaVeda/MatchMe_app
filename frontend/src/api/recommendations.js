@@ -7,3 +7,8 @@ export const getRecommendations = async () => {
   const response = await api.get('/recommendations');
   return response.data;
 };
+
+// вот метод для decline
+export const declineRecommendation = (id) => {
+  return api.post(`/recommendations/${id}/decline`);
+};

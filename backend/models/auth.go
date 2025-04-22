@@ -42,7 +42,65 @@ func CheckPasswordHash(password, hash string) bool {
 
 // CreateUser регистрирует нового пользователя, выполняя валидацию email и пароля,
 // хэширование пароля и создание записи в БД.
+// func CreateUser(db *gorm.DB, email, password string) (*User, error) {
+// 	if err := utils.ValidateEmail(email); err != nil {
+// 		logrus.Warnf("CreateUser: неверный формат email %s: %v", email, err)
+// 		return nil, err
+// 	}
+// 	if err := utils.ValidatePassword(password); err != nil {
+// 		logrus.Warnf("CreateUser: пароль не соответствует требованиям: %v", err)
+// 		return nil, err
+// 	}
+
+// 	var count int64
+// 	if err := db.Model(&User{}).Where("email = ?", email).Count(&count).Error; err != nil {
+// 		logrus.Errorf("CreateUser: ошибка проверки существования email %s: %v", email, err)
+// 		return nil, err
+// 	}
+// 	if count > 0 {
+// 		logrus.Warnf("CreateUser: пользователь с данным email уже зарегистрирован")
+// 		return nil, errors.New("email already registered")
+// 	}
+
+// 	hash, err := HashPassword(password)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	user := &User{
+// 		ID:           uuid.New(),
+// 		Email:        email,
+// 		PasswordHash: hash,
+
+// 	}
+// 	user.Profile = Profile{UserID: user.ID}
+// 	user.Bio = Bio{UserID: user.ID}
+// 	user.Preference = Preference{UserID: user.ID}
+
+// 	if err := db.Create(user).Error; err != nil {
+// 		logrus.Errorf("CreateUser: ошибка создания пользователя %s: %v", email, err)
+// 		return nil, err
+// 	}
+// 	// Сразу создаём пустой профиль и биографию
+// 	user.Profile.UserID = user.ID
+// 	user.Bio.UserID = user.ID
+// 	user.Preference.UserID = user.ID
+// 	if err := db.Create(&user.Profile).Error; err != nil {
+// 		return nil, err
+// 	}
+// 	if err := db.Create(&user.Bio).Error; err != nil {
+// 		return nil, err
+// 	}
+// 	if err := db.Create(&user.Preference).Error; err != nil {
+// 		return nil, err
+// 	}
+
+// 	logrus.Infof("CreateUser: пользователь успешно создан")
+// 	return user, nil
+// }
+
 func CreateUser(db *gorm.DB, email, password string) (*User, error) {
+	// Валидация email и пароля
 	if err := utils.ValidateEmail(email); err != nil {
 		logrus.Warnf("CreateUser: неверный формат email %s: %v", email, err)
 		return nil, err
@@ -52,36 +110,43 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 		return nil, err
 	}
 
+	// Проверяем, что email ещё не занят
 	var count int64
 	if err := db.Model(&User{}).Where("email = ?", email).Count(&count).Error; err != nil {
 		logrus.Errorf("CreateUser: ошибка проверки существования email %s: %v", email, err)
 		return nil, err
 	}
 	if count > 0 {
-		logrus.Warnf("CreateUser: пользователь с данным email уже зарегистрирован")
+		logrus.Warn("CreateUser: пользователь с данным email уже зарегистрирован")
 		return nil, errors.New("email already registered")
 	}
 
+	// Хэшируем пароль
 	hash, err := HashPassword(password)
 	if err != nil {
 		return nil, err
 	}
 
+	// Формируем модель пользователя с вложенными структурами
 	user := &User{
 		ID:           uuid.New(),
 		Email:        email,
 		PasswordHash: hash,
+		Profile:      Profile{}, // GORM подставит user.ID автоматически
+		Bio:          Bio{},
+		Preference:   Preference{},
 	}
-	user.Profile = Profile{}
-	user.Bio = Bio{}
-	user.Preference = Preference{}
 
-	if err := db.Create(user).Error; err != nil {
-		logrus.Errorf("CreateUser: ошибка создания пользователя %s: %v", email, err)
+	// Сохраняем пользователя вместе со всеми ассоциациями
+	if err := db.
+		Session(&gorm.Session{FullSaveAssociations: true}).
+		Create(user).
+		Error; err != nil {
+		logrus.Errorf("CreateUser: ошибка создания пользователя и ассоциаций: %v", err)
 		return nil, err
 	}
 
-	logrus.Infof("CreateUser: пользователь успешно создан")
+	logrus.Infof("CreateUser: пользователь и связанные записи успешно созданы (ID=%s)", user.ID)
 	return user, nil
 }
 
@@ -109,7 +174,7 @@ func AuthenticateUser(db *gorm.DB, email, password string) (*User, error) {
 
 // JWTClaims определяет полезную нагрузку для JWT-токена.
 type JWTClaims struct {
-	UserID uuid.UUID `json:"user_id"`
+	UserID uuid.UUID `json:"userId"`
 	// Добавляем явное поле ExpiresAt, если вам нужно контролировать его отдельно
 	ExpiresAt int64 `json:"exp"`
 	jwt.RegisteredClaims
@@ -154,4 +219,30 @@ func ParseJWT(tokenString, secret string) (*JWTClaims, error) {
 
 	logrus.Debug("ParseJWT: токен успешно разобран")
 	return claims, nil
+}
+
+// Access token будет иметь короткий срок жизни (например, 15 минут).
+func GenerateAccessToken(userID uuid.UUID, secret string) (string, error) {
+	claims := JWTClaims{
+		UserID:    userID,
+		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(), // ваша установка
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // access token действует 15 минут
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
+func GenerateRefreshToken(userID uuid.UUID, secret string, expiresInMinutes int) (string, error) {
+	claims := JWTClaims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresInMinutes) * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
 }

@@ -1,132 +1,109 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import { Container, Box, Typography, TextField, Button } from '@mui/material';
 import { useAuthDispatch } from '../../contexts/AuthContext';
-// Импортируем метод signup из auth.js
 import { signup } from '../../api/auth';
+import { toast } from 'react-toastify';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+
+const SignupSchema = Yup.object().shape({
+  email: Yup.string()
+    .email('Некорректный формат email')
+    .required('Введите email'),
+  password: Yup.string()
+    .min(8, 'Пароль должен быть минимум 8 символов')
+    .required('Введите пароль'),
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref('password'), null], 'Пароли не совпадают')
+    .required('Подтвердите пароль'),
+});
 
 const Signup = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
   const navigate = useNavigate();
   const dispatch = useAuthDispatch();
-  const [loading, setLoading] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
 
-  // Обработка изменения полей формы
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (formErrors[e.target.name]) {
-      setFormErrors({ ...formErrors, [e.target.name]: '' });
-    }
-  };
-
-  // Простая валидация данных
-  const validate = () => {
-    const errors = {};
-    if (!formData.email) errors.email = "Введите email";
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = "Некорректный формат email";
-    }
-    if (!formData.password) errors.password = "Введите пароль";
-    if (formData.password && formData.password.length < 8) {
-      errors.password = "Пароль должен содержать минимум 8 символов";
-    }
-    if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = "Пароли не совпадают";
-    }
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Обработка отправки формы регистрации
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
-    setLoading(true);
+  const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      // Используем метод signup для регистрации пользователя
       const data = await signup({
-        email: formData.email,
-        password: formData.password
+        email: values.email,
+        password: values.password,
       });
-      // После успешной регистрации пользователь автоматически аутентифицируется
       dispatch({ type: 'LOGIN_SUCCESS', payload: data });
-      toast.success("Регистрация прошла успешно!");
+      toast.success('Регистрация прошла успешно!');
       navigate('/me');
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.message ||
-        "Ошибка регистрации. Проверьте введённые данные.";
-      toast.error(errorMessage);
+      toast.error(err.response?.data || 'Ошибка регистрации');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
     <Container maxWidth="sm">
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        sx={{ mt: 4, p: 3, border: '1px solid #ccc', borderRadius: 2 }}
-      >
-        <Typography variant="h4" component="h1" gutterBottom>
+      <Box sx={{ mt: 4, p: 3, border: '1px solid #ccc', borderRadius: 2 }}>
+        <Typography variant="h4" gutterBottom>
           Регистрация
         </Typography>
-        <TextField
-          label="Email"
-          name="email"
-          type="email"
-          fullWidth
-          margin="normal"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          error={!!formErrors.email}
-          helperText={formErrors.email}
-        />
-        <TextField
-          label="Пароль"
-          name="password"
-          type="password"
-          fullWidth
-          margin="normal"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          error={!!formErrors.password}
-          helperText={formErrors.password}
-        />
-        <TextField
-          label="Подтвердите пароль"
-          name="confirmPassword"
-          type="password"
-          fullWidth
-          margin="normal"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          required
-          error={!!formErrors.confirmPassword}
-          helperText={formErrors.confirmPassword}
-        />
-        <Button
-          variant="contained"
-          color="primary"
-          type="submit"
-          fullWidth
-          sx={{ mt: 2 }}
-          disabled={loading}
+
+        <Formik
+          initialValues={{ email: '', password: '', confirmPassword: '' }}
+          validationSchema={SignupSchema}
+          onSubmit={handleSubmit}
         >
-          {loading ? "Регистрация..." : "Зарегистрироваться"}
-        </Button>
-        <Typography variant="body2" sx={{ mt: 2 }}>
-          Уже есть аккаунт? <Link to="/login">Войти</Link>
-        </Typography>
+          {({ isSubmitting, touched, errors }) => (
+            <Form>
+              <Field
+                name="email"
+                as={TextField}
+                label="Email"
+                autoComplete="username" 
+                fullWidth
+                margin="normal"
+                error={touched.email && Boolean(errors.email)}
+                helperText={<ErrorMessage name="email" />}
+              />
+
+              <Field
+                name="password"
+                as={TextField}
+                label="Пароль"
+                type="password"
+                autoComplete="current-password"
+                fullWidth
+                margin="normal"
+                error={touched.password && Boolean(errors.password)}
+                helperText={<ErrorMessage name="password" />}
+              />
+
+              <Field
+                name="confirmPassword"
+                as={TextField}
+                label="Подтвердите пароль"
+                type="password"
+                fullWidth
+                margin="normal"
+                error={touched.confirmPassword && Boolean(errors.confirmPassword)}
+                helperText={<ErrorMessage name="confirmPassword" />}
+              />
+
+              <Button
+                variant="contained"
+                color="primary"
+                type="submit"
+                fullWidth
+                sx={{ mt: 2 }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
+              </Button>
+
+              <Typography variant="body2" sx={{ mt: 2 }}>
+                Уже есть аккаунт? <Link to="/login">Войти</Link>
+              </Typography>
+            </Form>
+          )}
+        </Formik>
       </Box>
     </Container>
   );

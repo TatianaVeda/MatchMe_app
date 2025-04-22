@@ -76,6 +76,14 @@ func main() {
 	// Инициализируем все маршруты, передавая подключение к БД
 	routes.InitRoutes(router, db)
 
+	// Раздача статики для картинок
+	// любой запрос к /static/... будет браться из папки ./static
+	router.PathPrefix("/static/").Handler(
+		http.StripPrefix("/static/",
+			http.FileServer(http.Dir(config.AppConfig.MediaUploadDir)),
+		),
+	)
+
 	// Запускаем WebSocket-сервер в отдельной горутине (на порту, указанном в конфигурации)
 	go func() {
 		wsAddr := ":" + config.AppConfig.WebSocketPort

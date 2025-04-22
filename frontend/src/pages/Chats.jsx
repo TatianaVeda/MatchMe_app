@@ -1,21 +1,23 @@
-import React, { useEffect } from 'react';
+// /m/frontend/src/pages/Chats.jsx
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
   Grid,
-  Card,
-  CardMedia,
-  Badge,
-  Box,
-  CircularProgress
+  Skeleton,
+  Box
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/index';
 import { toast } from 'react-toastify';
 import { useChatState, useChatDispatch } from '../contexts/ChatContext';
+import UserCard from '../components/UserCard';
 
 const Chats = () => {
+  const navigate = useNavigate();
   const { chats } = useChatState();
   const { setChats } = useChatDispatch();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadChats = async () => {
@@ -23,16 +25,27 @@ const Chats = () => {
         const { data } = await api.get('/chats');
         setChats(data);
       } catch {
-        toast.error("Ошибка загрузки чатов");
+        toast.error('Ошибка загрузки чатов');
+      } finally {
+        setLoading(false);
       }
     };
     loadChats();
   }, [setChats]);
 
-  if (chats === null) {
+  if (loading) {
     return (
-      <Container sx={{ mt: 4, textAlign: 'center' }}>
-        <CircularProgress />
+      <Container sx={{ mt: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Чаты
+        </Typography>
+        <Grid container spacing={2}>
+          {[...Array(6)].map((_, i) => (
+            <Grid item xs={12} sm={6} md={4} key={i}>
+              <Skeleton variant="rectangular" height={120} />
+            </Grid>
+          ))}
+        </Grid>
       </Container>
     );
   }
@@ -51,45 +64,29 @@ const Chats = () => {
         Чаты
       </Typography>
       <Grid container spacing={2}>
-        {chats.map((chat) => (
-          <Grid item xs={12} key={chat.chat_id}>
-            <Card sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
-              <Badge
-                color="success"
-                variant="dot"
-                invisible={!chat.otherUserOnline}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              >
-                <CardMedia
-                  component="img"
-                  sx={{ width: 80, height: 80, borderRadius: '50%', mr: 2 }}
-                  image={chat.otherUser?.photo_url || '/static/images/default.png'}
-                  alt={chat.otherUser ? `${chat.otherUser.firstName} ${chat.otherUser.lastName}` : chat.otherUserID}
-                />
-              </Badge>
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="h6">
-                  {chat.otherUser
-                    ? `${chat.otherUser.firstName} ${chat.otherUser.lastName}`
-                    : chat.otherUserID}
-                </Typography>
-                {chat.lastMessage && (
-                  <Typography variant="body2" color="textSecondary">
-                    {chat.lastMessage.content}
+        {chats.map(chat => (
+          <Grid item xs={12} sm={6} md={4} key={chat.chat_id}>
+            <Box
+              sx={{ position: 'relative', cursor: 'pointer' }}
+              onClick={() => navigate(`/chat/${chat.chat_id}`)}
+            >
+              <UserCard
+                user={{
+                  id:        chat.otherUserID,
+                  firstName: chat.otherUser?.firstName,
+                  lastName:  chat.otherUser?.lastName,
+                  photoUrl: chat.otherUser?.photoUrl,
+                  online:    chat.otherUserOnline
+                }}
+              />
+              {chat.unreadCount > 0 && (
+                <Box sx={{ position: 'absolute', top: 8, right: 16 }}>
+                  <Typography variant="caption" color="error">
+                    {chat.unreadCount}
                   </Typography>
-                )}
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                {chat.unreadCount > 0 && (
-                  <Badge color="error" badgeContent={chat.unreadCount} />
-                )}
-                {chat.isTyping && (
-                  <Typography variant="caption" color="primary">
-                    Набирает...
-                  </Typography>
-                )}
-              </Box>
-            </Card>
+                </Box>
+              )}
+            </Box>
           </Grid>
         ))}
       </Grid>

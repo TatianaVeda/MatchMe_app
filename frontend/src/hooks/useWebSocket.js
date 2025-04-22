@@ -33,7 +33,14 @@ const useWebSocket = (onMessage) => {
     WebSocketService.sendHeartbeat(isOnline);
   }, []);
 
-  return { sendMessage, sendTyping, sendHeartbeat };
+  const subscribe      = useCallback((chatId) => {
+        WebSocketService.subscribe(chatId);
+      }, []);
+      const unsubscribe    = useCallback((chatId) => {
+        WebSocketService.unsubscribe(chatId);
+      }, []);
+
+  return { sendMessage, sendTyping, sendHeartbeat, subscribe, unsubscribe };
 };
 
 export default useWebSocket;

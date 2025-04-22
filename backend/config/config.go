@@ -47,7 +47,7 @@ func LoadConfig() {
 		JWTRefreshExpiresIn: getEnvAsInt("JWT_REFRESH_EXPIRES_IN", 10080),
 		MediaUploadDir:      getEnv("MEDIA_UPLOAD_DIR", "./static/images"),
 		Environment:         strings.ToLower(getEnv("ENVIRONMENT", "development")),
-		AllowedOrigins:      strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000"), ","),
+		AllowedOrigins:      strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080"), ","),
 
 		// Новые параметры:
 		SMTPServer:   getEnv("SMTP_SERVER", "smtp.example.com"),

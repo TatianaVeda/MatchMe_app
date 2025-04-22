@@ -16,7 +16,7 @@ import (
 
 // BroadcastMessage определяет структуру сообщения для рассылки по чатам.
 type BroadcastMessage struct {
-	ChatID uint   `json:"chat_id"`
+	ChatID uint   `json:"chatId"`
 	Data   []byte `json:"data"`
 }
 
@@ -193,8 +193,8 @@ func (c *Client) readPump() {
 
 		// var req struct {
 		// 	Action   string `json:"action"`
-		// 	ChatID   string `json:"chat_id"`   // для подписки/отписки, если необходимо
-		// 	IsOnline *bool  `json:"is_online"` // для heartbeat-сообщения
+		// 	ChatID   string `json:"chatId"`   // для подписки/отписки, если необходимо
+		// 	IsOnline *bool  `json:"isOnline"` // для heartbeat-сообщения
 		// }
 		// if err := json.Unmarshal(msg, &req); err != nil {
 		// 	logrus.Errorf("readPump: ошибка разбора сообщения от клиента %s: %v", c.UserID, err)
@@ -244,9 +244,9 @@ func (c *Client) readPump() {
 
 		var req struct {
 			Action   string `json:"action"`
-			ChatID   string `json:"chat_id"`   // требуется только для subscribe/unsubscribe
-			IsOnline *bool  `json:"is_online"` // используется для heartbeat
-			IsTyping *bool  `json:"is_typing"` // новое поле для набора текста
+			ChatID   string `json:"chatId"`   // требуется только для subscribe/unsubscribe
+			IsOnline *bool  `json:"isOnline"` // используется для heartbeat
+			IsTyping *bool  `json:"isTyping"` // новое поле для набора текста
 		}
 		if err := json.Unmarshal(msg, &req); err != nil {
 			logrus.Errorf("readPump: ошибка разбора сообщения от клиента %s: %v", c.UserID, err)

@@ -1,85 +1,100 @@
-import React, { useState } from 'react';
+// /m/frontend/src/pages/Auth/Login.jsx
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import { Container, Box, Typography, TextField, Button } from '@mui/material';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
 import { useAuthDispatch } from '../../contexts/AuthContext';
-// Импортируем метод login из auth.js
 import { login } from '../../api/auth';
+import { toast } from 'react-toastify';
+
+const LoginSchema = Yup.object().shape({
+  email: Yup.string()
+    .email('Некорректный формат email')
+    .required('Введите email'),
+  password: Yup.string()
+    .min(8, 'Пароль должен быть минимум 8 символов')
+    .required('Введите пароль'),
+});
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
   const navigate = useNavigate();
   const dispatch = useAuthDispatch();
-  const [loading, setLoading] = useState(false);
 
-  // Обработка изменения полей формы
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // Обработка отправки формы
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      // Используем метод login вместо прямого вызова axios.post
-      const data = await login(formData);
-      // Ожидается, что сервер вернет объект с полями user, accessToken, refreshToken
+      const data = await login({
+        email: values.email,
+        password: values.password,
+      });
       dispatch({ type: 'LOGIN_SUCCESS', payload: data });
-      toast.success("Успешный вход в систему");
+      toast.success('Успешный вход в систему');
       navigate('/me');
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.message || "Ошибка входа. Проверьте введённые данные.";
-      toast.error(errorMessage);
+      const msg =
+        err.response?.data?.message ||
+        'Ошибка входа. Проверьте введённые данные.';
+      toast.error(msg);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
     <Container maxWidth="sm">
-      <Box 
-        component="form"
-        onSubmit={handleSubmit}
-        sx={{ mt: 4, p: 3, border: '1px solid #ccc', borderRadius: 2 }}
-      >
-        <Typography variant="h4" component="h1" gutterBottom>
+      <Box sx={{ mt: 4, p: 3, border: '1px solid #ccc', borderRadius: 2 }}>
+        <Typography variant="h4" gutterBottom>
           Вход
         </Typography>
-        <TextField
-          label="Email"
-          name="email"
-          type="email"
-          fullWidth
-          margin="normal"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-        <TextField
-          label="Пароль"
-          name="password"
-          type="password"
-          fullWidth
-          margin="normal"
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
-        <Button
-          variant="contained"
-          color="primary"
-          type="submit"
-          fullWidth
-          sx={{ mt: 2 }}
-          disabled={loading}
+
+        <Formik
+          initialValues={{ email: '', password: '' }}
+          validationSchema={LoginSchema}
+          onSubmit={handleSubmit}
         >
-          {loading ? "Вход..." : "Войти"}
-        </Button>
-        <Typography variant="body2" sx={{ mt: 2 }}>
-          Нет аккаунта? <Link to="/signup">Зарегистрироваться</Link>
-        </Typography>
+          {({ isSubmitting, touched, errors }) => (
+            <Form>
+              <Field
+                name="email"
+                as={TextField}
+                label="Email"
+                type="email"
+                autoComplete="username" 
+                fullWidth
+                margin="normal"
+                error={touched.email && Boolean(errors.email)}
+                helperText={<ErrorMessage name="email" />}
+              />
+
+              <Field
+                name="password"
+                as={TextField}
+                label="Пароль"
+                type="password"
+                autoComplete="current-password"
+                fullWidth
+                margin="normal"
+                error={touched.password && Boolean(errors.password)}
+                helperText={<ErrorMessage name="password" />}
+              />
+
+              <Button
+                variant="contained"
+                color="primary"
+                type="submit"
+                fullWidth
+                sx={{ mt: 2 }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Вход...' : 'Войти'}
+              </Button>
+
+              <Typography variant="body2" sx={{ mt: 2 }}>
+                Нет аккаунта? <Link to="/signup">Зарегистрироваться</Link>
+              </Typography>
+            </Form>
+          )}
+        </Formik>
       </Box>
     </Container>
   );

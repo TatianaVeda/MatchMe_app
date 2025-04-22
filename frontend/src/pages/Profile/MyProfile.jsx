@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, Box, Typography, Button, Avatar, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useAuthState } from '../../contexts/AuthContext';
+
 
 // Импортируем методы из модуля user.js
 import { getMyProfile, getMyBio } from '../../api/user';
@@ -32,14 +34,26 @@ const MyProfile = () => {
     }
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await Promise.all([fetchProfile(), fetchBio()]);
-      setLoading(false);
-    };
-    loadData();
-  }, []);
+  const { accessToken } = useAuthState();  // <-- получаем токен
+
+ useEffect(() => {
+   // Если токена нет, ничего не делаем
+   if (!accessToken) return;
+
+   const loadData = async () => {
+     setLoading(true);
+     try {
+       await Promise.all([fetchProfile(), fetchBio()]);
+     } catch (err) {
+       // если всё‑таки 401 или другая ошибка — редирект на /login
+       console.error(err);
+       window.location.href = '/login';
+     } finally {
+       setLoading(false);
+     }
+   };
+   loadData();
+ }, [accessToken]);
 
   const handleEdit = () => {
     navigate('/edit-profile');
@@ -66,7 +80,7 @@ const MyProfile = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
         <Avatar 
           alt={`${profile.firstName} ${profile.lastName}`}
-          src={profile.photo_url || '/static/images/default.png'}
+          src={profile.photoUrl || '/static/images/default.png'}
           sx={{ width: 80, height: 80, mr: 2 }}
         />
         <Typography variant="h4">

@@ -71,6 +71,7 @@ echo "Устанавливаем зависимые библиотеки..."
 # Установка react-router-dom для маршрутизации и axios для HTTP-запросов.
 npm install react-router-dom axios @mui/material @mui/icons-material @emotion/react @emotion/styled react-toastify
  || error_exit "Ошибка установки."
+ npm install formik yup @hookform/resolvers
 
 
 # Дополнительные библиотеки для валидации форм (при необходимости можно раскомментировать)

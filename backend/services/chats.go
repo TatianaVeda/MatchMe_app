@@ -71,9 +71,9 @@ func (cs *ChatService) GetChatMessages(chatID uint, page, limit int) ([]models.M
 func TypingNotification(userID uuid.UUID, chatID uint, isTyping bool) ([]byte, error) {
 	notification := map[string]interface{}{
 		"type":      "typing",
-		"user_id":   userID.String(),
-		"chat_id":   chatID,
-		"is_typing": isTyping,
+		"userId":    userID.String(),
+		"chatId":    chatID,
+		"isTyping":  isTyping,
 		"timestamp": time.Now().Unix(),
 	}
 	data, err := json.Marshal(notification)

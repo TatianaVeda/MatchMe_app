@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Grid, 
@@ -13,14 +14,16 @@ import {
 import { toast } from 'react-toastify';
 
 // Импортируем методы из модулей API
-import { getRecommendations } from '../../api/recommendations';
-import { getUser, getUserBio } from '../../api/user';
-import { sendConnectionRequest } from '../../api/connections';
+import { getRecommendations, declineRecommendation } from '../api/recommendations';
+import { getUser, getUserBio } from '../api/user';
+import { sendConnectionRequest } from '../api/connections';
 
 const Recommendations = () => {
+  const navigate = useNavigate(); 
   // Состояние для хранения объединённых данных пользователя и его биографии
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [decliningId, setDecliningId] = useState(null); // <— отслеживаем, что отклоняем
 
   // Функция для получения списка рекомендованных идентификаторов и соответствующих данных
   const fetchRecommendations = async () => {
@@ -43,7 +46,20 @@ const Recommendations = () => {
       // Фильтруем полученные данные – исключаем невалидные
       setRecommendations(recData.filter((rec) => rec !== null));
     } catch (err) {
-      toast.error("Ошибка загрузки рекомендаций");
+      // Если сервер вернул подробную ошибку (например, о незаполненном профиле/био)
+      const serverMessage = err?.response?.data || '';
+      const isIncompleteProfile = typeof serverMessage === 'string' && (
+        serverMessage.toLowerCase().includes('заполните') ||
+        serverMessage.toLowerCase().includes('профиль') ||
+        serverMessage.toLowerCase().includes('биографию')
+      );
+
+      if (isIncompleteProfile) {
+        toast.error(serverMessage);
+        setTimeout(() => navigate('/edit-profile'), 2000); // подождать 2 сек и перейти
+      } else {
+        toast.error("Ошибка загрузки рекомендаций");
+      }
     } finally {
       setLoading(false);
     }
@@ -54,10 +70,20 @@ const Recommendations = () => {
   }, []);
 
   // Обработка кнопки "Отклонить" – убираем рекомендацию из списка
-  const handleDecline = (id) => {
-    setRecommendations((prev) => prev.filter((rec) => rec.id !== id));
+  //Новая версия handleDecline
+  const handleDecline = async (id) => {
+   setDecliningId(id);
+    try {
+     await declineRecommendation(id);
+     // удаляем из списка только после успешного API
+     setRecommendations((prev) => prev.filter((rec) => rec.id !== id));
+     toast.success("Рекомендация отклонена");
+    } catch (err) {
+      toast.error("Ошибка при отклонении рекомендации");
+    } finally {
+     setDecliningId(null);
+    }
   };
-
   // Обработка кнопки "Подключиться" – отправляем запрос на подключение
   const handleConnect = async (id) => {
     try {
@@ -97,7 +123,7 @@ const Recommendations = () => {
               <CardMedia
                 component="img"
                 height="140"
-                image={rec.photo_url || '/static/images/default.png'}
+                image={rec.photoUrl || '/static/images/default.png'}
                 alt={`${rec.firstName} ${rec.lastName}`}
               />
               <CardContent>
@@ -114,8 +140,9 @@ const Recommendations = () => {
                 <Button size="small" variant="contained" onClick={() => handleConnect(rec.id)}>
                   Подключиться
                 </Button>
-                <Button size="small" variant="outlined" onClick={() => handleDecline(rec.id)}>
-                  Отклонить
+                <Button size="small" variant="outlined" onClick={() => handleDecline(rec.id)}
+                disabled={decliningId === rec.id}>
+                 {decliningId === rec.id ? 'Отклонение...' : 'Отклонить'}
                 </Button>
               </CardActions>
             </Card>

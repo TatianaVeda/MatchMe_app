@@ -15,5 +15,10 @@
   "description": "",
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.0.1",
+    "formik": "^2.4.6",
+    "yup": "^1.6.1"
   }
 }

@@ -3,7 +3,6 @@ package models
 import (
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
@@ -25,8 +24,8 @@ type User struct {
 	//ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	Email        string    `gorm:"unique;not null" json:"-"` // email не будет сериализован в JSON
 	PasswordHash string    `gorm:"not null" json:"-"`
-	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	CreatedAt    time.Time `gorm:"autoCreateTime" json:"createdAt"`
+	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 
 	// Связанные записи (один к одному)
 	Profile    Profile    `gorm:"constraint:OnDelete:CASCADE;" json:"profile"`
@@ -39,13 +38,13 @@ type Profile struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
 	// Внешний ключ для связи с пользователем.
-	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
 
 	// Данные профиля.
-	FirstName string  `gorm:"size:255" json:"first_name"`
-	LastName  string  `gorm:"size:255" json:"last_name"`
+	FirstName string  `gorm:"size:255" json:"firstName"`
+	LastName  string  `gorm:"size:255" json:"lastName"`
 	About     string  `gorm:"type:text" json:"about"`
-	PhotoURL  string  `gorm:"size:512" json:"photo_url"`   // Ссылка или путь к изображению.
+	PhotoURL  string  `gorm:"size:512" json:"photoUrl"`    // Ссылка или путь к изображению.
 	Online    bool    `gorm:"default:false" json:"online"` // Индикатор онлайн/офлайн.
 	Latitude  float64 `json:"latitude"`                    // Координаты для фильтрации по местоположению.
 	Longitude float64 `json:"longitude"`                   //`json:"longitude"`
@@ -56,7 +55,7 @@ type Profile struct {
 type Bio struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
-	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
 
 	Interests string `gorm:"type:text" json:"interests"`
 	Hobbies   string `gorm:"type:text" json:"hobbies"`
@@ -69,10 +68,10 @@ type Bio struct {
 type Preference struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
-	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
 
 	// Максимальный радиус для рекомендаций (например, в километрах).
-	MaxRadius float64 `gorm:"default:0" json:"max_radius"`
+	MaxRadius float64 `gorm:"default:0" json:"maxRadius"`
 }
 
 // Recommendation хранит информацию о рекомендациях,
@@ -81,14 +80,14 @@ type Recommendation struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
 	// Пользователь, которому предлагается рекомендация.
-	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
 	// Рекомендуемый пользователь.
-	RecUserID uuid.UUID `gorm:"type:uuid;not null;index" json:"rec_user_id"`
+	RecUserID uuid.UUID `gorm:"type:uuid;not null;index" json:"recUserId"`
 
 	// Статус рекомендации: например, "pending", "rejected" и т.д.
 	Status string `gorm:"size:50;default:'pending'" json:"status"`
 
-	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }
 
 // Connection описывает связь между пользователями.
@@ -96,14 +95,14 @@ type Connection struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
 	// Инициатор запроса.
-	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
 	// Пользователь, с которым устанавливается связь.
-	ConnectionID uuid.UUID `gorm:"type:uuid;not null;index" json:"connection_id"`
+	ConnectionID uuid.UUID `gorm:"type:uuid;not null;index" json:"connectionId"`
 
 	// Статус запроса: "requested", "accepted", "rejected".
 	Status string `gorm:"size:50;not null" json:"status"`
 
-	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }
 
 // Chat представляет чат между двумя пользователями.
@@ -112,22 +111,22 @@ type Chat struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
 	// Идентификаторы пользователей, участвующих в чате.
-	User1ID uuid.UUID `gorm:"type:uuid;not null;index" json:"user1_id"`
-	User2ID uuid.UUID `gorm:"type:uuid;not null;index" json:"user2_id"`
+	User1ID uuid.UUID `gorm:"type:uuid;not null;index" json:"user1Id"`
+	User2ID uuid.UUID `gorm:"type:uuid;not null;index" json:"user2Id"`
 
 	// Сообщения, связанные с этим чатом.
 	Messages []Message `gorm:"foreignKey:ChatID;constraint:OnDelete:CASCADE;" json:"messages"`
 
-	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }
 
 // Message представляет отдельное сообщение в чате.
 type Message struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
-	ChatID uint `gorm:"not null;index" json:"chat_id"`
+	ChatID uint `gorm:"not null;index" json:"chatId"`
 	// Отправитель сообщения.
-	SenderID uuid.UUID `gorm:"type:uuid;not null" json:"sender_id"`
+	SenderID uuid.UUID `gorm:"type:uuid;not null" json:"senderId"`
 	Content  string    `gorm:"type:text" json:"content"`
 
 	// Время отправки сообщения.
@@ -141,7 +140,7 @@ type Message struct {
 type FakeUser struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 	// Связанный пользователь.
-	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
 	// Дополнительные поля, если необходимо.
 }
 
@@ -186,31 +185,4 @@ func Migrate(db *gorm.DB) error {
 		logrus.Info("Migrate: миграция выполнена успешно")
 	}
 	return err
-}
-
-// m/backend/models/auth.go
-
-// Access token будет иметь короткий срок жизни (например, 15 минут).
-func GenerateAccessToken(userID uuid.UUID, secret string) (string, error) {
-	claims := JWTClaims{
-		UserID: userID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // access token действует 15 минут
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
-}
-
-func GenerateRefreshToken(userID uuid.UUID, secret string, expiresInMinutes int) (string, error) {
-	claims := JWTClaims{
-		UserID: userID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresInMinutes) * time.Minute)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
 }

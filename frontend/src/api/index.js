@@ -11,7 +11,8 @@ import {
 
 // Создаем инстанс axios с базовыми настройками
 const api = axios.create({
-  baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080',
+  baseURL: '/', 
+  //baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080',
 });
 
 // Перехватчик запросов – добавляем заголовок авторизации (если токен сохранен)
@@ -35,12 +36,9 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const refreshToken = getRefreshToken();
-        // Вызываем эндпоинт /refresh для обновления токена
-        const response = await axios.post(
-          `${api.defaults.baseURL}/refresh`,
-          { refreshToken }
-        );
+         // делаем refresh тем же экземпляром api — и с относительным URL
+       const refreshToken = getRefreshToken();
+       const response = await api.post('/refresh', { refreshToken });
         const { accessToken, refreshToken: newRefreshToken } = response.data;
         // Сохраняем новые токены
         setAccessToken(accessToken);
@@ -51,7 +49,7 @@ api.interceptors.response.use(
       } catch (err) {
         // Если обновление не удалось, очищаем сохранённые токены и перенаправляем пользователя на страницу логина
         clearTokens();
-        window.location.href = '/login';
+       // window.location.href = '/login';
         return Promise.reject(err);
       }
     }

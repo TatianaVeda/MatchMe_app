@@ -58,7 +58,7 @@ func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
 	}
 
 	// Проверяем, входит ли запрошенный пользователь в рекомендации текущего пользователя.
-	recService := services.NewRecommendationService(db)
+	recService := services.NewRecommendationService(db, nil)
 	recIDs, err := recService.GetRecommendationsForUser(currentUserID)
 	if err == nil {
 		for _, id := range recIDs {
@@ -124,8 +124,9 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	logrus.Infof("User %s data retrieved by user %s", requestedUserID, currentUserID)
 	response := map[string]interface{}{
 		"id":        user.ID,
-		"name":      user.Profile.FirstName + " " + user.Profile.LastName,
-		"photo_url": user.Profile.PhotoURL,
+		"firstName": user.Profile.FirstName,
+		"lastName":  user.Profile.LastName,
+		"photoUrl":  user.Profile.PhotoURL,
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -248,10 +249,10 @@ func GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 
 	logrus.Infof("Current user %s data retrieved", userID)
 	response := map[string]interface{}{
-		"id":        user.ID,
-		"name":      user.Profile.FirstName + " " + user.Profile.LastName,
-		"photo_url": user.Profile.PhotoURL,
-		"email":     user.Email, // email включается в ответ для аутентифицированного пользователя
+		"id":       user.ID,
+		"name":     user.Profile.FirstName + " " + user.Profile.LastName,
+		"photoUrl": user.Profile.PhotoURL,
+		"email":    user.Email, // email включается в ответ для аутентифицированного пользователя
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -281,10 +282,12 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	logrus.Infof("Profile for current user %s retrieved", userID)
 	response := map[string]interface{}{
-		"about":      profile.About,
-		"first_name": profile.FirstName,
-		"last_name":  profile.LastName,
-		"photo_url":  profile.PhotoURL,
+		"about":     profile.About,
+		"firstName": profile.FirstName,
+		"lastName":  profile.LastName,
+		"photoUrl":  profile.PhotoURL,
+		"latitude":  profile.Latitude,
+		"longitude": profile.Longitude,
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -306,8 +309,17 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Если обязательные поля биографии пусты, возвращаем сообщение с просьбой заполнить данные.
-	if bio.Interests == "" || bio.Hobbies == "" {
-		http.Error(w, "Пожалуйста, заполните вашу биографию (интересы, хобби)", http.StatusBadRequest)
+	if bio.Interests == "" ||
+		bio.Hobbies == "" ||
+		bio.Music == "" ||
+		bio.Food == "" ||
+		bio.Travel == "" {
+		http.Error(
+			w,
+			"Пожалуйста, заполните всю биографию: "+
+				"интересы, хобби, музыка, еда и путешествия",
+			http.StatusBadRequest,
+		)
 		return
 	}
 

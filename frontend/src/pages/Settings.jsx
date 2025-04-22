@@ -14,8 +14,8 @@ import { toast } from 'react-toastify';
 const Settings = () => {
   // Начальное состояние настроек (предпочтений)
   const [preferences, setPreferences] = useState({
-    maxRadius: '',    // Максимальный радиус для рекомендаций
-    location: ''      // Местоположение (например, название города)
+    maxRadius: ''    // Максимальный радиус для рекомендаций
+    //location: ''      // Местоположение (например, название города)
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,8 +26,8 @@ const Settings = () => {
       // Пример GET запроса к эндпоинту для получения настроек
       const { data } = await axios.get('/me/preferences');
       setPreferences({
-        maxRadius: data.maxRadius || '',
-        location: data.location || ''
+        maxRadius: data.maxRadius || ''
+        //location: data.location || ''
       });
     } catch (error) {
       toast.error("Ошибка загрузки настроек");
@@ -41,13 +41,18 @@ const Settings = () => {
   }, []);
 
   // Обработка изменения полей формы
+  // const handleChange = (e) => {
+  //   const { name, value } = e.target;
+  //   setPreferences((prev) => ({
+  //     ...prev,
+  //     [name]: value
+  //   }));
+  // };
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setPreferences((prev) => ({
-      ...prev,
-      [name]: value
-    }));
+    setPreferences({ maxRadius: e.target.value });
   };
+  
 
   // Отправка формы для сохранения изменений
   const handleSubmit = async (e) => {
@@ -55,7 +60,10 @@ const Settings = () => {
     setSaving(true);
     try {
       // Пример PUT запроса для обновления настроек
-      await axios.put('/me/preferences', preferences);
+      await axios.put('/me/preferences', {
+              // Подаём именно то, что ждёт бэкенд
+              maxRadius: Number(preferences.maxRadius)
+            });
       toast.success("Настройки сохранены");
     } catch (error) {
       toast.error(error.response?.data?.message || "Ошибка сохранения настроек");
@@ -88,7 +96,7 @@ const Settings = () => {
           onChange={handleChange}
           required
         />
-        <TextField
+        {/* <TextField
           label="Местоположение"
           name="location"
           type="text"
@@ -97,7 +105,7 @@ const Settings = () => {
           value={preferences.location}
           onChange={handleChange}
           required
-        />
+        /> */}
         <Button
           variant="contained"
           color="primary"

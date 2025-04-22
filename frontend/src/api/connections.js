@@ -2,6 +2,11 @@
 
 import api from './index';
 
+export const getConnections = async () => {
+  const response = await api.get('/connections');
+  return response.data;
+};
+
 // Отправка запроса на подключение к пользователю с указанным id
 export const sendConnectionRequest = async (targetUserId) => {
   const response = await api.post(`/connections/${targetUserId}`);

@@ -1,6 +1,7 @@
 // m/frontend/src/contexts/AuthContext.jsx
-import React, { createContext, useReducer, useContext } from 'react';
+import React, { createContext, useReducer, useContext, useEffect } from 'react';
 import { setAccessToken, setRefreshToken, clearTokens } from '../services/tokenService';
+import api from '../api/index';
 
 const AuthStateContext = createContext();
 const AuthDispatchContext = createContext();
@@ -42,6 +43,25 @@ function authReducer(state, action) {
 
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+
+    // При монтировании, если у нас есть токен — забираем профиль
+    useEffect(() => {
+          // Если токена нет — не дергаем /me
+          if (!state.accessToken) {
+            return;
+          }
+      
+          api.get('/me')
+            .then(({ data }) => {
+              dispatch({ type: 'SET_USER', payload: data });
+            })
+            .catch((err) => {
+              // При 401 или других ошибках очищаем токены и разлогиниваем
+              clearTokens();
+              dispatch({ type: 'LOGOUT' });
+            });
+        }, [state.accessToken]);
+
   return (
     <AuthStateContext.Provider value={state}>
       <AuthDispatchContext.Provider value={dispatch}>

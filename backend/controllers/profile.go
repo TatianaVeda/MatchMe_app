@@ -46,9 +46,11 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var reqBody struct {
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		About     string `json:"about"`
+		FirstName string  `json:"firstName"`
+		LastName  string  `json:"lastName"`
+		About     string  `json:"about"`
+		Latitude  float64 `json:"latitude"` // ← новые поля
+		Longitude float64 `json:"longitude"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		logrus.Errorf("UpdateCurrentUserProfile: error decoding request body: %v", err)
@@ -78,6 +80,12 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	profile.FirstName = reqBody.FirstName
 	profile.LastName = reqBody.LastName
 	profile.About = reqBody.About
+
+	// Если пришли геокоординаты — сохраняем
+	if reqBody.Latitude != 0 || reqBody.Longitude != 0 {
+		profile.Latitude = reqBody.Latitude
+		profile.Longitude = reqBody.Longitude
+	}
 
 	if err := profileDB.Save(&profile).Error; err != nil {
 		logrus.Errorf("UpdateCurrentUserProfile: error updating profile for user %s: %v", currentUserID, err)

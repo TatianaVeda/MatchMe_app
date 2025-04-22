@@ -13,8 +13,8 @@ import {
 import { toast } from 'react-toastify';
 
 // Импортируем методы из модуля API для соединений и пользователя
-import { getConnections, deleteConnection } from '../../api/connections';
-import { getUser } from '../../api/user';
+import { getConnections, deleteConnection } from '../api/connections';
+import { getUser } from '../api/user';
 
 const Connections = () => {
   const [connections, setConnections] = useState([]);
@@ -86,7 +86,7 @@ const Connections = () => {
               <CardMedia
                 component="img"
                 height="140"
-                image={conn.photo_url || '/static/images/default.png'}
+                image={conn.photoUrl || '/static/images/default.png'}
                 alt={`${conn.firstName} ${conn.lastName}`}
               />
               <CardContent>
