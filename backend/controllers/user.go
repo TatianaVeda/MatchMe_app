@@ -267,18 +267,21 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logrus.Infof("🔍 Extracted userID from context: %s", userID)
+
 	var profile models.Profile
 	if err := db.First(&profile, "user_id = ?", userID).Error; err != nil {
 		logrus.Errorf("GetCurrentUserProfile: profile for user %s not found: %v", userID, err)
 		http.Error(w, "Profile not found", http.StatusNotFound)
 		return
 	}
+	logrus.Infof("✅ Profile found: %+v", profile)
 
 	// Если некоторые важные поля пустые, можно вернуть информативное сообщение
-	if profile.FirstName == "" || profile.LastName == "" {
-		http.Error(w, "Пожалуйста, заполните ваше имя и фамилию в профиле", http.StatusBadRequest)
-		return
-	}
+	// if profile.FirstName == "" || profile.LastName == "" {
+	// 	http.Error(w, "Пожалуйста, заполните ваше имя и фамилию в профиле", http.StatusBadRequest)
+	// 	return
+	// }
 
 	logrus.Infof("Profile for current user %s retrieved", userID)
 	response := map[string]interface{}{
@@ -289,7 +292,15 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		"latitude":  profile.Latitude,
 		"longitude": profile.Longitude,
 	}
-	json.NewEncoder(w).Encode(response)
+
+	logrus.Infof("📤 Sending profile response: %+v", response)
+	//json.NewEncoder(w).Encode(response)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logrus.Errorf("❌ Failed to encode response: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 // GET /me/bio
@@ -308,20 +319,20 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bio not found", http.StatusNotFound)
 		return
 	}
-	// Если обязательные поля биографии пусты, возвращаем сообщение с просьбой заполнить данные.
-	if bio.Interests == "" ||
-		bio.Hobbies == "" ||
-		bio.Music == "" ||
-		bio.Food == "" ||
-		bio.Travel == "" {
-		http.Error(
-			w,
-			"Пожалуйста, заполните всю биографию: "+
-				"интересы, хобби, музыка, еда и путешествия",
-			http.StatusBadRequest,
-		)
-		return
-	}
+	// // Если обязательные поля биографии пусты, возвращаем сообщение с просьбой заполнить данные.
+	// if bio.Interests == "" ||
+	// 	bio.Hobbies == "" ||
+	// 	bio.Music == "" ||
+	// 	bio.Food == "" ||
+	// 	bio.Travel == "" {
+	// 	http.Error(
+	// 		w,
+	// 		"Пожалуйста, заполните всю биографию: "+
+	// 			"интересы, хобби, музыка, еда и путешествия",
+	// 		http.StatusBadRequest,
+	// 	)
+	// 	return
+	// }
 
 	logrus.Infof("Bio for current user %s retrieved", userID)
 	json.NewEncoder(w).Encode(bio)

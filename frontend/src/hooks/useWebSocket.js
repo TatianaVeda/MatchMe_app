@@ -7,17 +7,16 @@ const useWebSocket = (onMessage) => {
   const { user } = useAuthState();
 
   useEffect(() => {
-    if (!user) return;
-
-    // При монтировании — подключаемся и регистрируем обработчик
-    WebSocketService.connect(user.id);
-    if (onMessage) WebSocketService.addListener(onMessage);
-
-    return () => {
-      // При размонтировании — убираем слушатель и отключаемся
-      if (onMessage) WebSocketService.removeListener(onMessage);
-      WebSocketService.disconnect();
-    };
+      // Подключаемся и подписываемся ТОЛЬКО когда есть обработчик onMessage
+      if (!user || !onMessage) return;
+    
+      WebSocketService.connect(user.id);
+      WebSocketService.addListener(onMessage);
+    
+      return () => {
+        WebSocketService.removeListener(onMessage);
+       // WebSocketService.disconnect();
+      };
   }, [user, onMessage]);
 
   // Обёртки для методов отправки

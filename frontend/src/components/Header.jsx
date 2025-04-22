@@ -17,6 +17,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import axios from '../api/index';
 import { toast } from 'react-toastify';
+import WebSocketService from '../services/websocketService';
+
 
 const navItems = [
   { label: 'Рекомендации', to: '/recommendations' },
@@ -33,6 +35,7 @@ const Header = () => {
 
   const handleLogout = async () => {
     try { await axios.post('/logout'); } catch {}
+    WebSocketService.disconnect();
     dispatch({ type: 'LOGOUT' });
     toast.info("Вы вышли из системы");
     navigate('/login');

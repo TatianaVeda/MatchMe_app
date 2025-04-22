@@ -138,12 +138,18 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 	}
 
 	// Сохраняем пользователя вместе со всеми ассоциациями
-	if err := db.
-		Session(&gorm.Session{FullSaveAssociations: true}).
-		Create(user).
-		Error; err != nil {
+	if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Create(user).Error; err != nil {
 		logrus.Errorf("CreateUser: ошибка создания пользователя и ассоциаций: %v", err)
 		return nil, err
+	}
+	// По умолчанию создаём связанные Profile и Bio (чтобы GetCurrentUserProfile/getCurrentUserBio не падали)
+	defaultProfile := Profile{UserID: user.ID}
+	if err := db.Create(&defaultProfile).Error; err != nil {
+		logrus.Warnf("CreateUser: не удалось создать default Profile: %v", err)
+	}
+	defaultBio := Bio{UserID: user.ID}
+	if err := db.Create(&defaultBio).Error; err != nil {
+		logrus.Warnf("CreateUser: не удалось создать default Bio: %v", err)
 	}
 
 	logrus.Infof("CreateUser: пользователь и связанные записи успешно созданы (ID=%s)", user.ID)

@@ -320,7 +320,7 @@ func (c *Client) readPump() {
 			logrus.Warnf("readPump: неизвестное действие '%s' от клиента %s", req.Action, c.UserID)
 		}
 
-		c.Mutex.Unlock()
+		//c.Mutex.Unlock()
 	}
 }
 
