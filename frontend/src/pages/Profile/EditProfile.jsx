@@ -266,6 +266,7 @@ import {
 } from '../../api/user';
 import { toast } from 'react-toastify';
 
+// Добавлено поле lookingFor в схему валидации
 const EditProfileSchema = Yup.object().shape({
   firstName: Yup.string()
     .max(255, 'Имя слишком длинное')
@@ -278,14 +279,13 @@ const EditProfileSchema = Yup.object().shape({
   hobbies: Yup.string().required('Укажите хобби'),
   music: Yup.string().required('Укажите музыку'),
   food: Yup.string().required('Укажите еду'),
-  travel: Yup.string().required('Укажите путешествия')
+  travel: Yup.string().required('Укажите путешествия'),
+  lookingFor: Yup.string().required('Укажите, кого вы ищете')  // новое обязательное поле
 });
 
 const EditProfile = () => {
   const navigate = useNavigate();
   const [initialValues, setInitialValues] = useState(null);
-
-  // Для загрузки фото
   const [photoFile, setPhotoFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -294,6 +294,7 @@ const EditProfile = () => {
       try {
         const profile = await getMyProfile();
         const bio = await getMyBio();
+        // Расширенные initialValues с lookingFor
         setInitialValues({
           firstName: profile.firstName || '',
           lastName: profile.lastName || '',
@@ -302,7 +303,8 @@ const EditProfile = () => {
           hobbies: bio.hobbies || '',
           music: bio.music || '',
           food: bio.food || '',
-          travel: bio.travel || ''
+          travel: bio.travel || '',
+          lookingFor: bio.lookingFor || ''  // новое поле
         });
       } catch {
         toast.error('Ошибка загрузки данных профиля');
@@ -340,17 +342,20 @@ const EditProfile = () => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
+      // Обновляем профиль
       await updateMyProfile({
         firstName: values.firstName,
         lastName: values.lastName,
         about: values.about
       });
+      // Обновляем биографию, включая lookingFor
       await updateMyBio({
         interests: values.interests,
         hobbies: values.hobbies,
         music: values.music,
         food: values.food,
-        travel: values.travel
+        travel: values.travel,
+        lookingFor: values.lookingFor  // сохраняем новое поле
       });
       toast.success('Профиль успешно обновлён');
       navigate('/me');
@@ -368,7 +373,7 @@ const EditProfile = () => {
           Редактировать профиль
         </Typography>
 
-        {/* Блок загрузки фото */}
+        {/* Загрузка фото */}
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle1">Загрузить фото</Typography>
           <input
@@ -388,7 +393,7 @@ const EditProfile = () => {
           {uploading && <Typography variant="body2">Загрузка...</Typography>}
         </Box>
 
-        {/* Блок геолокации */}
+        {/* Геолокация */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6">Местоположение</Typography>
           <Button
@@ -502,6 +507,16 @@ const EditProfile = () => {
                 margin="normal"
                 error={touched.travel && Boolean(errors.travel)}
                 helperText={<ErrorMessage name="travel" />}
+              />
+              {/* Поле кого ищу */}
+              <Field
+                name="lookingFor"
+                as={TextField}
+                label="Кого вы ищете"
+                fullWidth
+                margin="normal"
+                error={touched.lookingFor && Boolean(errors.lookingFor)}
+                helperText={<ErrorMessage name="lookingFor" />}
               />
 
               <Button

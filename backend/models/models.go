@@ -227,13 +227,14 @@ type Profile struct {
 
 // Bio хранит дополнительные биографические данные.
 type Bio struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
-	Interests string    `gorm:"type:text" json:"interests"`
-	Hobbies   string    `gorm:"type:text" json:"hobbies"`
-	Music     string    `gorm:"type:text" json:"music"`
-	Food      string    `gorm:"type:text" json:"food"`
-	Travel    string    `gorm:"type:text" json:"travel"`
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	UserID     uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
+	Interests  string    `gorm:"type:text" json:"interests"`
+	Hobbies    string    `gorm:"type:text" json:"hobbies"`
+	Music      string    `gorm:"type:text" json:"music"`
+	Food       string    `gorm:"type:text" json:"food"`
+	Travel     string    `gorm:"type:text" json:"travel"`
+	LookingFor string    `gorm:"type:text" json:"lookingFor"`
 }
 
 // Preference хранит настройки поиска пользователя.

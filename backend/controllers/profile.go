@@ -116,11 +116,12 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var reqBody struct {
-		Interests string `json:"interests"`
-		Hobbies   string `json:"hobbies"`
-		Music     string `json:"music"`
-		Food      string `json:"food"`
-		Travel    string `json:"travel"`
+		Interests  string `json:"interests"`
+		Hobbies    string `json:"hobbies"`
+		Music      string `json:"music"`
+		Food       string `json:"food"`
+		Travel     string `json:"travel"`
+		LookingFor string `json:"lookingFor"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		logrus.Errorf("UpdateCurrentUserBio: error decoding request body: %v", err)
@@ -140,6 +141,7 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	bio.Music = reqBody.Music
 	bio.Food = reqBody.Food
 	bio.Travel = reqBody.Travel
+	bio.LookingFor = reqBody.LookingFor
 
 	if err := profileDB.Save(&bio).Error; err != nil {
 		logrus.Errorf("UpdateCurrentUserBio: error updating bio for user %s: %v", currentUserID, err)

@@ -199,6 +199,27 @@ import (
 	"gorm.io/gorm"
 )
 
+// anyTokenMatch возвращает true, если хотя бы один токен из a содержится среди токенов b.
+func anyTokenMatch(a, b string) bool {
+	// Разбиваем строки на слова
+	tokensA := strings.Fields(strings.ToLower(a))
+	tokensB := strings.Fields(strings.ToLower(b))
+
+	// Собираем второй набор в map для быстрой проверки
+	setB := make(map[string]struct{}, len(tokensB))
+	for _, t := range tokensB {
+		setB[t] = struct{}{}
+	}
+
+	// Проверяем, есть ли хоть одно слово из A в B
+	for _, t := range tokensA {
+		if _, ok := setB[t]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 // FieldConfig описывает одно поле биографии и его вес.
 type FieldConfig struct {
 	Name      string                    // Человеко-читаемое имя поля
@@ -264,7 +285,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(currentUserID uuid.UU
 
 	var candidates []Candidate
 	for _, u := range users {
-		if u.Profile.ID == 0 || u.Bio.ID == 0 {
+		if !strings.Contains(strings.ToLower(u.Bio.LookingFor), strings.ToLower(currentUser.Bio.Interests)) {
 			continue
 		}
 		// исключаем отклонённые
@@ -277,6 +298,22 @@ func (rs *RecommendationService) GetRecommendationsForUser(currentUserID uuid.UU
 		if d < 0 {
 			continue
 		}
+		// === Заменяем простые Contains на токен-матчинг ===
+		myLooking := currentUser.Bio.LookingFor  // что я ищу
+		myInterests := currentUser.Bio.Interests // мои интересы
+		theirLooking := u.Bio.LookingFor         // что ищет кандидат
+		theirInterests := u.Bio.Interests        // интересы кандидата
+
+		// A) Кандидат должен искать хотя бы одно из моих интересов
+		if !anyTokenMatch(myInterests, theirLooking) {
+			continue
+		}
+
+		// B) (по желанию) Я должен искать хотя бы одно из его интересов
+		if !anyTokenMatch(theirInterests, myLooking) {
+			continue
+		}
+
 		// оценка
 		score := rs.computeSimilarityScore(currentUser.Bio, u.Bio)
 		if score <= 0 {
@@ -316,6 +353,7 @@ func validateUserData(u models.User) error {
 		{u.Bio.Music, "музыку"},
 		{u.Bio.Food, "еду"},
 		{u.Bio.Travel, "путешествия"},
+		{u.Bio.LookingFor, "кого вы ищете"},
 	}
 	miss := []string{}
 	for _, f := range s {

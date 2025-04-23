@@ -259,3 +259,36 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	logrus.Infof("DeleteConnection: подключение между %s и %s успешно удалено", currentUserID, targetUserID)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Disconnected successfully"})
 }
+
+// Новый метод для входящих запросов
+func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		logrus.Error("GetPendingConnections: userID не найден в контексте")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	currentUserID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		logrus.Errorf("GetPendingConnections: неверный userID: %v", err)
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	var conns []models.Connection
+	if err := connectionsDB.
+		Where("connection_id = ? AND status = ?", currentUserID, "pending").
+		Find(&conns).Error; err != nil {
+		logrus.Errorf("GetPendingConnections: ошибка получения pending-запросов: %v", err)
+		http.Error(w, "Error fetching pending connections", http.StatusInternalServerError)
+		return
+	}
+
+	pendingIDs := make([]uuid.UUID, 0, len(conns))
+	for _, c := range conns {
+		pendingIDs = append(pendingIDs, c.UserID)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(pendingIDs)
+}
