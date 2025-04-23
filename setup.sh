@@ -8,6 +8,30 @@ function error_exit {
 
 npm install concurrently --save-dev
 
+# Проверка наличия Docker
+if ! command -v docker &> /dev/null; then
+  echo "Docker не найден. Пытаемся установить его..."
+  # Для Ubuntu/Debian:
+  sudo apt-get update
+  sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  sudo apt-get update
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+  # Добавляем текущего пользователя в группу docker
+  sudo usermod -aG docker $USER
+  # Запускаем и включаем сервис Docker
+  sudo systemctl start docker
+  sudo systemctl enable docker
+  # Проверяем снова, если не установилось, завершаем скрипт
+  if ! command -v docker &> /dev/null; then
+    error_exit "Не удалось установить Docker. Установите его вручную и повторите попытку."
+  fi
+  echo "Docker успешно установлен."
+else
+  echo "Docker уже установлен."
+fi
+
 # Проверка наличия Docker Compose
 if ! command -v docker-compose &> /dev/null; then
   echo "Docker Compose не найден. Пытаемся установить его..."
@@ -19,7 +43,6 @@ if ! command -v docker-compose &> /dev/null; then
     error_exit "Не удалось установить Docker Compose. Установите его вручную и повторите попытку."
   fi
 fi
-
 
 echo "Запускаем PostgreSQL через Docker Compose..."
 docker-compose up -d
