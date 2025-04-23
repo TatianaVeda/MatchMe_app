@@ -41,7 +41,7 @@ func LoadConfig() {
 	AppConfig = &Config{
 		ServerPort:          getEnv("SERVER_PORT", "8080"),
 		WebSocketPort:       getEnv("WEBSOCKET_PORT", "8081"),
-		DatabaseURL:         getEnv("DATABASE_URL", "postgres://user:pass@localhost:5432/sopostavmenya?sslmode=disable"),
+		DatabaseURL:         getEnv("DATABASE_URL", "postgres://user:pass@localhost:5433/sopostavmenya?sslmode=disable"),
 		JWTSecret:           getEnv("JWT_SECRET", "supersecretjwtkey"),
 		JWTExpiresIn:        getEnvAsInt("JWT_EXPIRES_IN", 60),
 		JWTRefreshExpiresIn: getEnvAsInt("JWT_REFRESH_EXPIRES_IN", 10080),

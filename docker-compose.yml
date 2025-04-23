@@ -1,18 +1,20 @@
 version: '3.8'
-
 services:
-  postgres:
-    image: postgres:14
+  db:
+    image: postgres:15-alpine
     container_name: m_postgres
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - backend/config/config_local.env
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: sopostavmenya
+      # Переопределяем, чтобы PostgreSQL читал переменные
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-sopostavmenya}
     ports:
-      - "5432:5432"
+      - '${DB_PORT:-5433}:5432'
     volumes:
-      - dbdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
 
 volumes:
-  dbdata:
+  pgdata: {}
