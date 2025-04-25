@@ -12,6 +12,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// ПРИ НЕОБХОДИМОСТИ УДАЛИТЬ RecommendationOutput — структура для отдачи id + distance в JSON
+type RecommendationOutput struct {
+	ID       uuid.UUID `json:"id"`
+	Distance float64   `json:"distance"`
+}
+
 var recommendationService *services.RecommendationService
 
 // InitRecommendationControllerService инициализирует сервис для рекомендаций.
@@ -20,16 +26,15 @@ func InitRecommendationControllerService(db *gorm.DB) {
 	logrus.Info("Recommendations controller initialized")
 }
 
-// GetRecommendations – HTTP‑обработчик для эндпоинта GET /recommendations.
-// Извлекает идентификатор текущего пользователя из контекста и вызывает бизнес-логику сервиса.
+// GetRecommendations – HTTP-обработчик для GET /recommendations
 func GetRecommendations(w http.ResponseWriter, r *http.Request) {
+	// 1) Извлечь userID из контекста
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
 		logrus.Error("GetRecommendations: userID не найден в контексте")
 		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
 		return
 	}
-
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		logrus.Errorf("GetRecommendations: неверный userID: %v", err)
@@ -37,16 +42,33 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ids, err := recommendationService.GetRecommendationsForUser(currentUserID)
+	// 2) Прочитать режим из query-параметра ?mode=
+	mode := r.URL.Query().Get("mode")
+	if mode != "desire" {
+		mode = "affinity"
+	}
+
+	// 3) Вызвать сервис, который возвращает пару (UserID, Distance)
+	raw, err := recommendationService.GetRecommendationsWithDistance(currentUserID, mode)
 	if err != nil {
-		logrus.Errorf("GetRecommendations: ошибка получения рекомендаций для пользователя %s: %v", currentUserID, err)
+		logrus.Errorf("GetRecommendations: ошибка получения рекомендаций для %s: %v", currentUserID, err)
 		http.Error(w, "Error fetching recommendations: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	logrus.Infof("GetRecommendations: рекомендации успешно получены для пользователя %s", currentUserID)
+	// 4) Преобразовать в выходную структуру для JSON
+	out := make([]RecommendationOutput, len(raw))
+	for i, c := range raw {
+		out[i] = RecommendationOutput{
+			ID:       c.UserID,
+			Distance: c.Distance,
+		}
+	}
+
+	// 5) Логирование и отправка ответа
+	logrus.Infof("GetRecommendations[%s]: успешно %d рекомендаций для %s", mode, len(out), currentUserID)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(ids)
+	json.NewEncoder(w).Encode(out)
 }
 
 // После GetRecommendations добавьте:

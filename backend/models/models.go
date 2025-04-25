@@ -221,6 +221,7 @@ type Profile struct {
 	About     string    `gorm:"type:text" json:"about"`
 	PhotoURL  string    `gorm:"size:512" json:"photoUrl"`
 	Online    bool      `gorm:"default:false" json:"online"`
+	City      string    `gorm:"size:100" json:"city"` // новое поле «город»
 	Latitude  float64   `json:"latitude"`
 	Longitude float64   `json:"longitude"`
 }
@@ -229,11 +230,11 @@ type Profile struct {
 type Bio struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
 	UserID     uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
-	Interests  string    `gorm:"type:text" json:"interests"`
-	Hobbies    string    `gorm:"type:text" json:"hobbies"`
-	Music      string    `gorm:"type:text" json:"music"`
-	Food       string    `gorm:"type:text" json:"food"`
-	Travel     string    `gorm:"type:text" json:"travel"`
+	Interests  string    `gorm:"type:varchar(50)" json:"interests"` // one of [Psychology, Ecology, Philosophy, Space and Astronomy, Fashion and Design]
+	Hobbies    string    `gorm:"type:varchar(50)" json:"hobbies"`   // one of [Sports, Nature, Art, Handicrafts, Making, IT]
+	Music      string    `gorm:"type:varchar(50)" json:"music"`     // one of [Rock, Classical, Jazz, Pop, Electronic]
+	Food       string    `gorm:"type:varchar(50)" json:"food"`      // one of [Italian, Japanese, Mexican, Vegan, French]
+	Travel     string    `gorm:"type:varchar(50)" json:"travel"`    // one of [Beach vacations, Mountain hiking, Cultural city tours, Cruises, Eco-tourism]
 	LookingFor string    `gorm:"type:text" json:"lookingFor"`
 }
 
@@ -242,6 +243,12 @@ type Preference struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
 	MaxRadius float64   `gorm:"default:0" json:"maxRadius"`
+	// New priority flags: если true — совпадение в этой категории считается за 40%, иначе за 20%
+	PriorityInterests bool `gorm:"default:false" json:"priorityInterests"`
+	PriorityHobbies   bool `gorm:"default:false" json:"priorityHobbies"`
+	PriorityMusic     bool `gorm:"default:false" json:"priorityMusic"`
+	PriorityFood      bool `gorm:"default:false" json:"priorityFood"`
+	PriorityTravel    bool `gorm:"default:false" json:"priorityTravel"`
 }
 
 // Recommendation хранит информацию о рекомендациях.

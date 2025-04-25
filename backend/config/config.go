@@ -30,8 +30,8 @@ type Config struct {
 
 	RedisURL     string
 	RedisTimeout int // секунды
-
-	LogLevel string // debug, info, warn, error
+	CityCoords   map[string][2]float64
+	LogLevel     string // debug, info, warn, error
 }
 
 var AppConfig *Config
@@ -57,6 +57,20 @@ func LoadConfig() {
 		RedisURL:     getEnv("REDIS_URL", "redis://localhost:6379"),
 		RedisTimeout: getEnvAsInt("REDIS_TIMEOUT", 5),
 		LogLevel:     getEnv("LOG_LEVEL", "debug"),
+	}
+
+	// Инициализация карты городов (название -> [широта, долгота])
+	AppConfig.CityCoords = map[string][2]float64{
+		"Helsinki":  {60.1699, 24.9384},
+		"Espoo":     {60.2055, 24.6559},
+		"Vantaa":    {60.2941, 25.0378},
+		"Turku":     {60.4518, 22.2666},
+		"Tampere":   {61.4991, 23.7871},
+		"Oulu":      {65.0121, 25.4651},
+		"Lahti":     {60.9827, 25.6615},
+		"Kuopio":    {62.8924, 27.6770},
+		"Pori":      {61.4850, 21.7978},
+		"Jyväskylä": {62.2415, 25.7209},
 	}
 
 	// Автоопределяем режим

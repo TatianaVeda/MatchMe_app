@@ -81,7 +81,7 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	profile.LastName = reqBody.LastName
 	profile.About = reqBody.About
 
-	// Если пришли геокоординаты — сохраняем
+	// // Если пришли геокоординаты — сохраняем
 	if reqBody.Latitude != 0 || reqBody.Longitude != 0 {
 		profile.Latitude = reqBody.Latitude
 		profile.Longitude = reqBody.Longitude
