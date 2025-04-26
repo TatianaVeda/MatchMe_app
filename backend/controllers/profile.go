@@ -49,6 +49,7 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		FirstName string  `json:"firstName"`
 		LastName  string  `json:"lastName"`
 		About     string  `json:"about"`
+		City      string  `json:"city"`
 		Latitude  float64 `json:"latitude"` // ← новые поля
 		Longitude float64 `json:"longitude"`
 	}
@@ -69,6 +70,10 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Описание слишком длинное", http.StatusBadRequest)
 		return
 	}
+	if reqBody.City == "" {
+		http.Error(w, "Город не может быть пустым", http.StatusBadRequest)
+		return
+	}
 
 	var profile models.Profile
 	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
@@ -80,6 +85,7 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	profile.FirstName = reqBody.FirstName
 	profile.LastName = reqBody.LastName
 	profile.About = reqBody.About
+	profile.City = reqBody.City
 
 	// // Если пришли геокоординаты — сохраняем
 	if reqBody.Latitude != 0 || reqBody.Longitude != 0 {
@@ -116,12 +122,17 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var reqBody struct {
-		Interests  string `json:"interests"`
-		Hobbies    string `json:"hobbies"`
-		Music      string `json:"music"`
-		Food       string `json:"food"`
-		Travel     string `json:"travel"`
-		LookingFor string `json:"lookingFor"`
+		Interests         string `json:"interests"`
+		Hobbies           string `json:"hobbies"`
+		Music             string `json:"music"`
+		Food              string `json:"food"`
+		Travel            string `json:"travel"`
+		LookingFor        string `json:"lookingFor"`
+		PriorityInterests bool   `json:"priorityInterests"`
+		PriorityHobbies   bool   `json:"priorityHobbies"`
+		PriorityMusic     bool   `json:"priorityMusic"`
+		PriorityFood      bool   `json:"priorityFood"`
+		PriorityTravel    bool   `json:"priorityTravel"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		logrus.Errorf("UpdateCurrentUserBio: error decoding request body: %v", err)
@@ -149,9 +160,43 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Дополнительно: сохраняем приоритетные флаги в Preference
+	var pref models.Preference
+	if err := profileDB.
+		Where("user_id = ?", currentUserID).
+		First(&pref).Error; err != nil {
+		// Если записи нет — создаём новую
+		pref = models.Preference{
+			UserID:            currentUserID,
+			PriorityInterests: reqBody.PriorityInterests,
+			PriorityHobbies:   reqBody.PriorityHobbies,
+			PriorityMusic:     reqBody.PriorityMusic,
+			PriorityFood:      reqBody.PriorityFood,
+			PriorityTravel:    reqBody.PriorityTravel,
+		}
+		if err := profileDB.Create(&pref).Error; err != nil {
+			logrus.Errorf("UpdateCurrentUserBio: error creating preferences for user %s: %v", currentUserID, err)
+		}
+	} else {
+		// Обновляем существующие флаги
+		pref.PriorityInterests = reqBody.PriorityInterests
+		pref.PriorityHobbies = reqBody.PriorityHobbies
+		pref.PriorityMusic = reqBody.PriorityMusic
+		pref.PriorityFood = reqBody.PriorityFood
+		pref.PriorityTravel = reqBody.PriorityTravel
+		if err := profileDB.Save(&pref).Error; err != nil {
+			logrus.Errorf("UpdateCurrentUserBio: error updating preferences for user %s: %v", currentUserID, err)
+		}
+	}
+
 	logrus.Infof("Bio for user %s updated successfully", currentUserID)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(bio)
+	//json.NewEncoder(w).Encode(bio)
+	// Возвращаем обновлённую Bio + Preferences вместе в одном ответе
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"bio":         bio,
+		"preferences": pref,
+	})
 }
 
 // UploadUserPhoto обрабатывает загрузку/изменение фотографии профиля.

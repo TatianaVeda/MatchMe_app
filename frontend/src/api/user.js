@@ -1,4 +1,60 @@
-// /m/frontend/src/api/user.js
+// // /m/frontend/src/api/user.js
+
+// import api from './index';
+
+
+// // Обновить профиль аутентифицированного пользователя (/me/profile)
+// export const updateMyProfile = async (profileData) => {
+//   const response = await api.put('/me/profile', profileData);
+//   return response.data;
+// };
+
+
+// // Обновить биографию аутентифицированного пользователя (/me/bio)
+// export const updateMyBio = async (bioData) => {
+//   const response = await api.put('/me/bio', bioData);
+//   return response.data;
+// };
+
+// // Получить базовые данные пользователя по id
+// export const getUser = async (userId) => {
+//   const response = await api.get(`/users/${userId}`);
+//   return response.data;
+// };
+
+// // Получить данные профиля аутентифицированного пользователя (короткий вариант /me)
+// export const getMyData = async () => {
+//   const response = await api.get('/me');
+//   return response.data;
+// };
+
+// // Получить полный профиль аутентифицированного пользователя (например, /me/profile)
+// export const getMyProfile = async () => {
+//   const response = await api.get('/me/profile');
+//   return response.data;
+// };
+
+// // Получить биографию аутентифицированного пользователя (/me/bio)
+// export const getMyBio = async () => {
+//   const response = await api.get('/me/bio');
+//   return response.data;
+// };
+
+// // Получить профиль другого пользователя (/users/{id}/profile)
+// export const getUserProfile = async (userId) => {
+//   const response = await api.get(`/users/${userId}/profile`);
+//   return response.data;
+// };
+
+// // Получить биографию другого пользователя (/users/{id}/bio)
+// export const getUserBio = async (userId) => {
+//   const response = await api.get(`/users/${userId}/bio`);
+//   return response.data;
+// };
+
+
+
+// frontend/src/api/user.js
 
 import api from './index';
 
@@ -8,13 +64,13 @@ export const getUser = async (userId) => {
   return response.data;
 };
 
-// Получить данные профиля аутентифицированного пользователя (короткий вариант /me)
+// Получить сокращённые данные аутентифицированного пользователя (/me)
 export const getMyData = async () => {
   const response = await api.get('/me');
   return response.data;
 };
 
-// Получить полный профиль аутентифицированного пользователя (например, /me/profile)
+// Получить полный профиль аутентифицированного пользователя (/me/profile)
 export const getMyProfile = async () => {
   const response = await api.get('/me/profile');
   return response.data;
@@ -38,14 +94,72 @@ export const getUserBio = async (userId) => {
   return response.data;
 };
 
+// ------------------------------------------------------------
+// Обновление данных текущего пользователя
+// ------------------------------------------------------------
+
 // Обновить профиль аутентифицированного пользователя (/me/profile)
-export const updateMyProfile = async (profileData) => {
-  const response = await api.put('/me/profile', profileData);
+// Передаём: { firstName, lastName, about, city }
+export const updateMyProfile = async ({ firstName, lastName, about, city }) => {
+  const response = await api.put('/me/profile', {
+    firstName,
+    lastName,
+    about,
+    city
+  });
   return response.data;
 };
 
 // Обновить биографию аутентифицированного пользователя (/me/bio)
-export const updateMyBio = async (bioData) => {
-  const response = await api.put('/me/bio', bioData);
+// Передаём: { interests, hobbies, music, food, travel, lookingFor,
+//             priorityInterests, priorityHobbies, priorityMusic,
+//             priorityFood, priorityTravel }
+export const updateMyBio = async ({
+  interests,
+  hobbies,
+  music,
+  food,
+  travel,
+  lookingFor,
+  priorityInterests,
+  priorityHobbies,
+  priorityMusic,
+  priorityFood,
+  priorityTravel
+}) => {
+  const response = await api.put('/me/bio', {
+    interests,
+    hobbies,
+    music,
+    food,
+    travel,
+    lookingFor,
+    priorityInterests,
+    priorityHobbies,
+    priorityMusic,
+    priorityFood,
+    priorityTravel
+  });
+  return response.data;
+};
+
+// Обновить предпочтения пользователя (/me/preferences)
+// Передаём: { maxRadius, priorityInterests, priorityHobbies, ... }
+export const updateMyPreferences = async ({
+  maxRadius,
+  priorityInterests,
+  priorityHobbies,
+  priorityMusic,
+  priorityFood,
+  priorityTravel
+}) => {
+  const response = await api.put('/me/preferences', {
+    maxRadius,
+    priorityInterests,
+    priorityHobbies,
+    priorityMusic,
+    priorityFood,
+    priorityTravel
+  });
   return response.data;
 };

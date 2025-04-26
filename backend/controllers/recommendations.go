@@ -47,28 +47,43 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	if mode != "desire" {
 		mode = "affinity"
 	}
+	// по умолчанию отдавать и расстояния, если UI их захочет
+	withDist := r.URL.Query().Get("withDistance") == "true"
 
-	// 3) Вызвать сервис, который возвращает пару (UserID, Distance)
-	raw, err := recommendationService.GetRecommendationsWithDistance(currentUserID, mode)
-	if err != nil {
-		logrus.Errorf("GetRecommendations: ошибка получения рекомендаций для %s: %v", currentUserID, err)
-		http.Error(w, "Error fetching recommendations: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// 4) Преобразовать в выходную структуру для JSON
-	out := make([]RecommendationOutput, len(raw))
-	for i, c := range raw {
-		out[i] = RecommendationOutput{
-			ID:       c.UserID,
-			Distance: c.Distance,
+	var resp interface{}
+	if withDist {
+		// возвращаем и ID, и Distance
+		raw, err := recommendationService.GetRecommendationsWithDistance(currentUserID, mode)
+		if err != nil {
+			logrus.Errorf("GetRecommendations: ошибка получения рекомендаций для %s: %v", currentUserID, err)
+			http.Error(w, "Error fetching recommendations: "+err.Error(), http.StatusInternalServerError)
+			return
 		}
+
+		type Out struct {
+			ID       uuid.UUID `json:"id"`
+			Distance float64   `json:"distance"`
+		}
+		// 4) Преобразовать в выходную структуру для JSON
+		out := make([]Out, len(raw))
+		for i, c := range raw {
+			out[i] = Out{ID: c.UserID, Distance: c.Distance}
+		}
+		resp = out
+	} else {
+		// возвращаем только список ID
+		ids, err := recommendationService.GetRecommendationsForUser(currentUserID, mode)
+		if err != nil {
+			logrus.Errorf("GetRecommendations: ошибка получения рекомендаций для %s: %v", currentUserID, err)
+			http.Error(w, "Error fetching recommendations", http.StatusInternalServerError)
+			return
+		}
+		resp = ids
 	}
 
-	// 5) Логирование и отправка ответа
-	logrus.Infof("GetRecommendations[%s]: успешно %d рекомендаций для %s", mode, len(out), currentUserID)
+	// 4) отдаем результат
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(out)
+	json.NewEncoder(w).Encode(resp)
 }
 
 // После GetRecommendations добавьте:
@@ -90,7 +105,6 @@ func DeclineRecommendation(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid recommendation ID", http.StatusBadRequest)
 		return
 	}
-	// Проверим, что такой кандидат был в рекомендациях (по желанию можно повторно вызвать GetRecommendationsForUser и проверить наличие recUserID)
 	// Здесь упрощённо сразу делаем отказ:
 	if err := recommendationService.DeclineRecommendation(currentUserID, recUserID); err != nil {
 		logrus.Errorf("DeclineRecommendation: error saving decline for user %s -> %s: %v", currentUserID, recUserID, err)
