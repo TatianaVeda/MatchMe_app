@@ -6,6 +6,18 @@ function error_exit {
   exit 1
 }
 
+echo "Checking Go and Node.js versions..."
+if ! command -v go &> /dev/null; then
+  error_exit "Go is not installed. Please install Go 1.19+ and try again."
+fi
+
+if ! command -v node &> /dev/null; then
+  error_exit "Node.js is not installed. Please install Node.js 16+ and try again."
+fi
+
+echo "Installing root dependencies..."
+npm install || error_exit "Failed to install root dependencies"
+
 npm install concurrently --save-dev
 
 # Checking for Docker
@@ -58,6 +70,17 @@ if ! command -v docker-compose &> /dev/null; then
   fi
 fi
 
+# After installing Docker, before starting PostgreSQL
+if [ ! -f "backend/config/config_local.env" ]; then
+  echo "Creating config_local.env file..."
+  cat > backend/config/config_local.env << EOF
+POSTGRES_USER=user
+POSTGRES_PASSWORD=password
+POSTGRES_DB=sopostavmenya
+DB_PORT=5433
+EOF
+fi
+
 echo "Starting PostgreSQL through Docker Compose..."
 docker-compose up -d
 
@@ -71,6 +94,15 @@ if [ $? -ne 0 ]; then
   error_exit
 fi
 echo "PostgreSQL is running and ready to connect."
+
+# After starting PostgreSQL
+echo "Checking if migrations are supported..."
+if go run main.go -help | grep -q "\-migrate"; then
+  echo "Running database migrations..."
+  go run main.go -migrate || error_exit "Database migration failed" 
+else
+  echo "Migration flag not found. Skipping migrations."
+fi
 
 # Installing dependencies for backend
 echo "Moving to the backend folder and installing Go dependencies..."
@@ -125,3 +157,8 @@ echo "-------------------------------------------------"
 
 # After installing frontend dependencies
 npm audit fix --force
+
+
+# Before returning to the root directory at the end of the script
+echo "Creating directories for file uploads..."
+mkdir -p backend/static/images
