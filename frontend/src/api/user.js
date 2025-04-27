@@ -100,15 +100,16 @@ export const getUserBio = async (userId) => {
 
 // Обновить профиль аутентифицированного пользователя (/me/profile)
 // Передаём: { firstName, lastName, about, city }
-export const updateMyProfile = async ({ firstName, lastName, about, city }) => {
-  const response = await api.put('/me/profile', {
-    firstName,
-    lastName,
-    about,
-    city
-  });
-  return response.data;
-};
+export const updateMyProfile = async ({ firstName, lastName, about, city, latitude, longitude }) => {
+    const payload = { firstName, lastName, about, city };
+    // добавляем координаты, если они переданы
+    if (latitude != null && longitude != null) {
+      payload.latitude = latitude;
+      payload.longitude = longitude;
+    }
+    const response = await api.put('/me/profile', payload);
+    return response.data;
+  };
 
 // Обновить биографию аутентифицированного пользователя (/me/bio)
 // Передаём: { interests, hobbies, music, food, travel, lookingFor,

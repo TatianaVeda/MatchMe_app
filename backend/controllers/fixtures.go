@@ -142,6 +142,7 @@ func randomLatitude() float64 {
 	return 41 + rand.Float64()*(82-41)
 }
 
+// Suomi!!!
 func randomLongitude() float64 {
 	// Например, для России: от 19 до 169 градусов восточной долготы
 	return 19 + rand.Float64()*(169-19)

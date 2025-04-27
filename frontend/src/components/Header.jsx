@@ -20,11 +20,13 @@ import { toast } from 'react-toastify';
 import WebSocketService from '../services/websocketService';
 
 
+
 const navItems = [
   { label: 'Рекомендации', to: '/recommendations' },
   { label: 'Чаты',        to: '/chats' },
   { label: 'Профиль',     to: '/me' },
   { label: 'Настройки',   to: '/settings' },
+  { label: 'Друзья',      to: '/friends' },
 ];
 
 const Header = () => {

@@ -19,6 +19,7 @@ import { ThemeProvider } from '@mui/material/styles'
 import theme from './theme'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Friends from './pages/Friends';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="/chats" element={<PrivateRoute><Chats /></PrivateRoute>} />
             <Route path="/chat/:chatId" element={<PrivateRoute><ChatWindow /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+            <Route path="/friends"   element={<PrivateRoute><Friends  /></PrivateRoute>} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
           <ToastContainer position="top-right" autoClose={2000} />

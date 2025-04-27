@@ -256,11 +256,18 @@ import { getMyProfile, getMyBio, updateMyProfile, updateMyBio } from '../../api/
 import { toast } from 'react-toastify';
 
 
-// Новые константы с опциями 
-const cityOptions = [
-  "Helsinki","Espoo","Vantaa","Turku","Tampere",
-  "Oulu","Lahti","Kuopio","Pori","Jyväskylä"
-];
+ const cityOptions = [
+     { name: 'Helsinki', lat: 60.1699, lon: 24.9384 },
+     { name: 'Espoo',    lat: 60.2055, lon: 24.6559 },
+     { name: 'Vantaa',   lat: 60.2934, lon: 25.0378 },
+     { name: 'Turku',    lat: 60.4518, lon: 22.2666 },
+     { name: 'Tampere',  lat: 61.4981, lon: 23.7610 },
+     { name: 'Oulu',     lat: 65.0121, lon: 25.4651 },
+     { name: 'Lahti',    lat: 60.9827, lon: 25.6615 },
+     { name: 'Kuopio',   lat: 62.8924, lon: 27.6770 },
+     { name: 'Pori',     lat: 61.4850, lon: 21.7973 },
+     { name: 'Jyväskylä',lat: 62.2426, lon: 25.7473 },
+   ];
 
 const interestsOptions = ["кино","спорт","музыка","технологии","искусство"];
 const hobbiesOptions   = ["чтение","бег","рисование","игры","готовка"];
@@ -274,11 +281,11 @@ const EditProfileSchema = Yup.object().shape({
   lastName: Yup.string().max(255, 'Фамилия слишком длинная').required('Укажите фамилию'),
   about: Yup.string().max(1000, 'Описание слишком длинное'),
   city: Yup.string().required('Выберите город'),
-  interests: Yup.string().required('Укажите интересы'),
-  hobbies: Yup.string().required('Укажите хобби'),
-  music: Yup.string().required('Укажите музыку'),
-  food: Yup.string().required('Укажите еду'),
-  travel: Yup.string().required('Укажите путешествия'),
+  interests: Yup.array().min(1, 'Укажите хотя бы один интерес'),
+  hobbies:   Yup.array().min(1, 'Укажите хотя бы одно хобби'),
+  music:     Yup.array().min(1, 'Укажите хотя бы один жанр музыки'),
+  food:      Yup.array().min(1, 'Укажите хотя бы одну кухню'),
+  travel:    Yup.array().min(1, 'Укажите хотя бы один тип путешествий'),
   lookingFor: Yup.string().required('Укажите, кого вы ищете')  // новое обязательное поле
 });
 
@@ -298,12 +305,16 @@ const EditProfile = () => {
           firstName: profile.firstName || '',
           lastName: profile.lastName || '',
           about: profile.about || '',
-          city:      profile.city || '',
-          interests: bio.interests || '',
-          hobbies: bio.hobbies || '',
-          music: bio.music || '',
-          food: bio.food || '',
-          travel: bio.travel || '',
+          city: cityOptions.find(c => c.name === profile.city) || {
+            name:  profile.city || cityOptions[0].name,
+            lat:   profile.latitude  || cityOptions[0].lat,
+            lon:   profile.longitude || cityOptions[0].lon,
+          },
+          interests: bio.interests ? bio.interests.split(' ') : [],
+          hobbies:   bio.hobbies   ? bio.hobbies.split(' ')   : [],
+          music:     bio.music     ? bio.music.split(' ')     : [],
+          food:      bio.food      ? bio.food.split(' ')      : [],
+          travel:    bio.travel    ? bio.travel.split(' ')    : [],
           lookingFor: bio.lookingFor || '',
           priorityInterests: false,
           priorityHobbies:   false,
@@ -349,18 +360,20 @@ const EditProfile = () => {
     try {
       // Обновляем профиль
       await updateMyProfile({
-        firstName: values.firstName,
-        lastName: values.lastName,
-        about: values.about,
-        city:      values.city,
-      });
+                firstName: values.firstName,
+                lastName:  values.lastName,
+                about:     values.about,
+                city:      values.city.name,
+                latitude:  values.city.lat,
+                longitude: values.city.lon
+              });
       // Обновляем биографию, включая lookingFor
       await updateMyBio({
-        interests: values.interests,
-        hobbies: values.hobbies,
-        music: values.music,
-        food: values.food,
-        travel: values.travel,
+        interests: values.interests.join(' '),
+        hobbies:   values.hobbies.join(' '),
+        music:     values.music.join(' '),
+        food:      values.food.join(' '),
+        travel:    values.travel.join(' '),
         lookingFor: values.lookingFor,  // сохраняем новое поле
         priorityInterests:   values.priorityInterests,
         priorityHobbies:     values.priorityHobbies,
@@ -416,17 +429,28 @@ const EditProfile = () => {
                 toast.error('Геолокация не поддерживается');
                 return;
               }
+              // navigator.geolocation.getCurrentPosition(
+              //   ({ coords }) => {
+              //     api.put('/me/profile', {
+              //       latitude: coords.latitude,
+              //       longitude: coords.longitude
+              //     })
+              //       .then(() => toast.success('Локация сохранена'))
+              //       .catch(() => toast.error('Не удалось сохранить координаты'));
+              //   },
+              //   () => toast.error('Не удалось получить местоположение')
+              // );
               navigator.geolocation.getCurrentPosition(
                 ({ coords }) => {
-                  api.put('/me/profile', {
+                  api.put('/me/location', {
                     latitude: coords.latitude,
                     longitude: coords.longitude
                   })
-                    .then(() => toast.success('Локация сохранена'))
-                    .catch(() => toast.error('Не удалось сохранить координаты'));
+                  .then(() => toast.success('Локация сохранена'))
+                  .catch(() => toast.error('Не удалось сохранить координаты'));
                 },
                 () => toast.error('Не удалось получить местоположение')
-              );
+              );              
             }}
           >
             Использовать моё местоположение
@@ -471,18 +495,29 @@ const EditProfile = () => {
                 helperText={<ErrorMessage name="about" />}
               />
 
-               {/* Город */}
+                {/* Город */}
      <FormControl fullWidth margin="normal" error={touched.city && Boolean(errors.city)}>
        <InputLabel id="city-label">Город</InputLabel>
-       <Field
-         name="city"
-         as={Select}
-         labelId="city-label"
-         label="Город"
-       >
-         {cityOptions.map(city => (
-           <MenuItem key={city} value={city}>{city}</MenuItem>
-         ))}
+       {/* используем render-проп чтобы получить доступ к setFieldValue */}
+       <Field name="city">
+         {({ field, form }) => (
+           <Select
+             {...field}
+             labelId="city-label"
+             label="Город"
+             value={field.value.name}
+             onChange={e => {
+               const sel = cityOptions.find(c => c.name === e.target.value);
+               form.setFieldValue('city', sel);
+             }}
+           >
+             {cityOptions.map(c => (
+               <MenuItem key={c.name} value={c.name}>
+                 {c.name}
+               </MenuItem>
+             ))}
+           </Select>
+         )}
        </Field>
        <ErrorMessage name="city" component="div" style={{ color: 'red' }} />
      </FormControl>
@@ -494,16 +529,22 @@ const EditProfile = () => {
               {/* Interests */}
      <FormControl fullWidth margin="normal" error={touched.interests && Boolean(errors.interests)}>
        <InputLabel id="interests-label">Интересы</InputLabel>
-      <Field
-         name="interests"
-         as={Select}
-         labelId="interests-label"
-         label="Интересы"
-       >
-         {interestsOptions.map(opt => (
-           <MenuItem key={opt} value={opt}>{opt}</MenuItem>
-         ))}
-       </Field>
+       <Field name="interests">
+    {({ field, form }) => (
+      <Select
+        {...field}
+        multiple
+        labelId="interests-label"
+        label="Интересы"
+        value={field.value}
+        onChange={e => form.setFieldValue('interests', e.target.value)}
+      >
+        {interestsOptions.map(opt => (
+          <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+        ))}
+      </Select>
+    )}
+  </Field>
        <FormControlLabel
          control={<Field name="priorityInterests" as={Switch} />}
          label="Приоритетные интересы"
@@ -513,55 +554,107 @@ const EditProfile = () => {
 
      {/* Hobbies */}
      <FormControl fullWidth margin="normal" error={touched.hobbies && Boolean(errors.hobbies)}>
-       <InputLabel id="hobbies-label">Хобби</InputLabel>
-       <Field name="hobbies" as={Select} labelId="hobbies-label" label="Хобби">
-         {hobbiesOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
-       </Field>
-       <FormControlLabel
-         control={<Field name="priorityHobbies" as={Switch} />}
-         label="Приоритетное хобби"
-       />
-       <ErrorMessage name="hobbies" component="div" style={{ color: 'red' }} />
-     </FormControl>
+  <InputLabel id="hobbies-label">Хобби</InputLabel>
+  <Field name="hobbies">
+    {({ field, form }) => (
+      <Select
+        {...field}
+        multiple
+        labelId="hobbies-label"
+        label="Хобби"
+        value={field.value}
+        onChange={e => form.setFieldValue('hobbies', e.target.value)}
+      >
+        {hobbiesOptions.map(opt => (
+          <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+        ))}
+      </Select>
+    )}
+  </Field>
+  <FormControlLabel
+    control={<Field name="priorityHobbies" as={Switch} />}
+    label="Приоритетное хобби"
+  />
+  <ErrorMessage name="hobbies" component="div" style={{ color: 'red' }} />
+</FormControl>
 
      {/* Music */}
      <FormControl fullWidth margin="normal" error={touched.music && Boolean(errors.music)}>
-       <InputLabel id="music-label">Музыка</InputLabel>
-       <Field name="music" as={Select} labelId="music-label" label="Музыка">
-         {musicOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
-       </Field>
-       <FormControlLabel
-         control={<Field name="priorityMusic" as={Switch} />}
-         label="Приоритетная музыка"
-       />
-       <ErrorMessage name="music" component="div" style={{ color: 'red' }} />
-     </FormControl>
+  <InputLabel id="music-label">Музыка</InputLabel>
+  <Field name="music">
+    {({ field, form }) => (
+      <Select
+        {...field}
+        multiple
+        labelId="music-label"
+        label="Музыка"
+        value={field.value}
+        onChange={e => form.setFieldValue('music', e.target.value)}
+      >
+        {musicOptions.map(opt => (
+          <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+        ))}
+      </Select>
+    )}
+  </Field>
+  <FormControlLabel
+    control={<Field name="priorityMusic" as={Switch} />}
+    label="Приоритетная музыка"
+  />
+  <ErrorMessage name="music" component="div" style={{ color: 'red' }} />
+</FormControl>
 
      {/* Food */}
      <FormControl fullWidth margin="normal" error={touched.food && Boolean(errors.food)}>
-       <InputLabel id="food-label">Еда</InputLabel>
-       <Field name="food" as={Select} labelId="food-label" label="Еда">
-         {foodOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
-       </Field>
-       <FormControlLabel
-         control={<Field name="priorityFood" as={Switch} />}
-         label="Приоритетная еда"
-       />
-       <ErrorMessage name="food" component="div" style={{ color: 'red' }} />
-     </FormControl>
+  <InputLabel id="food-label">Еда</InputLabel>
+  <Field name="food">
+    {({ field, form }) => (
+      <Select
+        {...field}
+        multiple
+        labelId="food-label"
+        label="Еда"
+        value={field.value}
+        onChange={e => form.setFieldValue('food', e.target.value)}
+      >
+        {foodOptions.map(opt => (
+          <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+        ))}
+      </Select>
+    )}
+  </Field>
+  <FormControlLabel
+    control={<Field name="priorityFood" as={Switch} />}
+    label="Приоритетная еда"
+  />
+  <ErrorMessage name="food" component="div" style={{ color: 'red' }} />
+</FormControl>
 
      {/* Travel */}
      <FormControl fullWidth margin="normal" error={touched.travel && Boolean(errors.travel)}>
-       <InputLabel id="travel-label">Путешествия</InputLabel>
-       <Field name="travel" as={Select} labelId="travel-label" label="Путешествия">
-         {travelOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
-       </Field>
-       <FormControlLabel
-         control={<Field name="priorityTravel" as={Switch} />}
-         label="Приоритетные путешествия"
-       />
-       <ErrorMessage name="travel" component="div" style={{ color: 'red' }} />
-     </FormControl>
+  <InputLabel id="travel-label">Путешествия</InputLabel>
+  <Field name="travel">
+    {({ field, form }) => (
+      <Select
+        {...field}
+        multiple
+        labelId="travel-label"
+        label="Путешествия"
+        value={field.value}
+        onChange={e => form.setFieldValue('travel', e.target.value)}
+      >
+        {travelOptions.map(opt => (
+          <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+        ))}
+      </Select>
+    )}
+  </Field>
+  <FormControlLabel
+    control={<Field name="priorityTravel" as={Switch} />}
+    label="Приоритетные путешествия"
+  />
+  <ErrorMessage name="travel" component="div" style={{ color: 'red' }} />
+</FormControl>
               
               {/* Поле кого ищу */}
               <Field

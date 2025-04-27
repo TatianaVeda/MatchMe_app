@@ -78,11 +78,14 @@ func main() {
 
 	// Раздача статики для картинок
 	// любой запрос к /static/... будет браться из папки ./static
+	// router.PathPrefix("/static/").Handler(
+	// 	http.StripPrefix("/static/",
+	// 		http.FileServer(http.Dir(config.AppConfig.MediaUploadDir)),
+	// 	),
+	// )
+
 	router.PathPrefix("/static/").Handler(
-		http.StripPrefix("/static/",
-			http.FileServer(http.Dir(config.AppConfig.MediaUploadDir)),
-		),
-	)
+		http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	// Запускаем WebSocket-сервер в отдельной горутине (на порту, указанном в конфигурации)
 	go func() {

@@ -46,6 +46,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	// Обновление профиля и биографии через PUT-метод.
 	authRouter.HandleFunc("/me/profile", controllers.UpdateCurrentUserProfile).Methods(http.MethodPut)
 	authRouter.HandleFunc("/me/bio", controllers.UpdateCurrentUserBio).Methods(http.MethodPut)
+	authRouter.HandleFunc("/me/location", controllers.UpdateCurrentUserLocation).Methods(http.MethodPut)
 	// Загрузка фотографии профиля.
 	authRouter.HandleFunc("/me/photo", controllers.UploadUserPhoto).Methods(http.MethodPost)
 	authRouter.HandleFunc("/me/photo", controllers.DeleteUserPhoto).Methods(http.MethodDelete)

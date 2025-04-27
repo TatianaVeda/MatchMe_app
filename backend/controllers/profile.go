@@ -53,6 +53,8 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		Latitude  float64 `json:"latitude"` // ← новые поля
 		Longitude float64 `json:"longitude"`
 	}
+	logrus.Infof("!!!!!!!!!!!!!!!UpdateCurrentUserProfile: reqBody: %+v", reqBody)
+
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		logrus.Errorf("UpdateCurrentUserProfile: error decoding request body: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -104,6 +106,48 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(profile)
 }
 
+// PUT /me/location
+func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	currentUserID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	var reqBody struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	var profile models.Profile
+	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
+		http.Error(w, "Profile not found", http.StatusNotFound)
+		return
+	}
+
+	profile.Latitude = reqBody.Latitude
+	profile.Longitude = reqBody.Longitude
+
+	if err := profileDB.Save(&profile).Error; err != nil {
+		http.Error(w, "Error updating location", http.StatusInternalServerError)
+		return
+	}
+
+	//w.WriteHeader(http.StatusOK)
+	logrus.Infof("coordinates %s updated successfully", currentUserID)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(profile)
+}
+
 // UpdateCurrentUserBio обновляет биографические данные пользователя.
 // PUT /me/bio
 // Доступ разрешён только для аутентифицированного пользователя.
@@ -134,6 +178,9 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		PriorityFood      bool   `json:"priorityFood"`
 		PriorityTravel    bool   `json:"priorityTravel"`
 	}
+
+	logrus.Infof("UpdateCurrentUserBio: reqBody: %+v", reqBody)
+
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		logrus.Errorf("UpdateCurrentUserBio: error decoding request body: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)

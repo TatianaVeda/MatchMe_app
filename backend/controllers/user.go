@@ -278,10 +278,10 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	logrus.Infof("✅ Profile found: %+v", profile)
 
 	//Если некоторые важные поля пустые, можно вернуть информативное сообщение
-	if profile.FirstName == "" || profile.LastName == "" {
-		http.Error(w, "Пожалуйста, заполните ваше имя и фамилию в профиле", http.StatusBadRequest)
-		return
-	}
+	// if profile.FirstName == "" || profile.LastName == "" {
+	// 	http.Error(w, "Пожалуйста, заполните ваше имя и фамилию в профиле", http.StatusBadRequest)
+	// 	return
+	// }
 
 	logrus.Infof("Profile for current user %s retrieved", userID)
 	response := map[string]interface{}{
@@ -291,6 +291,7 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		"photoUrl":  profile.PhotoURL,
 		"latitude":  profile.Latitude,
 		"longitude": profile.Longitude,
+		"city":      profile.City,
 	}
 
 	logrus.Infof("📤 Sending profile response: %+v", response)
@@ -324,12 +325,12 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		bio.Music == "" ||
 		bio.Food == "" ||
 		bio.Travel == "" {
-		http.Error(
-			w,
-			"Пожалуйста, заполните всю биографию: "+
-				"интересы, хобби, музыка, еда и путешествия",
-			http.StatusBadRequest,
-		)
+		// http.Error(
+		// 	w,
+		// 	"Пожалуйста, заполните всю биографию: "+
+		// 		"интересы, хобби, музыка, еда и путешествия",
+		// 	http.StatusBadRequest,
+		// )
 		return
 	}
 
