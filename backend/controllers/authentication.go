@@ -6,9 +6,12 @@ import (
 	"m/backend/config"
 	"m/backend/models"
 	"m/backend/services"
+	"m/backend/utils"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/sirupsen/logrus"
@@ -127,6 +130,12 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	// Если клиент не передал refreshToken — сразу 400
+	if strings.TrimSpace(reqBody.RefreshToken) == "" {
+		logrus.Warn("RefreshToken: missing refresh token in request")
+		http.Error(w, "Missing refreshToken", http.StatusBadRequest)
+		return
+	}
 	token, err := jwt.ParseWithClaims(reqBody.RefreshToken, &models.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.AppConfig.JWTSecret), nil
 	})
@@ -159,4 +168,121 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// UpdateEmail позволяет пользователю сменить свой e-mail
+func UpdateEmail(w http.ResponseWriter, r *http.Request) {
+	// 1. Получаем userID из контекста
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	// 2. Читаем новый e-mail из тела
+	var body struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// 3. Валидация формата
+	if err := utils.ValidateEmail(body.Email); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// 4. Проверка уникальности
+	var count int64
+	authDB.Model(&models.User{}).
+		Where("email = ?", body.Email).
+		Count(&count)
+	if count > 0 {
+		http.Error(w, "Email already in use", http.StatusBadRequest)
+		return
+	}
+
+	// 5. Сохраняем
+	if err := authDB.Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("email", body.Email).Error; err != nil {
+		logrus.Errorf("UpdateEmail: error updating email for user %s: %v", userID, err)
+		http.Error(w, "Error updating email", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"email": body.Email,
+	})
+}
+
+// UpdatePassword позволяет пользователю сменить пароль
+func UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	// 1. Получаем userID из контекста
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	// 2. Читаем текущий и новый пароли
+	var body struct {
+		Current string `json:"current"`
+		New     string `json:"new"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// 3. Загружаем пользователя из БД
+	var user models.User
+	if err := authDB.First(&user, "id = ?", userID).Error; err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// 4. Проверяем текущий пароль
+	if !models.CheckPasswordHash(body.Current, user.PasswordHash) {
+		http.Error(w, "Current password is incorrect", http.StatusUnauthorized)
+		return
+	}
+
+	// 5. Валидация нового пароля
+	if err := utils.ValidatePassword(body.New); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// 6. Хэшируем и сохраняем
+	hashed, err := models.HashPassword(body.New)
+	if err != nil {
+		http.Error(w, "Error hashing password", http.StatusInternalServerError)
+		return
+	}
+	if err := authDB.Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("password_hash", hashed).Error; err != nil {
+		logrus.Errorf("UpdatePassword: error updating password for user %s: %v", userID, err)
+		http.Error(w, "Error updating password", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Password updated successfully",
+	})
 }

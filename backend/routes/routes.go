@@ -23,16 +23,17 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	controllers.InitFixturesController(db)       // Инициализация фикстур
 	controllers.InitAuthenticationController(db) // Добавляем инициализацию нашего нового контроллера
 	controllers.InitPreferencesController(db)
+	controllers.InitCitiesController(db)
 
 	// --- Публичные эндпоинты пользователей ---
 	router.HandleFunc("/signup", controllers.Signup).Methods(http.MethodPost)
 	router.HandleFunc("/users/{id}", controllers.GetUser).Methods(http.MethodGet)
-	router.HandleFunc("/cities", controllers.GetCities).Methods(http.MethodGet) // новый эндпоинт
 	router.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
 	router.HandleFunc("/users/{id}/bio", controllers.GetUserBio).Methods(http.MethodGet)
 	// Эндпоинт для обновления токенов не требует аутентификации (он принимает refresh токен)
 	router.HandleFunc("/refresh", controllers.RefreshToken).Methods(http.MethodPost)
 	router.HandleFunc("/login", controllers.Login).Methods(http.MethodPost)
+	router.HandleFunc("/cities", controllers.GetCities).Methods(http.MethodGet)
 
 	// --- Эндпоинты для аутентифицированного пользователя ---
 	// Создаем subrouter для защищенных маршрутов и подключаем AuthMiddleware.
@@ -48,7 +49,9 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	// Загрузка фотографии профиля.
 	authRouter.HandleFunc("/me/photo", controllers.UploadUserPhoto).Methods(http.MethodPost)
 	authRouter.HandleFunc("/me/photo", controllers.DeleteUserPhoto).Methods(http.MethodDelete)
-	authRouter.HandleFunc("/logout", controllers.Logout).Methods(http.MethodPost) // Новый endpoint для выхода
+	authRouter.HandleFunc("/logout", controllers.Logout).Methods(http.MethodPost)
+	authRouter.HandleFunc("/me/email", controllers.UpdateEmail).Methods(http.MethodPut)
+	authRouter.HandleFunc("/me/password", controllers.UpdatePassword).Methods(http.MethodPut)
 
 	// --- Остальные эндпоинты (рекомендации, связи, чат) ---
 	authRouter.HandleFunc("/recommendations", controllers.GetRecommendations).Methods(http.MethodGet)

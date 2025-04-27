@@ -6,71 +6,56 @@ import {
   Typography, 
   TextField, 
   Button, 
-  CircularProgress 
+  CircularProgress,
+  Divider 
 } from '@mui/material';
 import axios from '../api/index';
 import { toast } from 'react-toastify';
 
 const Settings = () => {
+  // --- состояние для трёх секций ---
+  const [loading, setLoading] = useState(true);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   // Начальное состояние настроек (предпочтений)
   const [preferences, setPreferences] = useState({
     maxRadius: ''    // Максимальный радиус для рекомендаций
     //location: ''      // Местоположение (например, название города)
   });
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Функция загрузки предпочтений пользователя
-  const fetchPreferences = async () => {
-    try {
-      // Пример GET запроса к эндпоинту для получения настроек
-      const { data } = await axios.get('/me/preferences');
-      setPreferences({
-        maxRadius: data.maxRadius || ''
-        //location: data.location || ''
-      });
-    } catch (error) {
-      toast.error("Ошибка загрузки настроек");
-    } finally {
-      setLoading(false);
-    }
-  };
+   // 2) Email
+   const [email, setEmail] = useState({
+    currentEmail: '',
+    newEmail: ''
+  });
+
+  // 3) Password
+  const [passwords, setPasswords] = useState({
+    current: '',
+    next: '',
+    confirm: ''
+  });
 
   useEffect(() => {
-    fetchPreferences();
+    const fetchAll = async () => {
+      try {
+        // Параметры рекомендаций
+        const prefRes = await axios.get('/me/preferences');
+        setPreferences({ maxRadius: prefRes.data.maxRadius || '' });
+
+        // Текущий e-mail
+        const meRes = await axios.get('/me');
+        setEmail(email => ({ ...email, currentEmail: meRes.data.email || '' }));
+      } catch (err) {
+        toast.error('Ошибка загрузки настроек');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
   }, []);
-
-  // Обработка изменения полей формы
-  // const handleChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setPreferences((prev) => ({
-  //     ...prev,
-  //     [name]: value
-  //   }));
-  // };
-
-  const handleChange = (e) => {
-    setPreferences({ maxRadius: e.target.value });
-  };
-  
-
-  // Отправка формы для сохранения изменений
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      // Пример PUT запроса для обновления настроек
-      await axios.put('/me/preferences', {
-              // Подаём именно то, что ждёт бэкенд
-              maxRadius: Number(preferences.maxRadius)
-            });
-      toast.success("Настройки сохранены");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Ошибка сохранения настроек");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -80,41 +65,176 @@ const Settings = () => {
     );
   }
 
+  // ----- ОБРАБОТЧИКИ -----
+  // Preferences
+  const handlePrefChange = e => {
+    setPreferences({ maxRadius: e.target.value });
+  };
+  const submitPreferences = async e => {
+    e.preventDefault();
+    setSavingPrefs(true);
+    try {
+      await axios.put('/me/preferences', {
+        maxRadius: Number(preferences.maxRadius)
+      });
+      toast.success('Настройки рекомендаций сохранены');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Ошибка сохранения настроек');
+    } finally {
+      setSavingPrefs(false);
+    }
+  };
+
+  // Email
+  const handleEmailChange = e => {
+    setEmail({ ...email, newEmail: e.target.value });
+  };
+  const submitEmail = async e => {
+    e.preventDefault();
+    if (!email.newEmail) {
+      toast.error('Введите новый e-mail');
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      const { data } = await axios.put('/me/email', {
+        email: email.newEmail
+      });
+      setEmail({ currentEmail: data.email, newEmail: '' });
+      toast.success('E-mail успешно изменён');
+    } catch (err) {
+      toast.error(err.response?.data || 'Ошибка изменения e-mail');
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  // Password
+  const handlePasswordChange = e => {
+    setPasswords({ ...passwords, [e.target.name]: e.target.value });
+  };
+  const submitPassword = async e => {
+    e.preventDefault();
+    const { current, next, confirm } = passwords;
+    if (!current || !next || next !== confirm) {
+      toast.error('Проверьте поля пароля');
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await axios.put('/me/password', {
+        current,
+        new: next
+      });
+      setPasswords({ current: '', next: '', confirm: '' });
+      toast.success('Пароль успешно изменён');
+    } catch (err) {
+      toast.error(err.response?.data || 'Ошибка изменения пароля');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
-      <Box component="form" onSubmit={handleSubmit} sx={{ p: 3, border: '1px solid #ccc', borderRadius: 2 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Настройки
-        </Typography>
+      <Typography variant="h4" gutterBottom>Настройки</Typography>
+
+      {/* Секция смены e-mail */}
+      <Box component="form" onSubmit={submitEmail} sx={{ p: 2, mb: 3, border: '1px solid #ccc', borderRadius: 2 }}>
+        <Typography variant="h6" gutterBottom>Сменить e-mail</Typography>
+        <TextField
+          label="Текущий e-mail"
+          value={email.currentEmail}
+          fullWidth
+          margin="normal"
+          InputProps={{ readOnly: true }}
+        />
+        <TextField
+          label="Новый e-mail"
+          name="newEmail"
+          value={email.newEmail}
+          onChange={handleEmailChange}
+          fullWidth
+          margin="normal"
+          required
+        />
+        <Button
+          variant="contained"
+          type="submit"
+          disabled={savingEmail}
+          sx={{ mt: 1 }}
+        >
+          {savingEmail ? 'Сохраняем...' : 'Сохранить e-mail'}
+        </Button>
+      </Box>
+
+      <Divider />
+
+      {/* Секция смены пароля */}
+      <Box component="form" onSubmit={submitPassword} sx={{ p: 2, my: 3, border: '1px solid #ccc', borderRadius: 2 }}>
+        <Typography variant="h6" gutterBottom>Сменить пароль</Typography>
+        <TextField
+          label="Текущий пароль"
+          name="current"
+          type="password"
+          value={passwords.current}
+          onChange={handlePasswordChange}
+          fullWidth
+          margin="normal"
+          required
+        />
+        <TextField
+          label="Новый пароль"
+          name="next"
+          type="password"
+          value={passwords.next}
+          onChange={handlePasswordChange}
+          fullWidth
+          margin="normal"
+          required
+        />
+        <TextField
+          label="Подтвердите новый пароль"
+          name="confirm"
+          type="password"
+          value={passwords.confirm}
+          onChange={handlePasswordChange}
+          fullWidth
+          margin="normal"
+          required
+        />
+        <Button
+          variant="contained"
+          type="submit"
+          disabled={savingPassword}
+          sx={{ mt: 1 }}
+        >
+          {savingPassword ? 'Сохраняем...' : 'Сохранить пароль'}
+        </Button>
+      </Box>
+
+      <Divider />
+
+      {/* Секция предпочтений (радиус) */}
+      <Box component="form" onSubmit={submitPreferences} sx={{ p: 2, mt: 3, border: '1px solid #ccc', borderRadius: 2 }}>
+        <Typography variant="h6" gutterBottom>Параметры рекомендаций</Typography>
         <TextField
           label="Максимальный радиус (км)"
           name="maxRadius"
           type="number"
+          value={preferences.maxRadius}
+          onChange={handlePrefChange}
           fullWidth
           margin="normal"
-          value={preferences.maxRadius}
-          onChange={handleChange}
           required
         />
-        {/* <TextField
-          label="Местоположение"
-          name="location"
-          type="text"
-          fullWidth
-          margin="normal"
-          value={preferences.location}
-          onChange={handleChange}
-          required
-        /> */}
         <Button
           variant="contained"
-          color="primary"
           type="submit"
-          fullWidth
-          sx={{ mt: 2 }}
-          disabled={saving}
+          disabled={savingPrefs}
+          sx={{ mt: 1 }}
         >
-          {saving ? "Сохранение..." : "Сохранить настройки"}
+          {savingPrefs ? 'Сохраняем...' : 'Сохранить параметры'}
         </Button>
       </Box>
     </Container>

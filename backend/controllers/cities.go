@@ -2,8 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
-	"m/backend/config"
 	"net/http"
+
+	"m/backend/models"
+
+	"gorm.io/gorm"
 )
 
 type City struct {
@@ -12,16 +15,43 @@ type City struct {
 	Longitude float64 `json:"longitude"`
 }
 
-// GetCities возвращает список всех городов и их координат
+var citiesDB *gorm.DB
+
+func InitCitiesController(db *gorm.DB) {
+	citiesDB = db
+}
+
+// GET /cities
 func GetCities(w http.ResponseWriter, r *http.Request) {
-	cities := make([]City, 0, len(config.AppConfig.CityCoords))
-	for name, coords := range config.AppConfig.CityCoords {
-		cities = append(cities, City{
-			Name:      name,
-			Latitude:  coords[0],
-			Longitude: coords[1],
-		})
+	// 1) вытягиваем все непустые города (DISTINCT)
+	type row struct {
+		City      string
+		Latitude  float64
+		Longitude float64
 	}
+	var rows []row
+	// Берём первую встречающуюся пару (latitude, longitude) для каждого города
+	err := citiesDB.
+		Model(&models.Profile{}).
+		Select("DISTINCT ON (city) city, latitude, longitude").
+		Where("city <> ''").
+		Order("city, id").
+		Scan(&rows).Error
+	if err != nil {
+		http.Error(w, "Error fetching cities", http.StatusInternalServerError)
+		return
+	}
+
+	// 2) мапим в выходную структуру
+	cities := make([]City, len(rows))
+	for i, r := range rows {
+		cities[i] = City{
+			Name:      r.City,
+			Latitude:  r.Latitude,
+			Longitude: r.Longitude,
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(cities)
 }
