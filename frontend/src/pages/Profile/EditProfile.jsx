@@ -360,14 +360,12 @@ const EditProfile = () => {
     try {
       // Обновляем профиль
       await updateMyProfile({
-                firstName: values.firstName,
-                lastName:  values.lastName,
-                about:     values.about,
-                city:      values.city.name,
-                latitude:  values.city.lat,
-                longitude: values.city.lon
-              });
-      // Обновляем биографию, включая lookingFor
+        firstName: values.firstName,
+        lastName: values.lastName,
+        about: values.about,
+        city: values.city, // Передаём только название города
+      });
+      // Обновляем биографию
       await updateMyBio({
         interests: values.interests.join(' '),
         hobbies:   values.hobbies.join(' '),
@@ -508,7 +506,7 @@ const EditProfile = () => {
              value={field.value.name}
              onChange={e => {
                const sel = cityOptions.find(c => c.name === e.target.value);
-               form.setFieldValue('city', sel);
+               form.setFieldValue('city', sel.name);
              }}
            >
              {cityOptions.map(c => (
