@@ -23,6 +23,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	controllers.InitFixturesController(db)       // Инициализация фикстур
 	controllers.InitAuthenticationController(db) // Добавляем инициализацию нашего нового контроллера
 	controllers.InitPreferencesController(db)
+	controllers.InitCitiesController(db)
 
 	// --- Публичные эндпоинты пользователей ---
 	router.HandleFunc("/signup", controllers.Signup).Methods(http.MethodPost)
@@ -32,6 +33,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	// Эндпоинт для обновления токенов не требует аутентификации (он принимает refresh токен)
 	router.HandleFunc("/refresh", controllers.RefreshToken).Methods(http.MethodPost)
 	router.HandleFunc("/login", controllers.Login).Methods(http.MethodPost)
+	router.HandleFunc("/cities", controllers.GetCities).Methods(http.MethodGet)
 
 	// --- Эндпоинты для аутентифицированного пользователя ---
 	// Создаем subrouter для защищенных маршрутов и подключаем AuthMiddleware.
@@ -44,15 +46,19 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	// Обновление профиля и биографии через PUT-метод.
 	authRouter.HandleFunc("/me/profile", controllers.UpdateCurrentUserProfile).Methods(http.MethodPut)
 	authRouter.HandleFunc("/me/bio", controllers.UpdateCurrentUserBio).Methods(http.MethodPut)
+	authRouter.HandleFunc("/me/location", controllers.UpdateCurrentUserLocation).Methods(http.MethodPut)
 	// Загрузка фотографии профиля.
 	authRouter.HandleFunc("/me/photo", controllers.UploadUserPhoto).Methods(http.MethodPost)
 	authRouter.HandleFunc("/me/photo", controllers.DeleteUserPhoto).Methods(http.MethodDelete)
-	authRouter.HandleFunc("/logout", controllers.Logout).Methods(http.MethodPost) // Новый endpoint для выхода
+	authRouter.HandleFunc("/logout", controllers.Logout).Methods(http.MethodPost)
+	authRouter.HandleFunc("/me/email", controllers.UpdateEmail).Methods(http.MethodPut)
+	authRouter.HandleFunc("/me/password", controllers.UpdatePassword).Methods(http.MethodPut)
 
 	// --- Остальные эндпоинты (рекомендации, связи, чат) ---
 	authRouter.HandleFunc("/recommendations", controllers.GetRecommendations).Methods(http.MethodGet)
 	authRouter.HandleFunc("/recommendations/{id}/decline", controllers.DeclineRecommendation).Methods(http.MethodPost)
 	authRouter.HandleFunc("/connections", controllers.GetConnections).Methods(http.MethodGet)
+	authRouter.HandleFunc("/connections/pending", controllers.GetPendingConnections).Methods(http.MethodGet)
 	authRouter.HandleFunc("/connections/{id}", controllers.PostConnection).Methods(http.MethodPost)
 	authRouter.HandleFunc("/connections/{id}", controllers.PutConnection).Methods(http.MethodPut)
 	authRouter.HandleFunc("/connections/{id}", controllers.DeleteConnection).Methods(http.MethodDelete)

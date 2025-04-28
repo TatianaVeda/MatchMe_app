@@ -54,7 +54,7 @@
 1. Clone the repository:
    ```bash
    git clone https://github.com/your-username/match-me.git
-   cd match-me
+   cd match-me/m
    ```
 
 2. Make the setup script executable:
@@ -229,7 +229,7 @@ docker exec -it m_postgres psql -U user -d sopostavmenya
 1. Клонируйте репозиторий:
    ```bash
    git clone https://github.com/your-username/match-me.git
-   cd match-me
+   cd match-me/m
    ```
 
 2. Сделайте скрипт установки исполняемым:

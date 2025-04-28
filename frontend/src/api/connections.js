@@ -7,6 +7,11 @@ export const getConnections = async () => {
   return response.data;
 };
 
+export const getPendingConnections = async () => {
+  const response = await api.get('/connections/pending');
+  return response.data;
+};
+
 // Отправка запроса на подключение к пользователю с указанным id
 export const sendConnectionRequest = async (targetUserId) => {
   const response = await api.post(`/connections/${targetUserId}`);

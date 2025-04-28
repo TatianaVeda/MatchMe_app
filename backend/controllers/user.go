@@ -59,7 +59,7 @@ func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
 
 	// Проверяем, входит ли запрошенный пользователь в рекомендации текущего пользователя.
 	recService := services.NewRecommendationService(db, nil)
-	recIDs, err := recService.GetRecommendationsForUser(currentUserID)
+	recIDs, err := recService.GetRecommendationsForUser(currentUserID, "affinity")
 	if err == nil {
 		for _, id := range recIDs {
 			if id == requestedUserID {
@@ -277,7 +277,7 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	logrus.Infof("✅ Profile found: %+v", profile)
 
-	// Если некоторые важные поля пустые, можно вернуть информативное сообщение
+	//Если некоторые важные поля пустые, можно вернуть информативное сообщение
 	// if profile.FirstName == "" || profile.LastName == "" {
 	// 	http.Error(w, "Пожалуйста, заполните ваше имя и фамилию в профиле", http.StatusBadRequest)
 	// 	return
@@ -291,10 +291,10 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		"photoUrl":  profile.PhotoURL,
 		"latitude":  profile.Latitude,
 		"longitude": profile.Longitude,
+		"city":      profile.City,
 	}
 
 	logrus.Infof("📤 Sending profile response: %+v", response)
-	//json.NewEncoder(w).Encode(response)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -319,20 +319,20 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bio not found", http.StatusNotFound)
 		return
 	}
-	// // Если обязательные поля биографии пусты, возвращаем сообщение с просьбой заполнить данные.
-	// if bio.Interests == "" ||
-	// 	bio.Hobbies == "" ||
-	// 	bio.Music == "" ||
-	// 	bio.Food == "" ||
-	// 	bio.Travel == "" {
-	// 	http.Error(
-	// 		w,
-	// 		"Пожалуйста, заполните всю биографию: "+
-	// 			"интересы, хобби, музыка, еда и путешествия",
-	// 		http.StatusBadRequest,
-	// 	)
-	// 	return
-	// }
+	// Если обязательные поля биографии пусты, возвращаем сообщение с просьбой заполнить данные.
+	if bio.Interests == "" ||
+		bio.Hobbies == "" ||
+		bio.Music == "" ||
+		bio.Food == "" ||
+		bio.Travel == "" {
+		// http.Error(
+		// 	w,
+		// 	"Пожалуйста, заполните всю биографию: "+
+		// 		"интересы, хобби, музыка, еда и путешествия",
+		// 	http.StatusBadRequest,
+		// )
+		return
+	}
 
 	logrus.Infof("Bio for current user %s retrieved", userID)
 	json.NewEncoder(w).Encode(bio)

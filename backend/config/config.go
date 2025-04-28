@@ -14,29 +14,24 @@ type Config struct {
 	WebSocketPort       string
 	DatabaseURL         string
 	JWTSecret           string
-	JWTExpiresIn        int // время в минутах
-	JWTRefreshExpiresIn int // время в минутах
+	JWTExpiresIn        int
+	JWTRefreshExpiresIn int
 	MediaUploadDir      string
 	Environment         string
 	IsDev               bool
 	IsProd              bool
-	AllowedOrigins      []string // для CORS
-
-	// Новые параметры:
-	SMTPServer   string
-	SMTPPort     int
-	SMTPUser     string
-	SMTPPassword string
-
-	RedisURL     string
-	RedisTimeout int // секунды
-
-	LogLevel string // debug, info, warn, error
+	AllowedOrigins      []string
+	SMTPServer          string
+	SMTPPort            int
+	SMTPUser            string
+	SMTPPassword        string
+	RedisURL            string
+	RedisTimeout        int
+	LogLevel            string
 }
 
 var AppConfig *Config
 
-// LoadConfig загружает конфигурацию из переменных окружения.
 func LoadConfig() {
 	AppConfig = &Config{
 		ServerPort:          getEnv("SERVER_PORT", "8080"),
@@ -48,32 +43,28 @@ func LoadConfig() {
 		MediaUploadDir:      getEnv("MEDIA_UPLOAD_DIR", "./static/images"),
 		Environment:         strings.ToLower(getEnv("ENVIRONMENT", "development")),
 		AllowedOrigins:      strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080"), ","),
-
-		// Новые параметры:
-		SMTPServer:   getEnv("SMTP_SERVER", "smtp.example.com"),
-		SMTPPort:     getEnvAsInt("SMTP_PORT", 587),
-		SMTPUser:     getEnv("SMTP_USER", "user@example.com"),
-		SMTPPassword: getEnv("SMTP_PASSWORD", "password"),
-		RedisURL:     getEnv("REDIS_URL", "redis://localhost:6379"),
-		RedisTimeout: getEnvAsInt("REDIS_TIMEOUT", 5),
-		LogLevel:     getEnv("LOG_LEVEL", "debug"),
+		SMTPServer:          getEnv("SMTP_SERVER", "smtp.example.com"),
+		SMTPPort:            getEnvAsInt("SMTP_PORT", 587),
+		SMTPUser:            getEnv("SMTP_USER", "user@example.com"),
+		SMTPPassword:        getEnv("SMTP_PASSWORD", "password"),
+		RedisURL:            getEnv("REDIS_URL", "redis://localhost:6379"),
+		RedisTimeout:        getEnvAsInt("REDIS_TIMEOUT", 5),
+		LogLevel:            getEnv("LOG_LEVEL", "debug"),
 	}
 
-	// Автоопределяем режим
 	AppConfig.IsDev = AppConfig.Environment == "development"
 	AppConfig.IsProd = AppConfig.Environment == "production"
 
-	// Валидация конфигурации
 	if err := AppConfig.Validate(); err != nil {
 		logrus.Fatalf("Ошибка конфигурации: %v", err)
 	}
 
-	// Настройка логирования
 	level, err := logrus.ParseLevel(AppConfig.LogLevel)
 	if err != nil {
 		level = logrus.InfoLevel
 	}
 	logrus.SetLevel(level)
+
 	if AppConfig.IsDev {
 		logrus.SetReportCaller(true)
 		logrus.Infof("Режим разработки: детальное логирование включено")
@@ -82,7 +73,6 @@ func LoadConfig() {
 	logrus.Info("✅ Конфигурация загружена")
 }
 
-// Validate выполняет базовую валидацию значений конфигурации.
 func (c *Config) Validate() error {
 	if c.ServerPort == "" {
 		return errors.New("SERVER_PORT не может быть пустым")
@@ -111,25 +101,24 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// getEnv возвращает значение переменной окружения или значение по умолчанию.
-func getEnv(key string, defaultVal string) string {
-	val := os.Getenv(key)
-	if val == "" {
-		return defaultVal
+func getEnv(key, defaultVal string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
 	}
-	return val
+	return defaultVal
 }
 
-// getEnvAsInt возвращает значение переменной окружения как int или значение по умолчанию.
 func getEnvAsInt(name string, defaultVal int) int {
 	valStr := os.Getenv(name)
 	if valStr == "" {
 		return defaultVal
 	}
+
 	val, err := strconv.Atoi(valStr)
 	if err != nil {
-		logrus.Warnf("❌ Не удалось преобразовать %s в int: %v. Используется значение по умолчанию.", name, err)
+		logrus.Warnf("Не удалось преобразовать %s в int: %v. Используется значение по умолчанию.", name, err)
 		return defaultVal
 	}
+
 	return val
 }
