@@ -53,8 +53,8 @@
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/match-me.git
-   cd match-me/m
+   git clone https://github.com/ihorshaposhnik/m.git
+   cd m
    ```
 
 2. Make the setup script executable:
@@ -104,10 +104,28 @@ If automatic installation doesn't suit your needs, perform these steps manually:
    npm run dev
    ```
 
+### Docker Installation
+
+For setting up Docker on different operating systems, follow these steps:
+
+1. **Windows**:
+   - Install Docker Desktop from the [official website](https://www.docker.com/products/docker-desktop).
+   - Enable WSL2 integration in Docker Desktop settings.
+   - Start Docker Desktop to use Docker in WSL2.
+
+2. **macOS**:
+   - Install Docker Desktop for Mac from the [official website](https://www.docker.com/products/docker-desktop).
+   - Start Docker Desktop to use Docker in the terminal.
+
+3. **Linux**:
+   - Install Docker using your distribution's package manager (e.g., `apt` for Ubuntu).
+   - Ensure Docker is running as a daemon.
+   - Use Docker commands in the terminal as usual.
+
 ## Project Structure
 
 ```
-match-me/
+match-me/m
 ├── backend/              # Go server
 │   ├── config/           # Configuration
 │   ├── controllers/      # API controllers
@@ -228,8 +246,9 @@ docker exec -it m_postgres psql -U user -d sopostavmenya
 
 1. Клонируйте репозиторий:
    ```bash
-   git clone https://github.com/your-username/match-me.git
-   cd match-me/m
+   git clone https://github.com/ihorshaposhnik/m.git
+   git
+   cd m
    ```
 
 2. Сделайте скрипт установки исполняемым:
@@ -279,10 +298,26 @@ docker exec -it m_postgres psql -U user -d sopostavmenya
    npm run dev
    ```
 
+### Docker Installation for Different Operating Systems
+
+1. **Windows**:
+   - Установите Docker Desktop с [официального сайта](https://www.docker.com/products/docker-desktop).
+   - Включите интеграцию с WSL2 в настройках Docker Desktop.
+   - Запустите Docker Desktop, чтобы использовать Docker в WSL2.
+
+2. **macOS**:
+   - Установите Docker Desktop для Mac с [официального сайта](https://www.docker.com/products/docker-desktop).
+   - Запустите Docker Desktop, чтобы использовать Docker в терминале.
+
+3. **Linux**:
+   - Установите Docker через пакетный менеджер вашей дистрибуции (например, `apt` для Ubuntu).
+   - Убедитесь, что Docker запущен как демон.
+   - Используйте команды Docker в терминале, как обычно.
+
 ## Структура проекта
 
 ```
-match-me/
+match-me/m
 ├── backend/              # Go сервер
 │   ├── config/           # Конфигурация
 │   ├── controllers/      # Контроллеры API
