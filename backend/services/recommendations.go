@@ -483,3 +483,335 @@ func validateUserData(u models.User) error {
 	}
 	return nil
 }
+
+// GetRecommendationsWithFilters возвращает до 10 UUID рекомендаций,
+// применяя переданные вручную фильтры вместо того, что хранится в профиле.
+func (rs *RecommendationService) GetRecommendationsWithFilters(
+	currentUserID uuid.UUID,
+	mode string,
+	lat, lon float64,
+	interests []string, prioInterests bool,
+	hobbies []string, prioHobbies bool,
+	music []string, prioMusic bool,
+	food []string, prioFood bool,
+	travel []string, prioTravel bool,
+	lookingFor string, // используется только если mode=="desire"
+) ([]uuid.UUID, error) {
+	// 1) Устанавливаем режим
+	if mode != "desire" {
+		rs.Mode = "affinity"
+	} else {
+		rs.Mode = "desire"
+	}
+
+	// 2) Загружаем только профиль (не нужен Bio и Preference для "me")
+	var me models.User
+	if err := rs.DB.Preload("Profile").
+		First(&me, "id = ?", currentUserID).Error; err != nil {
+		return nil, err
+	}
+	// Подменяем координаты на переданные
+	me.Profile.Latitude = lat
+	me.Profile.Longitude = lon
+
+	// 3) Быстрый отбор по локации (использует me.Preference.MaxRadius, можно тоже передать его через аргумент)
+	nearby, err := rs.GetNearbyUsers(
+		lat, lon,
+		me.Preference.MaxRadius, // или переданный maxRadius
+		50,
+		currentUserID,
+	)
+	if err != nil || len(nearby) == 0 {
+		return nil, err
+	}
+	ids := make([]uuid.UUID, len(nearby))
+	distMap := make(map[uuid.UUID]float64, len(nearby))
+	for i, n := range nearby {
+		ids[i] = n.ID
+		distMap[n.ID] = n.Distance
+	}
+
+	// 4) Подгружаем кандидатов с их Bio
+	var users []models.User
+	if err := rs.DB.Preload("Bio").
+		Where("id IN ?", ids).
+		Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	// 5) Считаем score
+	type cand struct {
+		id       uuid.UUID
+		score    float64
+		distance float64
+	}
+	var candidates []cand
+
+	for _, u := range users {
+		// пропускаем уже отклонённых
+		var rec models.Recommendation
+		if err := rs.DB.
+			Where("user_id = ? AND rec_user_id = ? AND status = ?", currentUserID, u.ID, "declined").
+			First(&rec).Error; err == nil {
+			continue
+		}
+
+		d := distMap[u.ID]
+		var score float64
+
+		if rs.Mode == "affinity" {
+			// для каждого поля считаем пересечение и умножаем на вес
+			totalW := 0.0
+			// Interests
+			w := 0.1
+			if prioInterests {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(interests, strings.Fields(u.Bio.Interests))) * w
+
+			// Hobbies
+			w = 0.1
+			if prioHobbies {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(hobbies, strings.Fields(u.Bio.Hobbies))) * w
+
+			// Music
+			w = 0.1
+			if prioMusic {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(music, strings.Fields(u.Bio.Music))) * w
+
+			// Food
+			w = 0.1
+			if prioFood {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(food, strings.Fields(u.Bio.Food))) * w
+
+			// Travel
+			w = 0.1
+			if prioTravel {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(travel, strings.Fields(u.Bio.Travel))) * w
+
+			if totalW > 0 {
+				score = score / totalW
+			}
+		} else {
+			// desire — один список lookingFor
+			for _, tok := range strings.Fields(strings.ToLower(lookingFor)) {
+				if anyTokenMatch(tok, u.Bio.LookingFor) {
+					score += 0.05
+				}
+			}
+		}
+
+		if score > 0 {
+			if score > 1 {
+				score = 1
+			}
+			candidates = append(candidates, cand{u.ID, score, d})
+		}
+	}
+
+	// 6) Сортировка: сначала distance ↑, потом score ↓
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].distance != candidates[j].distance {
+			return candidates[i].distance < candidates[j].distance
+		}
+		return candidates[i].score > candidates[j].score
+	})
+
+	// 7) Берём топ-10
+	limit := 10
+	if len(candidates) < limit {
+		limit = len(candidates)
+	}
+	result := make([]uuid.UUID, limit)
+	for i := 0; i < limit; i++ {
+		result[i] = candidates[i].id
+	}
+	return result, nil
+}
+
+// countCommon считает пересечение двух срезов строк
+func countCommon(a, b []string) int {
+	set := make(map[string]struct{})
+	for _, x := range a {
+		set[strings.ToLower(x)] = struct{}{}
+	}
+	cnt := 0
+	for _, y := range b {
+		if _, ok := set[strings.ToLower(y)]; ok {
+			cnt++
+		}
+	}
+	return cnt
+}
+
+// GetRecommendationsWithFiltersWithDistance возвращает до 10 рекомендаций вместе с рассчитанным расстоянием,
+// применяя пользовательские фильтры вместо данных из хранимого профиля.
+func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
+	currentUserID uuid.UUID,
+	mode string,
+	lat, lon float64,
+	interests []string, prioInterests bool,
+	hobbies []string, prioHobbies bool,
+	music []string, prioMusic bool,
+	food []string, prioFood bool,
+	travel []string, prioTravel bool,
+	lookingFor string, // для режима desire
+) ([]RecommendationWithDistance, error) {
+	// 1) Устанавливаем режим работы
+	if mode != "desire" {
+		rs.Mode = "affinity"
+	} else {
+		rs.Mode = "desire"
+	}
+
+	// 2) Загружаем профиль (чтобы получить user_id и исключить себя)
+	var me models.User
+	if err := rs.DB.Preload("Profile").
+		First(&me, "id = ?", currentUserID).Error; err != nil {
+		return nil, err
+	}
+	// Подменяем координаты профиля на переданные
+	me.Profile.Latitude = lat
+	me.Profile.Longitude = lon
+
+	// 3) Быстрый гео-отбор кандидатов
+	nearby, err := rs.GetNearbyUsers(
+		lat, lon,
+		me.Preference.MaxRadius, // если хотите, сделайте этот параметр передаваемым
+		100,                     // чуть больше, чтобы потом отсортировать
+		currentUserID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(nearby) == 0 {
+		return []RecommendationWithDistance{}, nil
+	}
+	ids := make([]uuid.UUID, len(nearby))
+	distMap := make(map[uuid.UUID]float64, len(nearby))
+	for i, n := range nearby {
+		ids[i] = n.ID
+		distMap[n.ID] = n.Distance
+	}
+
+	// 4) Подгружаем Bio у кандидатов
+	var users []models.User
+	if err := rs.DB.Preload("Bio").
+		Where("id IN ?", ids).
+		Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	// 5) Считаем score и собираем промежуточный слайс
+	type candWithDist struct {
+		userID   uuid.UUID
+		score    float64
+		distance float64
+	}
+	var cands []candWithDist
+
+	for _, u := range users {
+		// пропускаем уже отклонённых
+		var rec models.Recommendation
+		if err := rs.DB.
+			Where("user_id = ? AND rec_user_id = ? AND status = ?", currentUserID, u.ID, "declined").
+			First(&rec).Error; err == nil {
+			continue
+		}
+
+		d := distMap[u.ID]
+		var score float64
+
+		if rs.Mode == "affinity" {
+			totalW := 0.0
+			// Interests
+			w := 0.1
+			if prioInterests {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(interests, strings.Fields(u.Bio.Interests))) * w
+			// Hobbies
+			w = 0.1
+			if prioHobbies {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(hobbies, strings.Fields(u.Bio.Hobbies))) * w
+			// Music
+			w = 0.1
+			if prioMusic {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(music, strings.Fields(u.Bio.Music))) * w
+			// Food
+			w = 0.1
+			if prioFood {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(food, strings.Fields(u.Bio.Food))) * w
+			// Travel
+			w = 0.1
+			if prioTravel {
+				w *= 2
+			}
+			totalW += w
+			score += float64(countCommon(travel, strings.Fields(u.Bio.Travel))) * w
+
+			if totalW > 0 {
+				score /= totalW
+			}
+		} else {
+			// desire
+			for _, tok := range strings.Fields(strings.ToLower(lookingFor)) {
+				if anyTokenMatch(tok, u.Bio.LookingFor) {
+					score += 0.05
+				}
+			}
+		}
+
+		if score > 0 {
+			if score > 1 {
+				score = 1
+			}
+			cands = append(cands, candWithDist{u.ID, score, d})
+		}
+	}
+
+	// 6) Сортировка: по distance asc, затем score desc
+	sort.Slice(cands, func(i, j int) bool {
+		if cands[i].distance != cands[j].distance {
+			return cands[i].distance < cands[j].distance
+		}
+		return cands[i].score > cands[j].score
+	})
+
+	// 7) Берём топ-10 и формируем выход
+	limit := 10
+	if len(cands) < limit {
+		limit = len(cands)
+	}
+	out := make([]RecommendationWithDistance, limit)
+	for i := 0; i < limit; i++ {
+		out[i] = RecommendationWithDistance{
+			UserID:   cands[i].userID,
+			Distance: cands[i].distance,
+		}
+	}
+	return out, nil
+}

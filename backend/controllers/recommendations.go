@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
-	"m/backend/models"
 	"m/backend/services"
 
 	"github.com/google/uuid"
@@ -51,59 +52,96 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUserID, _ := uuid.Parse(userIDStr)
 
-	// 2) Проверяем, что у пользователя есть координаты
-	var profile models.Profile
-	if err := recommendationService.DB.
-		Select("latitude, longitude").
-		Where("user_id = ?", currentUserID).
-		First(&profile).Error; err != nil {
-		logrus.WithField("userID", currentUserID).Errorf("failed to load profile geo: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-	if profile.Latitude == 0 || profile.Longitude == 0 {
-		http.Error(w, "Пожалуйста, укажите ваш город", http.StatusBadRequest)
-		return
-	}
-
-	// 3) Парсим mode
+	// 2) Проверяем mode
 	mode, err := parseMode(r.URL.Query().Get("mode"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// 4) Разрешаем выдачу с расстоянием или без
+	// 3) Определяем, возвращать расстояния или нет
 	withDist := r.URL.Query().Get("withDistance") == "true"
 	w.Header().Set("Content-Type", "application/json")
 
-	if withDist {
-		raw, err := recommendationService.GetRecommendationsWithDistance(currentUserID, mode)
-		if err != nil {
-			logrus.WithFields(logrus.Fields{"userID": currentUserID, "mode": mode}).
-				Errorf("GetRecommendationsWithDistance failed: %v", err)
-			http.Error(w, "Error fetching recommendations", http.StatusInternalServerError)
-			return
-		}
-		// Маппим в DTO
-		out := make([]RecommendationOutput, len(raw))
-		for i, r := range raw {
-			out[i] = RecommendationOutput{ID: r.UserID, Distance: r.Distance}
-		}
-		if err := json.NewEncoder(w).Encode(out); err != nil {
-			logrus.WithError(err).Error("Failed to serialize recommendations with distance")
+	// 4) Читаем флаг useProfile (по умолчанию true)
+	useProfile := r.URL.Query().Get("useProfile") != "false"
+
+	var (
+		idsWithDist []services.RecommendationWithDistance
+		ids         []uuid.UUID
+	)
+
+	if useProfile {
+		// Старый путь: фильтры берутся из сохранённого профиля
+		if withDist {
+			idsWithDist, err = recommendationService.GetRecommendationsWithDistance(currentUserID, mode)
+		} else {
+			ids, err = recommendationService.GetRecommendationsForUser(currentUserID, mode)
 		}
 	} else {
-		ids, err := recommendationService.GetRecommendationsForUser(currentUserID, mode)
-		if err != nil {
-			logrus.WithFields(logrus.Fields{"userID": currentUserID, "mode": mode}).
-				Errorf("GetRecommendationsForUser failed: %v", err)
-			http.Error(w, "Error fetching recommendations", http.StatusInternalServerError)
-			return
+		// Новый путь: читаем фильтры из query-параметров
+		lat, _ := strconv.ParseFloat(r.URL.Query().Get("cityLat"), 64)
+		lon, _ := strconv.ParseFloat(r.URL.Query().Get("cityLon"), 64)
+
+		// affinity-фильтры
+		interests := strings.FieldsFunc(r.URL.Query().Get("interests"), func(r rune) bool { return r == ',' })
+		priorityInterests, _ := strconv.ParseBool(r.URL.Query().Get("priorityInterests"))
+
+		hobbies := strings.FieldsFunc(r.URL.Query().Get("hobbies"), func(r rune) bool { return r == ',' })
+		priorityHobbies, _ := strconv.ParseBool(r.URL.Query().Get("priorityHobbies"))
+
+		music := strings.FieldsFunc(r.URL.Query().Get("music"), func(r rune) bool { return r == ',' })
+		priorityMusic, _ := strconv.ParseBool(r.URL.Query().Get("priorityMusic"))
+
+		food := strings.FieldsFunc(r.URL.Query().Get("food"), func(r rune) bool { return r == ',' })
+		priorityFood, _ := strconv.ParseBool(r.URL.Query().Get("priorityFood"))
+
+		travel := strings.FieldsFunc(r.URL.Query().Get("travel"), func(r rune) bool { return r == ',' })
+		priorityTravel, _ := strconv.ParseBool(r.URL.Query().Get("priorityTravel"))
+
+		// desire-фильтр
+		lookingFor := r.URL.Query().Get("lookingFor")
+
+		if withDist {
+			idsWithDist, err = recommendationService.GetRecommendationsWithFiltersWithDistance(
+				currentUserID, mode,
+				lat, lon,
+				interests, priorityInterests,
+				hobbies, priorityHobbies,
+				music, priorityMusic,
+				food, priorityFood,
+				travel, priorityTravel,
+				lookingFor,
+			)
+		} else {
+			ids, err = recommendationService.GetRecommendationsWithFilters(
+				currentUserID, mode,
+				lat, lon,
+				interests, priorityInterests,
+				hobbies, priorityHobbies,
+				music, priorityMusic,
+				food, priorityFood,
+				travel, priorityTravel,
+				lookingFor,
+			)
 		}
-		if err := json.NewEncoder(w).Encode(ids); err != nil {
-			logrus.WithError(err).Error("Failed to serialize recommendation IDs")
+	}
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{"userID": currentUserID, "mode": mode}).Errorf("GetRecommendations failed: %v", err)
+		http.Error(w, "Error fetching recommendations", http.StatusInternalServerError)
+		return
+	}
+
+	// 5) Сериализуем ответ
+	if withDist {
+		out := make([]RecommendationOutput, len(idsWithDist))
+		for i, rec := range idsWithDist {
+			out[i] = RecommendationOutput{ID: rec.UserID, Distance: rec.Distance}
 		}
+		json.NewEncoder(w).Encode(out)
+	} else {
+		json.NewEncoder(w).Encode(ids)
 	}
 }
 
