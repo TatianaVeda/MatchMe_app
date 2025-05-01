@@ -49,6 +49,43 @@
 
 ## Installation and Setup
 
+### Environment Configuration
+
+Before running the application, ensure that the `config_local.env` file is properly configured. This file contains essential environment variables such as:
+
+- **SERVER_PORT**: The port on which the backend server will run.
+- **WEBSOCKET_PORT**: The port for WebSocket connections.
+- **DATABASE_URL**: Connection string for the PostgreSQL database.
+- **JWT_SECRET**: Secret key for signing JWT tokens.
+- **JWT_EXPIRES_IN**: Expiration time for JWT tokens.
+- **MEDIA_UPLOAD_DIR**: Directory for storing uploaded media files.
+- **ENVIRONMENT**: The environment mode (e.g., development, production).
+- **ALLOWED_ORIGINS**: Comma-separated list of allowed origins for CORS.
+- **LOG_LEVEL**: Logging level (e.g., debug, info, warn, error).
+
+Ensure these variables are updated according to your local setup.
+
+### Generating Dummy Users
+
+To generate dummy users for testing purposes, you can use the `ResetFixtures` 
+function in the `fixtures.go` file. This function will reset the database and 
+populate it with a specified number of dummy users. You can trigger this function 
+via an API call to the backend server. Follow these steps:
+
+1. **Start the Backend Server**: Ensure your backend server is running. You can start it using:
+   ```bash
+   npm run dev:backend
+   ```
+
+2. **Trigger the ResetFixtures Function**: Use a tool like `curl` or Postman to send a request to the backend API to reset the database and generate dummy users. For example, using `curl`:
+   ```bash
+   curl -X POST http://localhost:8080/api/reset-fixtures
+   ```
+
+The `createAdminUser` function in the `create_admin_user.go` file is used to create 
+an initial admin user in the database. This is typically done during the initial 
+setup to ensure that an admin account is available for managing the application.This will reset the database and populate it with dummy users as defined in the `fixtures.go` file.
+
 ### Automatic Installation (Recommended)
 
 1. Clone the repository:
@@ -194,6 +231,59 @@ docker exec -it m_postgres psql -U user -d sopostavmenya
 - **Docker**: Easy deployment in any environment
 - **CORS**: Configured security for cross-domain requests
 
+### Running create_admin_user.go
+
+To create an admin account, follow these steps:
+
+1. **Run the create_admin_user.go file**:
+   - Navigate to the `backend` directory and execute the command:
+     ```bash
+     go run create_admin_user.go
+     ```
+   - This will create an admin account in the database.
+
+Ensure the database is configured and accessible before running this command.
+
+### Using create_admin_user.go
+
+The `create_admin_user.go` file allows you to perform the following actions:
+
+- **Reset the database:**
+  - Use the `-resetDB` flag to reset the database.
+  - Example command:
+    ```bash
+    go run create_admin_user.go -resetDB
+    ```
+
+- **Create an admin user:**
+  - Use the `-createAdmin` flag to create an admin user account.
+  - Example command:
+    ```bash
+    go run create_admin_user.go -createAdmin
+    ```
+
+These commands allow you to manage the database and admin accounts without modifying the main application code.
+
+### Creating Admin Profile via Browser
+
+You can also create an admin profile through the browser and then obtain a JWT token using the login endpoint.
+
+### Obtaining JWT Token
+
+To obtain a JWT token, follow these steps:
+
+1. **Send a request to the `/login` endpoint**: Use `curl` to send a request with your credentials.
+
+   ```bash
+   curl -X POST http://localhost:8080/login \
+   -H "Content-Type: application/json" \
+   -d '{"email":"your_admin_email","password":"your_password"}'
+   ```
+
+   Replace `your_admin_email` and `your_password` with your actual credentials.
+
+This allows you to manage the application using the admin profile created through the browser.
+
 ---
 
 <a id="russian"></a>
@@ -242,7 +332,45 @@ docker exec -it m_postgres psql -U user -d sopostavmenya
 
 ## Установка и запуск
 
-### Автоматическая установка (рекомендуется)
+### Конфигурация окружения
+
+Перед запуском приложения убедитесь, что файл `config_local.env` правильно настроен. Этот файл содержит важные переменные окружения, такие как:
+
+- **SERVER_PORT**: Порт, на котором будет работать сервер.
+- **WEBSOCKET_PORT**: Порт для WebSocket соединений.
+- **DATABASE_URL**: Строка подключения к базе данных PostgreSQL.
+- **JWT_SECRET**: Секретный ключ для подписи JWT токенов.
+- **JWT_EXPIRES_IN**: Время истечения JWT токенов.
+- **MEDIA_UPLOAD_DIR**: Директория для хранения загружаемых медиафайлов.
+- **ENVIRONMENT**: Режим работы приложения (например, development, production).
+- **ALLOWED_ORIGINS**: Список разрешенных источников для CORS.
+- **LOG_LEVEL**: Уровень логирования (например, debug, info, warn, error).
+
+Убедитесь, что эти переменные обновлены в соответствии с вашей локальной конфигурацией.
+
+### Генерация фиктивных пользователей
+
+Для генерации фиктивных пользователей в целях тестирования вы можете использовать 
+функцию `ResetFixtures` в файле `fixtures.go`. Эта функция сбросит базу данных и 
+заполнит её указанным количеством фиктивных пользователей. Вы можете вызвать эту 
+функцию через API-запрос к серверу. В целях тестирования выполните следующие шаги:
+
+1. **Запустите сервер**: Убедитесь, что ваш сервер запущен. Вы можете запустить его с помощью команды:
+   ```bash
+   npm run dev:backend
+   ```
+
+2. **Вызовите функцию ResetFixtures**: Используйте инструмент, такой как `curl` или Postman, чтобы отправить запрос к API сервера для сброса базы данных и генерации фиктивных пользователей. Например, с помощью `curl`:
+   ```bash
+   curl -X POST http://localhost:8080/api/reset-fixtures
+   ```
+
+Функция `createAdminUser` в файле `create_admin_user.go` используется для создания 
+начального администратора в базе данных. Это обычно делается во время начальной 
+настройки, чтобы обеспечить наличие учетной записи администратора для управления 
+приложением. Это сбросит базу данных и заполнит её фиктивными пользователями, как определено в файле `fixtures.go`.
+
+### Automatic Installation (Recommended)
 
 1. Клонируйте репозиторий:
    ```bash
@@ -385,3 +513,56 @@ docker exec -it m_postgres psql -U user -d sopostavmenya
 - **Валидация данных**: Строгая проверка вводимых данных
 - **Docker**: Простое развертывание в любой среде
 - **CORS**: Настроена безопасность для междоменных запросов
+
+### Запуск создания администратора
+
+Для создания учетной записи администратора выполните следующий шаг:
+
+1. **Запустите файл create_admin_user.go**: 
+   - Перейдите в директорию `backend` и выполните команду:
+     ```bash
+     go run create_admin_user.go
+     ```
+   - Это создаст учетную запись администратора в базе данных.
+
+Убедитесь, что база данных настроена и доступна перед запуском этой команды.
+
+### Использование create_admin_user.go
+
+Файл `create_admin_user.go` позволяет выполнять следующие действия:
+
+- **Сброс базы данных:**
+  - Используйте флаг `-resetDB` для сброса базы данных.
+  - Пример команды:
+    ```bash
+    go run create_admin_user.go -resetDB
+    ```
+
+- **Создание администратора:**
+  - Используйте флаг `-createAdmin` для создания учетной записи администратора.
+  - Пример команды:
+    ```bash
+    go run create_admin_user.go -createAdmin
+    ```
+
+Эти команды позволяют управлять базой данных и учетными записями администратора без изменения основного кода приложения.
+
+### Создание профиля администратора через браузер
+
+Вы также можете создать профиль администратора через браузер, а затем получить JWT токен, используя эндпоинт для входа в систему.
+
+### Получение JWT токена
+
+Чтобы получить JWT токен, выполните следующие шаги:
+
+1. **Отправьте запрос на эндпоинт `/login`**: Используйте `curl` для отправки запроса с вашими учетными данными.
+
+   ```bash
+   curl -X POST http://localhost:8080/login \
+   -H "Content-Type: application/json" \
+   -d '{"email":"your_admin_email","password":"your_password"}'
+   ```
+
+   Замените `your_admin_email` и `your_password` на ваши фактические данные.
+
+Это позволяет управлять приложением, используя профиль администратора, созданный через браузер.
