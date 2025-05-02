@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Container, Typography, Box, Tab, Tabs,
+import { Container, Typography, Tab, Tabs, Box,
   Grid, Card, CardMedia, CardContent, CardActions, Button, CircularProgress
 } from '@mui/material';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
+import UserCard from '../components/UserCard';
 import { getConnections, getPendingConnections, updateConnectionRequest, deleteConnection } from '../api/connections';
 import { getUser } from '../api/user';
 
 const Friends = () => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState(0);
   const [friends, setFriends] = useState([]);
   const [pending, setPending] = useState([]);
@@ -97,78 +99,59 @@ const Friends = () => {
         <Tab label="Запросы" />
       </Tabs>
 
-      {tab === 0 && (
-        friends.length === 0
-          ? <Typography>У вас пока нет друзей.</Typography>
-          : <Grid container spacing={2}>
-              {friends.map(u => (
-                <Grid key={u.id} item xs={12} sm={6} md={4}>
-                  <Card>
-                    <CardMedia
-                      component="img"
-                      height="140"
-                      image={u.photoUrl || '/static/images/default.png'}
-                      alt={`${u.firstName} ${u.lastName}`}
-                    />
-                    <CardContent>
-                      <Typography variant="h6">
-                        {u.firstName} {u.lastName}
-                      </Typography>
-                    </CardContent>
-                    <CardActions>
-                      <Button
-                        size="small"
-                        color="error"
-                        variant="outlined"
-                        onClick={() => handleRemove(u.id)}
-                      >
-                        Удалить
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+{tab === 0 && (
+        friends.length === 0 ? (
+          <Typography>У вас пока нет друзей.</Typography>
+        ) : (
+          <Grid container spacing={2}>
+            {friends.map(u => (
+              <Grid key={u.id} item xs={12} sm={6} md={4}>
+                <UserCard
+                  user={{ ...u, connected: true }}
+                  showChat={true}
+                  onChatClick={() => navigate(`/chat/${u.id}`)}
+                  onClick={() => navigate(`/users/${u.id}`)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        )
       )}
 
-      {tab === 1 && (
-        pending.length === 0
-          ? <Typography>Нет входящих запросов.</Typography>
-          : <Grid container spacing={2}>
-              {pending.map(u => (
-                <Grid key={u.id} item xs={12} sm={6} md={4}>
-                  <Card>
-                    <CardMedia
-                      component="img"
-                      height="140"
-                      image={u.photoUrl || '/static/images/default.png'}
-                      alt={`${u.firstName} ${u.lastName}`}
-                    />
-                    <CardContent>
-                      <Typography variant="h6">
-                        {u.firstName} {u.lastName}
-                      </Typography>
-                    </CardContent>
-                    <CardActions>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        onClick={() => handleAccept(u.id)}
-                      >
-                        Принять
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => handleDecline(u.id)}
-                      >
-                        Отклонить
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+{tab === 1 && (
+        pending.length === 0 ? (
+          <Typography>Нет входящих запросов.</Typography>
+        ) : (
+          <Grid container spacing={2}>
+            {pending.map(u => (
+              <Grid key={u.id} item xs={12} sm={6} md={4}>
+                <UserCard
+                  user={{ ...u, connected: false }}
+                  showChat={false}
+                  onClick={() => navigate(`/users/${u.id}`)}
+                />
+                {/* Кнопки «Принять/Отклонить» можно оставить под карточкой */}
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => handleAccept(u.id)}
+                    sx={{ mr: 1 }}
+                  >
+                    Принять
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => handleDecline(u.id)}
+                  >
+                    Отклонить
+                  </Button>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        )
       )}
     </Container>
   );

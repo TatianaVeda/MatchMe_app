@@ -74,9 +74,11 @@ const MyProfile = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
         <Avatar
           alt={`${profile.firstName} ${profile.lastName}`}
-          src={profile.photoUrl || '/static/images/default.png'}
+          src={profile.photoUrl || undefined}
           sx={{ width: 80, height: 80, mr: 2 }}
-        />
+        >
+          {!profile.photoUrl && '👤'}
+        </Avatar>
         <Typography variant="h4">
           {profile.firstName} {profile.lastName}
         </Typography>

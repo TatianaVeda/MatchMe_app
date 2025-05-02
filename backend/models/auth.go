@@ -181,20 +181,28 @@ func AuthenticateUser(db *gorm.DB, email, password string) (*User, error) {
 // JWTClaims определяет полезную нагрузку для JWT-токена.
 type JWTClaims struct {
 	UserID uuid.UUID `json:"userId"`
-	// Добавляем явное поле ExpiresAt, если вам нужно контролировать его отдельно
-	ExpiresAt int64 `json:"exp"`
 	jwt.RegisteredClaims
+	ExpiresAt int64 `json:"exp"`
 }
 
 // GenerateJWT генерирует JWT-токен для аутентифицированного пользователя.
 func GenerateJWT(userID uuid.UUID, secret string) (string, error) {
 	claims := JWTClaims{
-		UserID: userID,
+		UserID:    userID,
+		ExpiresAt: time.Now().Add(72 * time.Hour).Unix(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
+
+	//    claims := JWTClaims{
+	// 	       UserID: userID,
+	// 	       RegisteredClaims: jwt.RegisteredClaims{
+	// 	           ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)),
+	// 	           IssuedAt:  jwt.NewNumericDate(time.Now()),
+	// 	       },
+	// 	   }
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(secret))
@@ -231,12 +239,20 @@ func ParseJWT(tokenString, secret string) (*JWTClaims, error) {
 func GenerateAccessToken(userID uuid.UUID, secret string) (string, error) {
 	claims := JWTClaims{
 		UserID:    userID,
-		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(), // ваша установка
+		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // access token действует 15 минут
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
+
+	// claims := JWTClaims{
+	// 	UserID: userID,
+	// 	RegisteredClaims: jwt.RegisteredClaims{
+	// 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+	// 		IssuedAt:  jwt.NewNumericDate(time.Now()),
+	// 	},
+	// }
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }
@@ -249,6 +265,14 @@ func GenerateRefreshToken(userID uuid.UUID, secret string, expiresInMinutes int)
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
+
+	// claims := JWTClaims{
+	// 	UserID: userID,
+	// 	RegisteredClaims: jwt.RegisteredClaims{
+	// 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresInMinutes) * time.Minute)),
+	// 		IssuedAt:  jwt.NewNumericDate(time.Now()),
+	// 	},
+	// }
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }

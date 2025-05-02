@@ -26,6 +26,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	controllers.InitCitiesController(db)
 
 	// --- Публичные эндпоинты пользователей ---
+
 	router.HandleFunc("/signup", controllers.Signup).Methods(http.MethodPost)
 	router.HandleFunc("/users/{id}", controllers.GetUser).Methods(http.MethodGet)
 	router.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
@@ -69,10 +70,15 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	authRouter.HandleFunc("/me/preferences", controllers.UpdatePreferences).Methods(http.MethodPut)
 
 	// --- Административные эндпоинты ---
-	// Создаем отдельный subrouter для администрирования и применяем к нему AdminOnly middleware.
+	// создаём отдельный subrouter с префиксом `/admin`, внутри — AuthMiddleware и затем AdminOnly
+	adminOnly := middleware.AdminOnly(db)
 	adminRouter := authRouter.PathPrefix("/admin").Subrouter()
-	adminRouter.Use(middleware.AdminOnly(db))
+	// здесь уже применяется AuthMiddleware от authRouter, добавляем AdminOnly
+	adminRouter.Use(adminOnly)
+
+	// фикстуры: сброс и генерация пользователей
 	adminRouter.HandleFunc("/reset-fixtures", controllers.ResetFixtures).Methods(http.MethodPost)
+	adminRouter.HandleFunc("/generate-fixtures", controllers.ResetFixtures).Methods(http.MethodPost)
 
 	logrus.Info("Routes successfully initialized")
 }

@@ -19,6 +19,7 @@ import (
 type RecommendationOutput struct {
 	ID       uuid.UUID `json:"id"`
 	Distance float64   `json:"distance"`
+	Score    float64   `json:"score"`
 }
 
 var recommendationService *services.RecommendationService
@@ -127,9 +128,29 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// if err != nil {
+
+	// 	logrus.WithFields(logrus.Fields{"userID": currentUserID, "mode": mode}).Errorf("GetRecommendations failed: %v", err)
+	// 	http.Error(w, "Error fetching recommendations", http.StatusInternalServerError)
+	// 	return
+	// }
+
 	if err != nil {
-		logrus.WithFields(logrus.Fields{"userID": currentUserID, "mode": mode}).Errorf("GetRecommendations failed: %v", err)
-		http.Error(w, "Error fetching recommendations", http.StatusInternalServerError)
+		// если профиль или био неполные — возвращаем просто пустой массив вместо 500
+		msg := err.Error()
+		if strings.Contains(msg, "пожалуйста, заполните вашу биографию") ||
+			strings.Contains(msg, "пожалуйста, укажите имя и фамилию") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("[]"))
+			return
+		}
+		// все остальные ошибки — настоящая 500, логируем точный текст
+		logrus.WithFields(logrus.Fields{
+			"userID": currentUserID,
+			"mode":   mode,
+		}).Errorf("GetRecommendations failed: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -137,7 +158,7 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	if withDist {
 		out := make([]RecommendationOutput, len(idsWithDist))
 		for i, rec := range idsWithDist {
-			out[i] = RecommendationOutput{ID: rec.UserID, Distance: rec.Distance}
+			out[i] = RecommendationOutput{ID: rec.UserID, Distance: rec.Distance, Score: rec.Score}
 		}
 		json.NewEncoder(w).Encode(out)
 	} else {

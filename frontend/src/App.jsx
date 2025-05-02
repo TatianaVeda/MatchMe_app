@@ -20,6 +20,8 @@ import theme from './theme'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Friends from './pages/Friends';
+import UserProfile from './pages/Profile/UserProfile';
+
 
 function App() {
   return (
@@ -37,6 +39,7 @@ function App() {
             {/* Защищённые маршруты */}
             <Route path="/me" element={<PrivateRoute><MyProfile /></PrivateRoute>} />
             <Route path="/edit-profile" element={<PrivateRoute><EditProfile /></PrivateRoute>} />
+            <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
             <Route path="/recommendations" element={<PrivateRoute><Recommendations /></PrivateRoute>} />
             <Route path="/connections" element={<PrivateRoute><Connections /></PrivateRoute>} />
             <Route path="/chats" element={<PrivateRoute><Chats /></PrivateRoute>} />

@@ -143,6 +143,15 @@ export const updateMyBio = async ({
   });
   return response.data;
 };
+    export const getMyPreferences = async () => {
+    const response = await api.get('/me/preferences');
+    return response.data;
+  };
+
+      export const deleteMyPhoto = async () => {
+      const response = await api.delete('/me/photo');
+      return response.data;
+    };
 
 // Обновить предпочтения пользователя (/me/preferences)
 // Передаём: { maxRadius, priorityInterests, priorityHobbies, ... }

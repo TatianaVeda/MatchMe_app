@@ -10,8 +10,15 @@ import (
 
 	"m/backend/models"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+)
+
+const (
+	AdminID       = "123e4567-e89b-12d3-a456-426614174000"
+	AdminEmail    = "admin@first.av"
+	AdminPassword = "qwaszx"
 )
 
 var fixturesDB *gorm.DB
@@ -41,6 +48,24 @@ func ResetFixtures(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logrus.Info("ResetFixtures: миграция БД выполнена успешно")
+
+	adminUUID, _ := uuid.Parse(AdminID)
+	var existing models.User
+	if err := fixturesDB.First(&existing, "id = ?", adminUUID).Error; err == gorm.ErrRecordNotFound {
+		hash, _ := models.HashPassword(AdminPassword)
+		admin := models.User{
+			ID:           adminUUID,
+			Email:        AdminEmail,
+			PasswordHash: hash,
+		}
+		if err := fixturesDB.Create(&admin).Error; err != nil {
+			logrus.Errorf("ResetFixtures: не удалось создать админа: %v", err)
+		} else {
+			logrus.Infof("ResetFixtures: админ %s создан (ID=%s)", AdminEmail, AdminID)
+		}
+	} else {
+		logrus.Info("ResetFixtures: админ уже существует, создание пропущено")
+	}
 
 	// Определение количества пользователей (по умолчанию 100, можно переопределить через ?num=)
 	numUsers := 100

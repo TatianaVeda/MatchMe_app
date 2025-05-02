@@ -28,8 +28,9 @@ type FieldConfig struct {
 
 // RecommendationWithDistance — структура для контроллера.
 type RecommendationWithDistance struct {
-	UserID   uuid.UUID
-	Distance float64
+	UserID   uuid.UUID `json:"id"`
+	Distance float64   `json:"distance"`
+	Score    float64   `json:"score"`
 }
 
 // candidate — промежуточная структура для сортировки.
@@ -415,6 +416,7 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 		out[i] = RecommendationWithDistance{
 			UserID:   cands[i].ID,
 			Distance: cands[i].Distance,
+			Score:    cands[i].Score,
 		}
 	}
 
@@ -718,7 +720,7 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 	// 5) Считаем score и собираем промежуточный слайс
 	type candWithDist struct {
 		userID   uuid.UUID
-		score    float64
+		Score    float64
 		distance float64
 	}
 	var cands []candWithDist
@@ -798,7 +800,7 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 		if cands[i].distance != cands[j].distance {
 			return cands[i].distance < cands[j].distance
 		}
-		return cands[i].score > cands[j].score
+		return cands[i].Score > cands[j].Score
 	})
 
 	// 7) Берём топ-10 и формируем выход
@@ -811,6 +813,7 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 		out[i] = RecommendationWithDistance{
 			UserID:   cands[i].userID,
 			Distance: cands[i].distance,
+			Score:    cands[i].Score,
 		}
 	}
 	return out, nil

@@ -1,10 +1,11 @@
 // /m/frontend/src/components/UserCard.jsx
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Card, CardActionArea, CardContent, Avatar, Typography, Badge, Box } from '@mui/material';
+import { Card, CardActionArea, CardContent, Avatar, Typography, Badge, Box, IconButton, Tooltip } from '@mui/material';
+import ChatIcon from '@mui/icons-material/Chat';
 
-const UserCard = ({ user, onClick }) => {
-  const { firstName, lastName, photoUrl, online } = user;
+const UserCard = ({ user, onClick, onChatClick, showChat }) => {
+  const { firstName, lastName, photoUrl, online, connected } = user;
 
   return (
     <Card
@@ -13,6 +14,7 @@ const UserCard = ({ user, onClick }) => {
         width: '100%',
         maxWidth: 240,
         cursor: 'pointer',
+        position: 'relative',
         '&:hover': { boxShadow: 6 },
       }}
     >
@@ -26,10 +28,12 @@ const UserCard = ({ user, onClick }) => {
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           >
             <Avatar
-              src={photoUrl}
+              src={photoUrl || undefined}
               alt={`${firstName} ${lastName}`}
               sx={{ width: 80, height: 80 }}
-            />
+            >
+              {!photoUrl && '👤'}
+            </Avatar>
           </Badge>
         </Box>
         <CardContent sx={{ textAlign: 'center', pt: 1 }}>
@@ -38,8 +42,29 @@ const UserCard = ({ user, onClick }) => {
           </Typography>
         </CardContent>
       </CardActionArea>
-    </Card>
-  );
+ 
+{showChat && connected && (
+  <Tooltip title="Перейти в чат">
+    <IconButton
+      size="small"
+      onClick={(e) => {
+        e.stopPropagation(); // чтобы не сработал onClick карточки
+        onChatClick?.(user);
+      }}
+      sx={{
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: 'white',
+        '&:hover': { backgroundColor: 'lightgray' },
+      }}
+    >
+      <ChatIcon fontSize="small" />
+    </IconButton>
+  </Tooltip>
+)}
+</Card>
+);
 };
 
 UserCard.propTypes = {
@@ -48,12 +73,17 @@ UserCard.propTypes = {
     lastName:  PropTypes.string,
     photoUrl: PropTypes.string,
     online:    PropTypes.bool,
+    connected: PropTypes.bool, 
   }).isRequired,
   onClick: PropTypes.func,
+  onChatClick: PropTypes.func,
+  showChat: PropTypes.bool,
 };
 
 UserCard.defaultProps = {
   onClick: () => {},
+  onChatClick: () => {},
+  showChat: false,
 };
 
 export default UserCard;

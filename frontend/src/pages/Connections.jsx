@@ -1,28 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Grid, 
-  Card, 
-  CardContent, 
-  CardMedia, 
-  CardActions, 
-  Button, 
-  CircularProgress 
-} from '@mui/material';
+import { Container, Typography, Grid, Card, CardContent, CardMedia, CardActions, Button, CircularProgress } from '@mui/material';
 import { toast } from 'react-toastify';
-import {
-  getPendingConnections,
-  updateConnectionRequest,
-  getConnections,
-  deleteConnection
-} from '../api/connections';
+import { useNavigate } from 'react-router-dom';
+import UserCard from '../components/UserCard';
+import { getPendingConnections, updateConnectionRequest, getConnections, deleteConnection } from '../api/connections';
 import { getUser } from '../api/user';
 
 const Connections = () => {
   const [pending, setPending] = useState([]);
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Загрузка входящих и принятых подключений
   const fetchAll = async () => {
@@ -118,29 +106,26 @@ const Connections = () => {
         <Typography sx={{ mb: 4 }}>Нет входящих запросов.</Typography>
       ) : (
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          {pending.map((user) => (
-            <Grid item xs={12} sm={6} md={4} key={user.id}>
-              <Card>
-                <CardMedia
-                  component="img"
-                  height="140"
-                  image={user.photoUrl || '/static/images/default.png'}
-                  alt={`${user.firstName} ${user.lastName}`}
-                />
-                <CardContent>
-                  <Typography variant="h6">
-                    {user.firstName} {user.lastName}
-                  </Typography>
-                </CardContent>
-                <CardActions>
+          {pending.map(user => (
+            <Grid key={user.id} item xs={12} sm={6} md={4}>
+              <UserCard
+                user={{ ...user, connected: false }}
+                showChat={false}
+                onClick={() => navigate(`/users/${user.id}`)}
+              />
+              {/* Кнопки Принять/Отклонить */}
+              <Grid container spacing={1} justifyContent="center" sx={{ mt: 1 }}>
+                <Grid item>
                   <Button size="small" variant="contained" onClick={() => handleAccept(user.id)}>
                     Принять
                   </Button>
+                </Grid>
+                <Grid item>
                   <Button size="small" variant="outlined" onClick={() => handleDeclinePending(user.id)}>
                     Отклонить
                   </Button>
-                </CardActions>
-              </Card>
+                </Grid>
+              </Grid>
             </Grid>
           ))}
         </Grid>
@@ -154,26 +139,24 @@ const Connections = () => {
         <Typography>Нет подключённых профилей.</Typography>
       ) : (
         <Grid container spacing={3}>
-          {connections.map((conn) => (
-            <Grid item xs={12} sm={6} md={4} key={conn.id}>
-              <Card>
-                <CardMedia
-                  component="img"
-                  height="140"
-                  image={conn.photoUrl || '/static/images/default.png'}
-                  alt={`${conn.firstName} ${conn.lastName}`}
-                />
-                <CardContent>
-                  <Typography variant="h6">
-                    {conn.firstName} {conn.lastName}
-                  </Typography>
-                </CardContent>
-                <CardActions>
-                  <Button variant="outlined" color="error" onClick={() => handleDisconnect(conn.id)}>
-                    Отключить
-                  </Button>
-                </CardActions>
-              </Card>
+          {connections.map(conn => (
+            <Grid key={conn.id} item xs={12} sm={6} md={4}>
+              <UserCard
+                user={{ ...conn, connected: true }}
+                showChat={true}
+                onChatClick={() => navigate(`/chat/${conn.id}`)}
+                onClick={() => navigate(`/users/${conn.id}`)}
+              />
+              {/* Кнопка Отключить */}
+              <Grid container justifyContent="center" sx={{ mt: 1 }}>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => handleDisconnect(conn.id)}
+                >
+                  Отключить
+                </Button>
+              </Grid>
             </Grid>
           ))}
         </Grid>
