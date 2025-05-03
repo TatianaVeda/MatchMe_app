@@ -53,6 +53,8 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUserID, _ := uuid.Parse(userIDStr)
 
+	fmt.Println("Extracted userID from context:", userIDStr)
+
 	// 2) Проверяем mode
 	mode, err := parseMode(r.URL.Query().Get("mode"))
 	if err != nil {
@@ -62,10 +64,14 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 
 	// 3) Определяем, возвращать расстояния или нет
 	withDist := r.URL.Query().Get("withDistance") == "true"
+	//it's always true!!!
 	w.Header().Set("Content-Type", "application/json")
 
 	// 4) Читаем флаг useProfile (по умолчанию true)
 	useProfile := r.URL.Query().Get("useProfile") != "false"
+
+	fmt.Println("Mode:", mode)
+	fmt.Println("UseProfile:", useProfile)
 
 	var (
 		idsWithDist []services.RecommendationWithDistance
@@ -73,12 +79,16 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if useProfile {
-		// Старый путь: фильтры берутся из сохранённого профиля
-		if withDist {
-			idsWithDist, err = recommendationService.GetRecommendationsWithDistance(currentUserID, mode)
-		} else {
-			ids, err = recommendationService.GetRecommendationsForUser(currentUserID, mode)
-		}
+		fmt.Println("Using saved profile filters")
+		idsWithDist, err = recommendationService.GetRecommendationsWithDistance(currentUserID, mode)
+		//always with distance
+		// if withDist {
+		// 	fmt.Println("Calling GetRecommendationsWithDistance for user:", currentUserID)
+		// 	idsWithDist, err = recommendationService.GetRecommendationsWithDistance(currentUserID, mode)
+		// } else {
+		// 	fmt.Println("Calling GetRecommendationsForUser for user:", currentUserID)
+		// 	ids, err = recommendationService.GetRecommendationsForUser(currentUserID, mode)
+		// }
 	} else {
 		// Новый путь: читаем фильтры из query-параметров
 		lat, _ := strconv.ParseFloat(r.URL.Query().Get("cityLat"), 64)
@@ -103,29 +113,50 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 		// desire-фильтр
 		lookingFor := r.URL.Query().Get("lookingFor")
 
-		if withDist {
-			idsWithDist, err = recommendationService.GetRecommendationsWithFiltersWithDistance(
-				currentUserID, mode,
-				lat, lon,
-				interests, priorityInterests,
-				hobbies, priorityHobbies,
-				music, priorityMusic,
-				food, priorityFood,
-				travel, priorityTravel,
-				lookingFor,
-			)
-		} else {
-			ids, err = recommendationService.GetRecommendationsWithFilters(
-				currentUserID, mode,
-				lat, lon,
-				interests, priorityInterests,
-				hobbies, priorityHobbies,
-				music, priorityMusic,
-				food, priorityFood,
-				travel, priorityTravel,
-				lookingFor,
-			)
-		}
+		fmt.Println("Lat:", lat, "Lon:", lon)
+		fmt.Println("Interests:", interests, "Priority:", priorityInterests)
+		fmt.Println("Hobbies:", hobbies, "Priority:", priorityHobbies)
+		fmt.Println("Music:", music, "Priority:", priorityMusic)
+		fmt.Println("Food:", food, "Priority:", priorityFood)
+		fmt.Println("Travel:", travel, "Priority:", priorityTravel)
+		fmt.Println("LookingFor:", lookingFor)
+
+		idsWithDist, err = recommendationService.GetRecommendationsWithFiltersWithDistance(
+			currentUserID, mode,
+			lat, lon,
+			interests, priorityInterests,
+			hobbies, priorityHobbies,
+			music, priorityMusic,
+			food, priorityFood,
+			travel, priorityTravel,
+			lookingFor,
+		)
+
+		// NOT USED!!! ALWAYS WITH DISTANCE
+		// if withDist {
+		// 	idsWithDist, err = recommendationService.GetRecommendationsWithFiltersWithDistance(
+		// 		currentUserID, mode,
+		// 		lat, lon,
+		// 		interests, priorityInterests,
+		// 		hobbies, priorityHobbies,
+		// 		music, priorityMusic,
+		// 		food, priorityFood,
+		// 		travel, priorityTravel,
+		// 		lookingFor,
+		// 	)
+		// } else
+		// {
+		// 	ids, err = recommendationService.GetRecommendationsWithFilters(
+		// 		currentUserID, mode,
+		// 		lat, lon,
+		// 		interests, priorityInterests,
+		// 		hobbies, priorityHobbies,
+		// 		music, priorityMusic,
+		// 		food, priorityFood,
+		// 		travel, priorityTravel,
+		// 		lookingFor,
+		// 	)
+		// }
 	}
 
 	// if err != nil {
@@ -134,6 +165,15 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	// 	http.Error(w, "Error fetching recommendations", http.StatusInternalServerError)
 	// 	return
 	// }
+
+	if err == nil {
+		fmt.Println("Received", len(idsWithDist), "recommendations with distance")
+		// if withDist {
+		// 	fmt.Println("Received", len(idsWithDist), "recommendations with distance")
+		// } else {
+		// 	fmt.Println("Received", len(ids), "recommendations")
+		// }
+	}
 
 	if err != nil {
 		// если профиль или био неполные — возвращаем просто пустой массив вместо 500

@@ -1,16 +1,6 @@
 import React, { useState } from 'react';
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  IconButton,
-  Button,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Box
+import { AppBar, Toolbar, Typography, IconButton, Button, Drawer, List, ListItem, ListItemButton,
+  ListItemText, Box
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { Link, useNavigate } from 'react-router-dom';
@@ -18,7 +8,7 @@ import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import axios from '../api/index';
 import { toast } from 'react-toastify';
 import WebSocketService from '../services/websocketService';
-
+import { ADMIN_ID } from '../config';
 
 
 const navItems = [
@@ -102,15 +92,16 @@ const Header = () => {
             {user ? (
               <>
                 {navItems.map(item => (
-                  <Button
-                    key={item.to}
-                    color="inherit"
-                    component={Link}
-                    to={item.to}
-                  >
+                  <Button key={item.to}
+                    color="inherit" component={Link}  to={item.to}>
                     {item.label}
                   </Button>
                 ))}
+                  {user.id === ADMIN_ID && (
+                <Button color="inherit" component={Link} to="/admin">
+                  Admin
+                </Button>
+              )}
                 <Button color="inherit" onClick={handleLogout}>
                   Выход
                 </Button>

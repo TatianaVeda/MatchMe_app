@@ -134,6 +134,17 @@ const EditProfile = () => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
+      // Ensure coordinates are present
+      let latitude = values.city.lat;
+      let longitude = values.city.lon;
+
+      // If either lat or lon is missing or empty, fallback to city default
+      if (!latitude || !longitude) {
+        const fallbackCity = cityOptions.find(c => c.name === values.city.name);
+        latitude = fallbackCity?.lat;
+        longitude = fallbackCity?.lon;
+      }
+
       // Обновляем профиль
       await updateMyProfile({
                 firstName: values.firstName,

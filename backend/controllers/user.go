@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"m/backend/models"
@@ -220,9 +221,21 @@ func GetUserBio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var bio models.Bio
+	// if err := db.First(&bio, "user_id = ?", requestedUserID).Error; err != nil {
+	// 	logrus.Errorf("GetUserBio: bio for user %s not found: %v", requestedUserID, err)
+	// 	http.Error(w, "Bio not found", http.StatusNotFound)
+	// 	return
+	// }
+
 	if err := db.First(&bio, "user_id = ?", requestedUserID).Error; err != nil {
-		logrus.Errorf("GetUserBio: bio for user %s not found: %v", requestedUserID, err)
-		http.Error(w, "Bio not found", http.StatusNotFound)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logrus.Warnf("GetUserBio: bio for user %s not found, returning empty", requestedUserID)
+			empty := models.Bio{UserID: requestedUserID}
+			json.NewEncoder(w).Encode(empty)
+			return
+		}
+		logrus.Errorf("GetUserBio: failed to get bio for user %s: %v", requestedUserID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -306,7 +319,10 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 // GET /me/bio
 // Возвращает биографические данные аутентифицированного пользователя.
 func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("userID").(string)
+	//userID, ok := r.Context().Value("userID").(string)
+	userIDstr, ok := r.Context().Value("userID").(string)
+	userID, _ := uuid.Parse(userIDstr)
+
 	if !ok {
 		logrus.Error("GetCurrentUserBio: userID not found in context")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -314,11 +330,23 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var bio models.Bio
+	// if err := db.First(&bio, "user_id = ?", userID).Error; err != nil {
+	// 	logrus.Errorf("GetCurrentUserBio: bio for user %s not found: %v", userID, err)
+	// 	http.Error(w, "Bio not found", http.StatusNotFound)
+	// 	return
+	// }
 	if err := db.First(&bio, "user_id = ?", userID).Error; err != nil {
-		logrus.Errorf("GetCurrentUserBio: bio for user %s not found: %v", userID, err)
-		http.Error(w, "Bio not found", http.StatusNotFound)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logrus.Warnf("GetUserBio: bio for user %s not found, returning empty", userID)
+			empty := models.Bio{UserID: userID}
+			json.NewEncoder(w).Encode(empty)
+			return
+		}
+		logrus.Errorf("GetUserBio: failed to get bio for user %s: %v", userID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
 	// Если обязательные поля биографии пусты, возвращаем сообщение с просьбой заполнить данные.
 	if bio.Interests == "" ||
 		bio.Hobbies == "" ||

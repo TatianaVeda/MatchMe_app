@@ -1,21 +1,30 @@
 import React, { useState } from 'react'
 import { Container, Typography, Button, Box, TextField } from '@mui/material'
-import axios from '../api/index'
 import { toast } from 'react-toastify'
+import axios from '../../api/index'
+import { useAuthState } from '../../contexts/AuthContext';
+import { ADMIN_ID } from '../../config'
 
 const AdminPanel = () => {
+  const { user } = useAuthState();
   const [num, setNum] = useState(100)
+
+ // Показываем панель только если это админ
+ if (user?.id !== ADMIN_ID) {
+  return null;
+}
+
   const handleReset = async () => {
     try {
-      await axios.post(`/fixtures/reset?num=${num}`)
-      toast.success('БД сброшена и фиктивные пользователи созданы')
+      await axios.post(`/admin/reset-fixtures?num=${num}`)
+      toast.success('База Данных успешно сброшена')
     } catch (e) {
       toast.error('Ошибка сброса БД')
     }
   }
   const handleGenerate = async () => {
     try {
-      await axios.post(`/fixtures/generate?num=${num}`)
+        await axios.post(`/admin/generate-fixtures?num=${num}`)
       toast.success('Фиктивные пользователи созданы')
     } catch {
       toast.error('Ошибка генерации')
@@ -23,7 +32,7 @@ const AdminPanel = () => {
   }
   return (
     <Container sx={{ mt: 4 }}>
-      <Typography variant="h4">Admin Panel</Typography>
+      <Typography variant="h4" gutterBottom>Admin Panel</Typography>
       <Box sx={{ my: 2 }}>
         <TextField
           label="Количество фиктивных пользователей"
