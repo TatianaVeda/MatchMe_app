@@ -65,10 +65,12 @@ const Chats = () => {
       </Typography>
       <Grid container spacing={2}>
         {chats.map(chat => (
-          <Grid item xs={12} sm={6} md={4} key={chat.chat_id}>
+          // <Grid item xs={12} sm={6} md={4} key={chat.chat_id}>
+          <Grid item xs={12} sm={6} md={4} key={chat.id}>
             <Box
               sx={{ position: 'relative', cursor: 'pointer' }}
-              onClick={() => navigate(`/chat/${chat.chat_id}`)}
+              // onClick={() => navigate(`/chat/${chat.chat_id}`)}
+              onClick={() => navigate(`/chat/${chat.id}`)}
             >
               <UserCard
                 user={{

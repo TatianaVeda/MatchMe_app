@@ -100,16 +100,33 @@ export const getUserBio = async (userId) => {
 
 // Обновить профиль аутентифицированного пользователя (/me/profile)
 // Передаём: { firstName, lastName, about, city }
+// export const updateMyProfile = async ({ firstName, lastName, about, city, latitude, longitude }) => {
+//     const payload = { firstName, lastName, about, city };
+//     // добавляем координаты, если они переданы
+//     if (latitude != null && longitude != null) {
+//       payload.latitude = latitude;
+//       payload.longitude = longitude;
+//     }
+//     const response = await api.put('/me/profile', payload);
+//     return response.data;
+//   };
+
 export const updateMyProfile = async ({ firstName, lastName, about, city, latitude, longitude }) => {
-    const payload = { firstName, lastName, about, city };
-    // добавляем координаты, если они переданы
-    if (latitude != null && longitude != null) {
-      payload.latitude = latitude;
-      payload.longitude = longitude;
-    }
-    const response = await api.put('/me/profile', payload);
-    return response.data;
-  };
+  const payload = { firstName, lastName, about, city };
+
+  // Add coordinates if provided
+  if (latitude != null && longitude != null) {
+    payload.latitude = latitude;
+    payload.longitude = longitude;
+
+    // Adding earth_loc field to be updated on the backend
+    payload.earth_loc = `ll_to_earth(${latitude}, ${longitude})`;
+  }
+
+  const response = await api.put('/me/profile', payload);
+  return response.data;
+};
+
 
 // Обновить биографию аутентифицированного пользователя (/me/bio)
 // Передаём: { interests, hobbies, music, food, travel, lookingFor,
@@ -143,6 +160,15 @@ export const updateMyBio = async ({
   });
   return response.data;
 };
+    export const getMyPreferences = async () => {
+    const response = await api.get('/me/preferences');
+    return response.data;
+  };
+
+      export const deleteMyPhoto = async () => {
+      const response = await api.delete('/me/photo');
+      return response.data;
+    };
 
 // Обновить предпочтения пользователя (/me/preferences)
 // Передаём: { maxRadius, priorityInterests, priorityHobbies, ... }

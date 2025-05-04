@@ -16,6 +16,7 @@ const api = axios.create({
 api.interceptors.request.use(
   config => {
     const token = getAccessToken();
+    //console.log('🔑 Access token:', token); // Debug
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }

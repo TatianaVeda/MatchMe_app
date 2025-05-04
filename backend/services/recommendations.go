@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"sort"
 	"strings"
@@ -28,8 +29,9 @@ type FieldConfig struct {
 
 // RecommendationWithDistance — структура для контроллера.
 type RecommendationWithDistance struct {
-	UserID   uuid.UUID
-	Distance float64
+	UserID   uuid.UUID `json:"id"`
+	Distance float64   `json:"distance"`
+	Score    float64   `json:"score"`
 }
 
 // candidate — промежуточная структура для сортировки.
@@ -65,12 +67,45 @@ func NewRecommendationService(db *gorm.DB, fieldConfigs []FieldConfig) *Recommen
 
 // GetNearbyUsers возвращает до `limit` пользователей в радиусе maxRadius км от (lat, lon),
 // исключая пользователя excludeID. Вся геолокационная логика выполняется в Postgres.
+// func (rs *RecommendationService) GetNearbyUsers(
+// 	lat, lon, maxRadius float64,
+// 	limit int,
+// 	excludeID uuid.UUID,
+// ) ([]Nearby, error) {
+// 	maxMeters := maxRadius * 1000.0
+// 	var list []Nearby
+// 	err := rs.DB.
+// 		Raw(`
+// 			SELECT
+// 			  user_id   AS id,
+// 			  earth_distance(earth_loc, ll_to_earth(?, ?)) / 1000.0 AS distance
+// 			FROM profiles
+// 			WHERE
+// 			  earth_box(ll_to_earth(?, ?), ?) @> earth_loc
+// 			  AND earth_distance(earth_loc, ll_to_earth(?, ?)) <= ?
+// 			  AND user_id != ?
+// 			ORDER BY distance ASC
+// 			LIMIT ?
+// 		`,
+// 			// placeholders:
+// 			lat, lon, // first earth_distance
+// 			lat, lon, maxMeters, // earth_box
+// 			lat, lon, maxMeters, // distance filter
+// 			excludeID, limit,
+// 		).
+// 		Scan(&list).Error
+// 	return list, err
+// }
+
 func (rs *RecommendationService) GetNearbyUsers(
 	lat, lon, maxRadius float64,
 	limit int,
 	excludeID uuid.UUID,
 ) ([]Nearby, error) {
 	maxMeters := maxRadius * 1000.0
+	fmt.Printf("[DEBUG] Searching nearby users from lat=%.6f, lon=%.6f, radius=%.2f km\n", lat, lon, maxRadius)
+	fmt.Printf("[DEBUG] Excluding user ID: %s\n", excludeID)
+
 	var list []Nearby
 	err := rs.DB.
 		Raw(`
@@ -86,13 +121,22 @@ func (rs *RecommendationService) GetNearbyUsers(
 			LIMIT ?
 		`,
 			// placeholders:
-			lat, lon, // first earth_distance
-			lat, lon, maxMeters, // earth_box
-			lat, lon, maxMeters, // distance filter
+			lat, lon, // distance
+			lat, lon, maxMeters, // box
+			lat, lon, maxMeters, // filter
 			excludeID, limit,
 		).
 		Scan(&list).Error
-	return list, err
+
+	if err != nil {
+		fmt.Printf("[ERROR] Nearby query failed: %v\n", err)
+		return nil, err
+	}
+	fmt.Printf("[DEBUG] Nearby users found: %d\n", len(list))
+	for _, n := range list {
+		fmt.Printf("[DEBUG] User %s at %.2f km\n", n.ID, n.Distance)
+	}
+	return list, nil
 }
 
 // GetRecommendationsForUser возвращает до 10 UUID рекомендаций.
@@ -261,6 +305,8 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 		rs.Mode = "desire"
 	}
 
+	fmt.Printf("[DEBUG] Mode: %s\n", rs.Mode)
+
 	// 2) Загружаем текущего пользователя с Profile, Bio и Preference
 	var me models.User
 	if err := rs.DB.
@@ -268,9 +314,17 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 		Preload("Bio").
 		Preload("Preference").
 		First(&me, "id = ?", currentUserID).Error; err != nil {
+		fmt.Printf("[ERROR] Failed to load user: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("[DEBUG] Current User: %+v\n", me)
+	fmt.Printf("[DEBUG] Current user: %s\n", me.ID)
+	fmt.Printf("[DEBUG] Interests: %v\n", strings.Fields(me.Bio.Interests))
+	fmt.Printf("[DEBUG] Hobbies: %v\n", strings.Fields(me.Bio.Hobbies))
+	fmt.Printf("[DEBUG] Music: %v\n", strings.Fields(me.Bio.Music))
+
 	if err := validateUserData(me); err != nil {
+		fmt.Printf("[ERROR] Validation failed: %v\n", err)
 		return nil, err
 	}
 
@@ -279,12 +333,19 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 		me.Profile.Latitude,
 		me.Profile.Longitude,
 		me.Preference.MaxRadius,
-		100,           // берём чуть больше, чтобы потом отсечь по score
+		//wtf?!
+		10000,         // берём чуть больше, чтобы потом отсечь по score?????
 		currentUserID, // исключаем самого себя
 	)
 	if err != nil {
+		fmt.Printf("[ERROR] Failed to get nearby users: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("[DEBUG] Found %d nearby users\n", len(nearby))
+	for _, u := range nearby {
+		fmt.Printf("[DEBUG] Nearby user: %s at %.2f km\n", u.ID, u.Distance)
+	}
+
 	if len(nearby) == 0 {
 		return []RecommendationWithDistance{}, nil
 	}
@@ -296,6 +357,7 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 		ids[i] = n.ID
 		distMap[n.ID] = n.Distance
 	}
+	fmt.Printf("[DEBUG] Distance map: %+v\n", distMap)
 
 	// 5) Подгружаем профили и био этих кандидатов
 	var users []models.User
@@ -304,8 +366,10 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 		Preload("Bio").
 		Where("id IN ?", ids).
 		Find(&users).Error; err != nil {
+		fmt.Printf("[ERROR] Failed to load candidate users: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("[DEBUG] Loaded %d candidate users\n", len(users))
 
 	// 6) Считаем score и собираем окончательный слайс
 	type cand struct {
@@ -318,9 +382,11 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 	for _, u := range users {
 		// пропускаем тех, кого пользователь уже отклонил
 		var rec models.Recommendation
+		fmt.Printf("[DEBUG] Checking user: %s\n", u.ID)
 		if err := rs.DB.
 			Where("user_id = ? AND rec_user_id = ? AND status = ?", currentUserID, u.ID, "declined").
 			First(&rec).Error; err == nil {
+			fmt.Printf("[DEBUG] Skipping declined user: %s\n", u.ID)
 			continue
 		}
 
@@ -368,10 +434,20 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 						common++
 					}
 				}
+				fmt.Printf("[DEBUG] Comparing %s: me=%v, other=%v, common=%d, weight=%.2f\n",
+					fc.Name,
+					strings.Fields(strings.ToLower(fc.Extractor(me.Bio))),
+					strings.Fields(strings.ToLower(fc.Extractor(u.Bio))),
+					common,
+					w)
+
 				score += float64(common) * w
+				fmt.Printf("[DEBUG] Final score for user %s: %.4f (distance: %.2f)\n", u.ID, score, d)
+
 			}
 			if totalW > 0 {
 				score /= totalW
+				fmt.Printf("[DEBUG] Final score for user %s: %.4f (distance: %.2f)\n", u.ID, score, d)
 			}
 
 		case "desire":
@@ -389,6 +465,7 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 
 		// фильтрация: только положительный score
 		if score > 0 {
+			fmt.Printf("[DEBUG] Candidate %s: score=%.2f, distance=%.2f\n", u.ID, score, d)
 			cands = append(cands, cand{
 				ID:       u.ID,
 				Score:    score,
@@ -415,8 +492,10 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 		out[i] = RecommendationWithDistance{
 			UserID:   cands[i].ID,
 			Distance: cands[i].Distance,
+			Score:    cands[i].Score,
 		}
 	}
+	fmt.Printf("[DEBUG] Returning %d recommendations\n", len(out))
 
 	return out, nil
 }
@@ -671,11 +750,14 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 	lookingFor string, // для режима desire
 ) ([]RecommendationWithDistance, error) {
 	// 1) Устанавливаем режим работы
+
+	fmt.Println("Mode:", mode)
 	if mode != "desire" {
 		rs.Mode = "affinity"
 	} else {
 		rs.Mode = "desire"
 	}
+	fmt.Println("Recommendation mode set to:", rs.Mode)
 
 	// 2) Загружаем профиль (чтобы получить user_id и исключить себя)
 	var me models.User
@@ -683,6 +765,8 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 		First(&me, "id = ?", currentUserID).Error; err != nil {
 		return nil, err
 	}
+	fmt.Printf("Loaded current user: %s, setting coordinates: (%f, %f)\n", me.ID, lat, lon)
+
 	// Подменяем координаты профиля на переданные
 	me.Profile.Latitude = lat
 	me.Profile.Longitude = lon
@@ -697,6 +781,7 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("Nearby users found: %d\n", len(nearby))
 	if len(nearby) == 0 {
 		return []RecommendationWithDistance{}, nil
 	}
@@ -714,11 +799,12 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 		Find(&users).Error; err != nil {
 		return nil, err
 	}
+	fmt.Printf("Loaded bios for %d users\n", len(users))
 
 	// 5) Считаем score и собираем промежуточный слайс
 	type candWithDist struct {
 		userID   uuid.UUID
-		score    float64
+		Score    float64
 		distance float64
 	}
 	var cands []candWithDist
@@ -729,6 +815,7 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 		if err := rs.DB.
 			Where("user_id = ? AND rec_user_id = ? AND status = ?", currentUserID, u.ID, "declined").
 			First(&rec).Error; err == nil {
+			fmt.Printf("User %s was previously declined. Skipping.\n", u.ID)
 			continue
 		}
 
@@ -744,6 +831,7 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 			}
 			totalW += w
 			score += float64(countCommon(interests, strings.Fields(u.Bio.Interests))) * w
+			fmt.Printf("User %s - Interest Score: %.2f\n", u.ID, score)
 			// Hobbies
 			w = 0.1
 			if prioHobbies {
@@ -790,6 +878,9 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 				score = 1
 			}
 			cands = append(cands, candWithDist{u.ID, score, d})
+			fmt.Printf("User %s added to recommendations with score %.2f and distance %.2f\n", u.ID, score, d)
+		} else {
+			fmt.Printf("User %s skipped due to zero score.\n", u.ID)
 		}
 	}
 
@@ -798,7 +889,7 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 		if cands[i].distance != cands[j].distance {
 			return cands[i].distance < cands[j].distance
 		}
-		return cands[i].score > cands[j].score
+		return cands[i].Score > cands[j].Score
 	})
 
 	// 7) Берём топ-10 и формируем выход
@@ -806,11 +897,13 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 	if len(cands) < limit {
 		limit = len(cands)
 	}
+	fmt.Printf("Returning top %d candidates\n", limit)
 	out := make([]RecommendationWithDistance, limit)
 	for i := 0; i < limit; i++ {
 		out[i] = RecommendationWithDistance{
 			UserID:   cands[i].userID,
 			Distance: cands[i].distance,
+			Score:    cands[i].Score,
 		}
 	}
 	return out, nil

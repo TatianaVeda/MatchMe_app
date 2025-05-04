@@ -66,9 +66,9 @@ const Recommendations = () => {
     e.preventDefault();
     setLoading(true);
 
+    //const params = { mode, withDistance: true };
+    const params = { mode, withDistance: true, useProfile: useProfileFilters };
 
-
-    const params = { mode, withDistance: true };
     if (!useProfileFilters) {
       // Всегда передаём координаты
       params.cityLat = form.city.lat;
@@ -92,17 +92,30 @@ const Recommendations = () => {
 
     try {
       const recs = await getRecommendations({ params });
+      // const recData = await Promise.all(
+      //   recs.map(async ({ id, distance, score }) => {
+      //     try {
+      //       const user = await getUser(id);
+      //       const bio  = await getUserBio(id);
+      //       return { id, distance, score, ...user, bio };
+      //     } catch {
+      //       return null;
+      //     }
+      //   })
+      // );
       const recData = await Promise.all(
         recs.map(async ({ id, distance, score }) => {
           try {
             const user = await getUser(id);
             const bio  = await getUserBio(id);
             return { id, distance, score, ...user, bio };
-          } catch {
+          } catch (err) {
+            console.error(`[ERROR] Failed to load user ${id}:`, err);
             return null;
           }
         })
       );
+      
       setRecommendations(recData.filter(r => r));
     } catch (err) {
       const msg = err.response?.data || 'Ошибка загрузки рекомендаций';
@@ -312,6 +325,72 @@ const Recommendations = () => {
           ))}
         </Grid>
       )}
+
+      {/* Результаты */}
+{loading ? (
+  <Box sx={{ textAlign: 'center', mt: 4 }}>
+    <CircularProgress />
+  </Box>
+) : (
+  <>
+    {console.log(recommendations)}
+    {console.log('Recommendations length:', recommendations.length)}
+
+    {recommendations.length === 0 ? (
+      <Typography>Нет доступных рекомендаций.</Typography>
+    ) : (
+      <Grid container spacing={3}>
+        {recommendations.map(rec => (
+          <Grid item xs={12} sm={6} md={4} key={rec.id}>
+            {/* Render the recommendation card */}
+            <Card>
+              <CardMedia
+                component="img"
+                height="140"
+                image={rec.photoUrl || '/static/images/default.png'}
+                alt={`${rec.firstName} ${rec.lastName}`}
+              />
+              <CardContent>
+                <Typography variant="h5">
+                  {rec.firstName} {rec.lastName}
+                </Typography>
+                {typeof rec.distance === 'number' && (
+                  <Typography variant="body2" color="text.secondary">
+                    Расстояние: {rec.distance.toFixed(1)} км
+                  </Typography>
+                )}
+                {typeof rec.score === 'number' && (
+                  <Typography variant="body2" color="text.secondary">
+                    Совпадение: {(rec.score * 100).toFixed(0)} %
+                  </Typography>
+                )}
+                <Typography variant="body2" color="text.secondary">
+                  {rec.bio.interests
+                    ? `Интересы: ${rec.bio.interests}`
+                    : 'Информация отсутствует'}
+                </Typography>
+              </CardContent>
+              <CardActions>
+                <Button size="small" variant="contained" onClick={() => handleConnect(rec.id)}>
+                  Подключиться
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => handleDecline(rec.id)}
+                  disabled={decliningId === rec.id}
+                >
+                  {decliningId === rec.id ? 'Отклонение…' : 'Отклонить'}
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    )}
+  </>
+)}
+
     </Container>
   );
 };
