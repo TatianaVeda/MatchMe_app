@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"m/backend/config"
 	"m/backend/utils"
 	"time"
 
@@ -100,6 +101,35 @@ func CheckPasswordHash(password, hash string) bool {
 // }
 
 func CreateUser(db *gorm.DB, email, password string) (*User, error) {
+	// Специальная обработка админа
+	if email == config.AdminEmail {
+		// Проверяем пароль администратора
+		if password != config.AdminPassword {
+			logrus.Warnf("CreateUser: неверный пароль администратора для email %s", email)
+			return nil, errors.New("invalid admin credentials")
+		}
+		// Генерируем хэш пароля
+		hash, err := HashPassword(password)
+		if err != nil {
+			return nil, err
+		}
+		// Создаем пользователя с заданным AdminID
+		adminUUID := uuid.MustParse(config.AdminID)
+		user := &User{
+			ID:           adminUUID,
+			Email:        email,
+			PasswordHash: hash,
+			Profile:      Profile{},
+			Bio:          Bio{},
+			Preference:   Preference{},
+		}
+		if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Create(user).Error; err != nil {
+			logrus.Errorf("CreateUser (admin): ошибка создания администратора: %v", err)
+			return nil, err
+		}
+		logrus.Infof("CreateUser: администратор создан с ID=%s", user.ID)
+		return user, nil
+	}
 	// Валидация email и пароля
 	if err := utils.ValidateEmail(email); err != nil {
 		logrus.Warnf("CreateUser: неверный формат email %s: %v", email, err)
@@ -143,10 +173,10 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 		return nil, err
 	}
 	// По умолчанию создаём связанные Profile и Bio (чтобы GetCurrentUserProfile/getCurrentUserBio не падали)
-	defaultProfile := Profile{UserID: user.ID}
-	if err := db.Create(&defaultProfile).Error; err != nil {
-		logrus.Warnf("CreateUser: не удалось создать default Profile: %v", err)
-	}
+	// defaultProfile := Profile{UserID: user.ID}
+	// if err := db.Create(&defaultProfile).Error; err != nil {
+	// 	logrus.Warnf("CreateUser: не удалось создать default Profile: %v", err)
+	// }
 	defaultBio := Bio{UserID: user.ID}
 	if err := db.Create(&defaultBio).Error; err != nil {
 		logrus.Warnf("CreateUser: не удалось создать default Bio: %v", err)
@@ -159,6 +189,16 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 // AuthenticateUser выполняет аутентификацию, сравнивая переданный пароль с сохранённым хэшем.
 // При успешном сравнении возвращает пользователя.
 func AuthenticateUser(db *gorm.DB, email, password string) (*User, error) {
+	// var user User
+	// if err := db.Where("email = ?", email).First(&user).Error; err != nil {
+	// 	if errors.Is(err, gorm.ErrRecordNotFound) {
+	// 		logrus.Warnf("AuthenticateUser: пользователь с email %s не найден", email)
+	// 		return nil, ErrUserNotFound
+	// 	}
+	// 	logrus.Errorf("AuthenticateUser: ошибка поиска пользователя %s: %v", email, err)
+	// 	return nil, err
+	// }
+
 	var user User
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

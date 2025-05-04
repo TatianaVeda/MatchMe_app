@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -53,7 +54,6 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		Latitude  float64 `json:"latitude"` // ← новые поля
 		Longitude float64 `json:"longitude"`
 	}
-	logrus.Infof("!!!!!!!!!!!!!!!UpdateCurrentUserProfile: reqBody: %+v", reqBody)
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		logrus.Errorf("UpdateCurrentUserProfile: error decoding request body: %v", err)
@@ -77,23 +77,67 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// var profile models.Profile
+	// if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
+	// 	logrus.Errorf("UpdateCurrentUserProfile: profile not found for user %s: %v", currentUserID, err)
+	// 	http.Error(w, "Profile not found", http.StatusNotFound)
+	// 	return
+	// }
+
 	var profile models.Profile
-	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
-		logrus.Errorf("UpdateCurrentUserProfile: profile not found for user %s: %v", currentUserID, err)
-		http.Error(w, "Profile not found", http.StatusNotFound)
-		return
+	err = profileDB.First(&profile, "user_id = ?", currentUserID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Create new profile if not found
+			profile = models.Profile{
+				UserID:    currentUserID,
+				FirstName: reqBody.FirstName,
+				LastName:  reqBody.LastName,
+				About:     reqBody.About,
+				City:      reqBody.City,
+				Latitude:  reqBody.Latitude,
+				Longitude: reqBody.Longitude,
+			}
+			if err := profileDB.Create(&profile).Error; err != nil {
+				logrus.Errorf("UpdateCurrentUserProfile: error creating profile for user %s: %v", currentUserID, err)
+				http.Error(w, "Error creating profile", http.StatusInternalServerError)
+				return
+			}
+			logrus.Infof("Profile for user %s created successfully", currentUserID)
+		} else {
+			logrus.Errorf("UpdateCurrentUserProfile: error querying profile for user %s: %v", currentUserID, err)
+			http.Error(w, "Error reading profile", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Update existing profile
+		profile.FirstName = reqBody.FirstName
+		profile.LastName = reqBody.LastName
+		profile.About = reqBody.About
+		profile.City = reqBody.City
+		if reqBody.Latitude != 0 || reqBody.Longitude != 0 {
+			profile.Latitude = reqBody.Latitude
+			profile.Longitude = reqBody.Longitude
+		}
+
+		if err := profileDB.Save(&profile).Error; err != nil {
+			logrus.Errorf("UpdateCurrentUserProfile: error updating profile for user %s: %v", currentUserID, err)
+			http.Error(w, "Error updating profile", http.StatusInternalServerError)
+			return
+		}
+		logrus.Infof("Profile for user %s updated successfully", currentUserID)
 	}
 
-	profile.FirstName = reqBody.FirstName
-	profile.LastName = reqBody.LastName
-	profile.About = reqBody.About
-	profile.City = reqBody.City
+	// profile.FirstName = reqBody.FirstName
+	// profile.LastName = reqBody.LastName
+	// profile.About = reqBody.About
+	// profile.City = reqBody.City
 
-	// // Если пришли геокоординаты — сохраняем
-	if reqBody.Latitude != 0 || reqBody.Longitude != 0 {
-		profile.Latitude = reqBody.Latitude
-		profile.Longitude = reqBody.Longitude
-	}
+	// // // Если пришли геокоординаты — сохраняем
+	// if reqBody.Latitude != 0 || reqBody.Longitude != 0 {
+	// 	profile.Latitude = reqBody.Latitude
+	// 	profile.Longitude = reqBody.Longitude
+	// }
 
 	if err := profileDB.Save(&profile).Error; err != nil {
 		logrus.Errorf("UpdateCurrentUserProfile: error updating profile for user %s: %v", currentUserID, err)
@@ -107,6 +151,47 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 // PUT /me/location
+// func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
+// 	userIDStr, ok := r.Context().Value("userID").(string)
+// 	if !ok {
+// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+// 		return
+// 	}
+// 	currentUserID, err := uuid.Parse(userIDStr)
+// 	if err != nil {
+// 		http.Error(w, "Invalid userID", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	var reqBody struct {
+// 		Latitude  float64 `json:"latitude"`
+// 		Longitude float64 `json:"longitude"`
+// 	}
+// 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+// 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	var profile models.Profile
+// 	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
+// 		http.Error(w, "Profile not found", http.StatusNotFound)
+// 		return
+// 	}
+
+// 	profile.Latitude = reqBody.Latitude
+// 	profile.Longitude = reqBody.Longitude
+
+// 	if err := profileDB.Save(&profile).Error; err != nil {
+// 		http.Error(w, "Error updating location", http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	//w.WriteHeader(http.StatusOK)
+// 	logrus.Infof("coordinates %s updated successfully", currentUserID)
+// 	w.Header().Set("Content-Type", "application/json")
+// 	json.NewEncoder(w).Encode(profile)
+// }
+
 func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -129,21 +214,35 @@ func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var profile models.Profile
-	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
-		http.Error(w, "Profile not found", http.StatusNotFound)
-		return
+	err = profileDB.First(&profile, "user_id = ?", currentUserID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Create new profile with coordinates
+			profile = models.Profile{
+				UserID:    currentUserID,
+				Latitude:  reqBody.Latitude,
+				Longitude: reqBody.Longitude,
+			}
+			if err := profileDB.Create(&profile).Error; err != nil {
+				http.Error(w, "Error creating profile with location", http.StatusInternalServerError)
+				return
+			}
+			logrus.Infof("New profile created with coordinates for user %s", currentUserID)
+		} else {
+			http.Error(w, "Error retrieving profile", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Update existing coordinates
+		profile.Latitude = reqBody.Latitude
+		profile.Longitude = reqBody.Longitude
+		if err := profileDB.Save(&profile).Error; err != nil {
+			http.Error(w, "Error updating location", http.StatusInternalServerError)
+			return
+		}
+		logrus.Infof("Coordinates for user %s updated successfully", currentUserID)
 	}
 
-	profile.Latitude = reqBody.Latitude
-	profile.Longitude = reqBody.Longitude
-
-	if err := profileDB.Save(&profile).Error; err != nil {
-		http.Error(w, "Error updating location", http.StatusInternalServerError)
-		return
-	}
-
-	//w.WriteHeader(http.StatusOK)
-	logrus.Infof("coordinates %s updated successfully", currentUserID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(profile)
 }
