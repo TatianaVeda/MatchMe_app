@@ -20,6 +20,12 @@ class WebSocketService {
       console.log('WebSocket connected');
       this.isConnected = true;
 
+      // если вдруг остался старый интервал, почистим его
+     if (this.heartbeatInterval) {
+         clearInterval(this.heartbeatInterval);
+         this.heartbeatInterval = null;
+       }
+
       this.heartbeatInterval = setInterval(() => this.sendHeartbeat(true), 30000);
     };
 
@@ -44,8 +50,14 @@ class WebSocketService {
   }
 
   cleanupSocket() {
-    clearInterval(this.heartbeatInterval);
-    this.heartbeatInterval = null;
+    // clearInterval(this.heartbeatInterval);
+    // this.heartbeatInterval = null;
+
+    if (this.heartbeatInterval) {
+           clearInterval(this.heartbeatInterval);
+           this.heartbeatInterval = null;
+         }
+
     this.socket = null;
     this.isConnected = false;
   }
@@ -62,6 +74,8 @@ class WebSocketService {
 
   send(payload) {
     if (this.socket?.readyState === WebSocket.OPEN) {
+       // логируем, что именно шлем
+     console.debug('WS SEND ➔', payload);
       this.socket.send(JSON.stringify(payload));
     } else {
       console.warn('WebSocket is not open. Failed to send:', payload);

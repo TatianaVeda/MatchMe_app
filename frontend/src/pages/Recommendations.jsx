@@ -1,17 +1,12 @@
-// //m/frontend/src/pages/Recommendations.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Grid, Card, CardContent, CardMedia, Typography, Button, CardActions,
 CircularProgress, ToggleButton, ToggleButtonGroup, Box, TextField, FormControl, InputLabel, 
 Select, MenuItem, Checkbox, ListItemText, FormControlLabel } from '@mui/material';
 import { toast } from 'react-toastify';
-
 import { getRecommendations, declineRecommendation } from '../api/recommendations';
 import { getUser, getUserBio } from '../api/user';
 import { sendConnectionRequest } from '../api/connections';
-
-// Глобальные константы опций (можно вынести в отдельный файл)
 const cityOptions = [
   { name: 'Helsinki', lat: 60.1699, lon: 24.9384 },
   { name: 'Espoo', lat: 60.2055, lon: 24.6559 },
@@ -24,17 +19,13 @@ const cityOptions = [
   { name: 'Pori', lat: 61.4850, lon: 21.7973 },
   { name: 'Jyväskylä', lat: 62.2426, lon: 25.7473 },
 ];
-
 const interestsOptions = ["кино","спорт","музыка","технологии","искусство"];
 const hobbiesOptions   = ["чтение","бег","рисование","игры","готовка"];
 const musicOptions     = ["рок","джаз","классика","поп","хип-хоп"];
 const foodOptions      = ["итальянская","азиатская","русская","французская","мексиканская"];
 const travelOptions    = ["пляж","горы","города","экспедиции","экотуризм"];
-
 const Recommendations = () => {
   const navigate = useNavigate();
-
-  // UI state
   const [mode, setMode] = useState('affinity');
   const [useProfileFilters, setUseProfileFilters] = useState(true);
   const [form, setForm] = useState({
@@ -46,34 +37,16 @@ const Recommendations = () => {
     travel:    [], priorityTravel: false,
     lookingFor: ''
   });
-
-  // данные рекомендаций
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [decliningId, setDecliningId] = useState(null);
-  
-
-  // // при смене режима очищаем список
-  // const handleModeChange = (_, newMode) => {
-  //   if (newMode && newMode !== mode) {
-  //     setMode(newMode);
-  //     setRecommendations([]);
-  //   }
-  // };
-
-  // Обработчик формы поиска
   const handleSearch = async e => {
     e.preventDefault();
     setLoading(true);
-
-    //const params = { mode, withDistance: true };
     const params = { mode, withDistance: true, useProfile: useProfileFilters };
-
     if (!useProfileFilters) {
-      // Всегда передаём координаты
       params.cityLat = form.city.lat;
       params.cityLon = form.city.lon;
-
       if (mode === 'affinity') {
         params.interests         = form.interests.join(',');
         params.priorityInterests = form.priorityInterests;
@@ -89,20 +62,8 @@ const Recommendations = () => {
         params.lookingFor = form.lookingFor;
       }
     }
-
     try {
       const recs = await getRecommendations({ params });
-      // const recData = await Promise.all(
-      //   recs.map(async ({ id, distance, score }) => {
-      //     try {
-      //       const user = await getUser(id);
-      //       const bio  = await getUserBio(id);
-      //       return { id, distance, score, ...user, bio };
-      //     } catch {
-      //       return null;
-      //     }
-      //   })
-      // );
       const recData = await Promise.all(
         recs.map(async ({ id, distance, score }) => {
           try {
@@ -115,7 +76,6 @@ const Recommendations = () => {
           }
         })
       );
-      
       setRecommendations(recData.filter(r => r));
     } catch (err) {
       const msg = err.response?.data || 'Ошибка загрузки рекомендаций';
@@ -127,8 +87,6 @@ const Recommendations = () => {
       setLoading(false);
     }
   };
-
-  // Отклонить рекомендацию
   const handleDecline = async id => {
     setDecliningId(id);
     try {
@@ -141,7 +99,6 @@ const Recommendations = () => {
       setDecliningId(null);
     }
   };
-  // Отправить запрос на подключение
   const handleConnect = async id => {
     try {
       await sendConnectionRequest(id);
@@ -151,18 +108,14 @@ const Recommendations = () => {
       toast.error('Ошибка при запросе');
     }
   };
-
-  // переключаем режим и сбрасываем рекомендации
   const switchMode = (newMode) => {
     if (newMode !== mode) {
       setMode(newMode);
       setRecommendations([]);
     }
   };
-  
   return (
     <Container sx={{ mt: 4 }}>
-      {/* Кнопки режима */}
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Button
           variant={mode === 'affinity' ? 'contained' : 'outlined'}
@@ -176,8 +129,6 @@ const Recommendations = () => {
         >
           DesireMatch
         </Button>
-
-        {/* Чекбокс "Использовать данные профиля" */}
         <FormControlLabel
           control={
             <Checkbox
@@ -189,12 +140,8 @@ const Recommendations = () => {
           sx={{ ml: 2 }}
         />
       </Box>
-
       <Typography variant="h4" gutterBottom>Рекомендации</Typography>
-
-      {/* Форма фильтров */}
       <Box component="form" onSubmit={handleSearch} sx={{ mb: 4 }}>
-        {/* Город */}
         <FormControl sx={{ minWidth: 200, mr: 2 }}
         disabled={useProfileFilters}>
           <InputLabel>Город</InputLabel>
@@ -211,7 +158,6 @@ const Recommendations = () => {
             ))}
           </Select>
         </FormControl>
-
         {mode === 'affinity' ? (
           <>
             {[
@@ -258,7 +204,6 @@ const Recommendations = () => {
             sx={{ minWidth: 300, mr: 2 }}
           />
         )}
-
         <Button
           type="submit"
           variant="contained"
@@ -268,8 +213,6 @@ const Recommendations = () => {
           Искать
         </Button>
       </Box>
-
-      {/* Результаты */}
       {loading ? (
         <Box sx={{ textAlign: 'center', mt: 4 }}>
           <CircularProgress />
@@ -328,5 +271,4 @@ const Recommendations = () => {
     </Container>
   );
 };
-
 export default Recommendations;
