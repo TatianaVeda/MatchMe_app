@@ -35,32 +35,74 @@ const Header = () => {
 
   const toggleDrawer = () => setMobileOpen(open => !open);
 
-  const drawer = (
-    <Box onClick={toggleDrawer} sx={{ width: 250 }}>
-      <List>
-      {user && navItems.map(item => (
-     <ListItem key={item.to} disablePadding>
-       <ListItemButton component={Link} to={item.to}>
-         <ListItemText primary={item.label} />
-       </ListItemButton>
-     </ListItem>
-   ))}
-        {user ? (
-   <ListItem disablePadding>
-     <ListItemButton onClick={handleLogout}>
-       <ListItemText primary="Выход" />
-     </ListItemButton>
-   </ListItem>
- ) : (
-   <ListItem disablePadding>
-     <ListItemButton component={Link} to="/login">
-       <ListItemText primary="Вход" />
-     </ListItemButton>
-   </ListItem>
- )}
-      </List>
-    </Box>
-  );
+//   const drawer = (
+//     <Box onClick={toggleDrawer} sx={{ width: 250 }}>
+//       <List>
+//       {user && navItems.map(item => (
+//      <ListItem key={item.to} disablePadding>
+//        <ListItemButton component={Link} to={item.to}>
+//          <ListItemText primary={item.label} />
+//        </ListItemButton>
+//      </ListItem>
+//    ))}
+//         {user ? (
+//    <ListItem disablePadding>
+//      <ListItemButton onClick={handleLogout}>
+//        <ListItemText primary="Выход" />
+//      </ListItemButton>
+//    </ListItem>
+//  ) : (
+//    <ListItem disablePadding>
+//      <ListItemButton component={Link} to="/login">
+//        <ListItemText primary="Вход" />
+//      </ListItemButton>
+//    </ListItem>
+//  )}
+//       </List>
+//     </Box>
+//   );
+
+const drawer = (
+  <Box onClick={toggleDrawer} sx={{ width: 250 }}>
+    <List>
+      {user && user.id === ADMIN_ID ? (
+        <>
+          <ListItem disablePadding>
+            <ListItemButton component={Link} to="/admin">
+              <ListItemText primary="Admin" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton onClick={handleLogout}>
+              <ListItemText primary="Выход" />
+            </ListItemButton>
+          </ListItem>
+        </>
+      ) : user ? (
+        <>
+          {navItems.map(item => (
+            <ListItem key={item.to} disablePadding>
+              <ListItemButton component={Link} to={item.to}>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+          <ListItem disablePadding>
+            <ListItemButton onClick={handleLogout}>
+              <ListItemText primary="Выход" />
+            </ListItemButton>
+          </ListItem>
+        </>
+      ) : (
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/login">
+            <ListItemText primary="Вход" />
+          </ListItemButton>
+        </ListItem>
+      )}
+    </List>
+  </Box>
+); 
 
   return (
     <>
@@ -89,7 +131,7 @@ const Header = () => {
 
           {/* Десктопное меню */}
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-            {user ? (
+            {/* {user ? (
               <>
                 {navItems.map(item => (
                   <Button key={item.to}
@@ -110,7 +152,35 @@ const Header = () => {
               <Button color="inherit" component={Link} to="/login">
                 Вход
               </Button>
-            )}
+            )} */}
+            {user ? (
+  user.id === ADMIN_ID ? (
+    <>
+      <Button color="inherit" component={Link} to="/admin">
+        Admin
+      </Button>
+      <Button color="inherit" onClick={handleLogout}>
+        Выход
+      </Button>
+    </>
+  ) : (
+    <>
+      {navItems.map(item => (
+        <Button key={item.to} color="inherit" component={Link} to={item.to}>
+          {item.label}
+        </Button>
+      ))}
+      <Button color="inherit" onClick={handleLogout}>
+        Выход
+      </Button>
+    </>
+  )
+) : (
+  <Button color="inherit" component={Link} to="/login">
+    Вход
+  </Button>
+)}
+
           </Box>
         </Toolbar>
       </AppBar>

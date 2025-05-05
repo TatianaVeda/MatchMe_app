@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"m/backend/config"
 	"m/backend/models"
 
 	"github.com/google/uuid"
@@ -16,11 +17,11 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	AdminID       = "123e4567-e89b-12d3-a456-426614174000"
-	AdminEmail    = "admin@first.av"
-	AdminPassword = "qwaszx12"
-)
+// const (
+// 	AdminID       = "123e4567-e89b-12d3-a456-426614174000"
+// 	AdminEmail    = "admin@first.av"
+// 	AdminPassword = "qwaszx12"
+// )
 
 var fixturesDB *gorm.DB
 
@@ -53,20 +54,20 @@ func ResetFixtures(w http.ResponseWriter, r *http.Request) {
 	logrus.Info("ResetFixtures: миграция БД выполнена успешно")
 
 	// 3) Создание (или проверка существования) администратора
-	adminUUID, _ := uuid.Parse(AdminID)
+	adminUUID, _ := uuid.Parse(config.AdminID)
 	var existing models.User
 	err := fixturesDB.First(&existing, "id = ?", adminUUID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		hash, _ := models.HashPassword(AdminPassword)
+		hash, _ := models.HashPassword(config.AdminPassword)
 		admin := models.User{
 			ID:           adminUUID,
-			Email:        AdminEmail,
+			Email:        config.AdminEmail,
 			PasswordHash: hash,
 		}
 		if err := fixturesDB.Create(&admin).Error; err != nil {
 			logrus.Errorf("ResetFixtures: не удалось создать админа: %v", err)
 		} else {
-			logrus.Infof("ResetFixtures: админ %s создан (ID=%s)", AdminEmail, AdminID)
+			logrus.Infof("ResetFixtures: админ %s создан (ID=%s)", config.AdminEmail, config.AdminID)
 		}
 	} else {
 		logrus.Info("ResetFixtures: админ уже существует, создание пропущено")
@@ -101,6 +102,10 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		// latitude := randomLatitude()
+		// longitude := randomLongitude()
+		latitude, longitude, city := randomLocationWithCity()
+
 		profile := models.Profile{
 			UserID:    user.ID,
 			FirstName: randomFirstName(),
@@ -108,8 +113,11 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 			About:     "Фиктивный пользователь для тестирования.",
 			PhotoURL:  "/static/images/default.png",
 			Online:    false,
-			Latitude:  randomLatitude(),
-			Longitude: randomLongitude(),
+			// Latitude:  randomLatitude(),
+			// Longitude: randomLongitude(),
+			Latitude:  latitude,
+			Longitude: longitude,
+			City:      city,
 		}
 		bio := models.Bio{
 			UserID:    user.ID,
@@ -123,6 +131,28 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 		if err := fixturesDB.Save(&profile).Error; err != nil {
 			logrus.Warnf("GenerateFixtures: ошибка сохранения профиля %s: %v", email, err)
 		}
+
+		//add earth_loc
+		// if err := fixturesDB.Exec(`
+		// UPDATE profiles
+		// SET earth_loc = ST_SetSRID(ST_MakePoint(?, ?), 4326)
+		// WHERE user_id = ?`,
+		// 	longitude, latitude, user.ID,
+		// ).Error; err != nil {
+		// 	logrus.Warnf("Ошибка обновления earth_loc для %s: %v", email, err)
+		// }
+
+		if err := fixturesDB.Exec(`
+		UPDATE profiles
+		SET earth_loc = ll_to_earth(?, ?)
+		WHERE user_id = ?`,
+			profile.Latitude,
+			profile.Longitude,
+			profile.UserID,
+		).Error; err != nil {
+			logrus.Warnf("Ошибка обновления earth_loc для %s: %v", email, err)
+		}
+
 		if err := fixturesDB.Save(&bio).Error; err != nil {
 			logrus.Warnf("GenerateFixtures: ошибка сохранения биографии %s: %v", email, err)
 		}
@@ -180,4 +210,16 @@ func randomLatitude() float64 {
 
 func randomLongitude() float64 {
 	return 19 + rand.Float64()*(169-19)
+}
+
+func randomLocationWithCity() (float64, float64, string) {
+	if rand.Float64() < 0.8 {
+		c := finnishCities[rand.Intn(len(finnishCities))]
+		jitterLat := c.Latitude + (rand.Float64()-0.5)*0.02
+		jitterLon := c.Longitude + (rand.Float64()-0.5)*0.02
+		return jitterLat, jitterLon, c.Name
+	}
+	lat := randomLatitude()
+	lon := randomLongitude()
+	return lat, lon, "Unknown"
 }

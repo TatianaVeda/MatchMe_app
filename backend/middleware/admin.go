@@ -6,6 +6,7 @@ import (
 
 	"m/backend/models"
 	//"m/backend/middleware"
+	"m/backend/config"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -41,7 +42,8 @@ func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 			}
 
 			// Проверка административных прав.
-			if user.Email != "admin@example.com" {
+			//if user.Email != fixtures.AdminEmail {
+			if user.Email != config.AdminEmail {
 				logrus.Warnf("AdminOnly: пользователь %s не является администратором", uid)
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(map[string]string{"error": "Admin access required"})

@@ -283,11 +283,24 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	logrus.Infof("🔍 Extracted userID from context: %s", userID)
 
 	var profile models.Profile
+	// if err := db.First(&profile, "user_id = ?", userID).Error; err != nil {
+	// 	logrus.Errorf("GetCurrentUserProfile: profile for user %s not found: %v", userID, err)
+	// 	http.Error(w, "Profile not found", http.StatusNotFound)
+	// 	return
+	// }
+
 	if err := db.First(&profile, "user_id = ?", userID).Error; err != nil {
-		logrus.Errorf("GetCurrentUserProfile: profile for user %s not found: %v", userID, err)
-		http.Error(w, "Profile not found", http.StatusNotFound)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logrus.Warnf("Login: profile not found for user %s", userID)
+			//http.Error(w, "Ошибка входа. Проверьте введённые данные.", http.StatusUnauthorized)
+			http.Error(w, "Ошибка входа. Проверьте введённые данные.", http.StatusNotFound)
+			return
+		}
+		logrus.Errorf("Login: DB error fetching profile for user %s: %v", userID, err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
+
 	logrus.Infof("✅ Profile found: %+v", profile)
 
 	//Если некоторые важные поля пустые, можно вернуть информативное сообщение

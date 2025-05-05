@@ -55,15 +55,52 @@ const EditProfile = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
+  //   const loadData = async () => {
+  //            try {
+  //              // параллельно грузим профиль, биографию и предпочтения
+  //              const [profile, bio, prefs] = await Promise.all([
+  //                getMyProfile(),
+  //                getMyBio(),
+  //                getMyPreferences(),
+  //              ]);
+  // setInitialValues({
+  //         firstName: profile.firstName || '',
+  //         lastName: profile.lastName || '',
+  //         about: profile.about || '',
+  //         city: cityOptions.find(c => c.name === profile.city) || {
+  //           name:  profile.city || cityOptions[0].name,
+  //           lat:   profile.latitude  || cityOptions[0].lat,
+  //           lon:   profile.longitude || cityOptions[0].lon,
+  //         },
+  //         interests: bio.interests ? bio.interests.split(' ') : [],
+  //         hobbies:   bio.hobbies   ? bio.hobbies.split(' ')   : [],
+  //         music:     bio.music     ? bio.music.split(' ')     : [],
+  //         food:      bio.food      ? bio.food.split(' ')      : [],
+  //         travel:    bio.travel    ? bio.travel.split(' ')    : [],
+  //         lookingFor: bio.lookingFor || '',
+  //         priorityInterests: prefs.priorityInterests,
+  //         priorityHobbies:   prefs.priorityHobbies,
+  //         priorityMusic:     prefs.priorityMusic,
+  //         priorityFood:      prefs.priorityFood,
+  //         priorityTravel:    prefs.priorityTravel,
+  //       });
+  //     } catch {
+  //       toast.error('Ошибка загрузки данных профиля');
+  //     }
+  //   };
     const loadData = async () => {
-             try {
-               // параллельно грузим профиль, биографию и предпочтения
-               const [profile, bio, prefs] = await Promise.all([
-                 getMyProfile(),
-                 getMyBio(),
-                 getMyPreferences(),
-               ]);
-  setInitialValues({
+      try {
+        const [profileRaw, bioRaw, prefsRaw] = await Promise.all([
+          getMyProfile().catch(() => null),
+          getMyBio().catch(() => null),
+          getMyPreferences().catch(() => null),
+        ]);
+    
+        const profile = profileRaw || {};
+        const bio = bioRaw || {};
+        const prefs = prefsRaw || {};
+    
+        setInitialValues({
           firstName: profile.firstName || '',
           lastName: profile.lastName || '',
           about: profile.about || '',
@@ -78,16 +115,17 @@ const EditProfile = () => {
           food:      bio.food      ? bio.food.split(' ')      : [],
           travel:    bio.travel    ? bio.travel.split(' ')    : [],
           lookingFor: bio.lookingFor || '',
-          priorityInterests: prefs.priorityInterests,
-          priorityHobbies:   prefs.priorityHobbies,
-          priorityMusic:     prefs.priorityMusic,
-          priorityFood:      prefs.priorityFood,
-          priorityTravel:    prefs.priorityTravel,
+          priorityInterests: prefs.priorityInterests || false,
+          priorityHobbies:   prefs.priorityHobbies   || false,
+          priorityMusic:     prefs.priorityMusic     || false,
+          priorityFood:      prefs.priorityFood      || false,
+          priorityTravel:    prefs.priorityTravel    || false,
         });
       } catch {
         toast.error('Ошибка загрузки данных профиля');
       }
     };
+    
     loadData();
   }, []);
 

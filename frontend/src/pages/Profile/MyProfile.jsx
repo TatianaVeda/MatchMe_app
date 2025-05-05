@@ -14,14 +14,33 @@ const MyProfile = () => {
   const navigate = useNavigate();
   const { accessToken } = useAuthState();
 
+  // const fetchProfile = async () => {
+  //   try {
+  //     const data = await getMyProfile();
+  //     setProfile(data);
+  //   } catch (error) {
+  //     toast.error(error.response?.data?.message || 'Ошибка загрузки профиля');
+  //   }
+  // };
+
   const fetchProfile = async () => {
     try {
       const data = await getMyProfile();
       setProfile(data);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Ошибка загрузки профиля');
+      const status = error.response?.status;
+  
+      if (status === 404) {
+        // Profile doesn't exist yet — don't show error
+        setProfile(null);
+      } else {
+        toast.error(error.response?.data?.message || 'Ошибка загрузки профиля');
+      }
+    } finally {
+      setLoading(false);
     }
   };
+  
 
   const fetchBio = async () => {
     try {
@@ -61,10 +80,22 @@ const MyProfile = () => {
     );
   }
 
+  // if (!profile) {
+  //   return (
+  //     <Container sx={{ mt: 4 }}>
+  //       <Typography variant="h6">Профиль не найден.</Typography>
+  //     </Container>
+  //   );
+  // }
+
+  // If profile is not found, show a message and a link to edit profile
   if (!profile) {
     return (
       <Container sx={{ mt: 4 }}>
-        <Typography variant="h6">Профиль не найден.</Typography>
+        <Typography variant="h6">Профиль не найден. Пожалуйста, заполните ваш профиль.</Typography>
+        <Button variant="contained" color="primary" onClick={handleEdit} sx={{ mt: 2 }}>
+          Редактировать профиль
+        </Button>
       </Container>
     );
   }
