@@ -341,7 +341,7 @@ const EditProfile = () => {
              value={field.value.name}
              onChange={e => {
                const sel = cityOptions.find(c => c.name === e.target.value);
-               form.setFieldValue('city', sel.name);
+               form.setFieldValue('city', sel);
              }}
            >
              {cityOptions.map(c => (

@@ -112,7 +112,7 @@ export const getUserBio = async (userId) => {
 //   };
 
 export const updateMyProfile = async ({ firstName, lastName, about, city, latitude, longitude }) => {
-  const payload = { firstName, lastName, about, city };
+  const payload = { firstName, lastName, about, city: city.name || city};
 
   // Add coordinates if provided
   if (latitude != null && longitude != null) {

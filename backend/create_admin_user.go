@@ -1,4 +1,4 @@
-package main
+/* package main
 
 import (
 	"flag"
@@ -65,4 +65,4 @@ func runAdminSetup(db *gorm.DB) {
 	}
 
 	log.Println("Admin user created successfully!")
-}
+} */
