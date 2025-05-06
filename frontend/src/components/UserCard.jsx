@@ -4,8 +4,16 @@ import PropTypes from 'prop-types';
 import { Card, CardActionArea, CardContent, Avatar, Typography, Badge, Box, IconButton, Tooltip } from '@mui/material';
 import ChatIcon from '@mui/icons-material/Chat';
 
-const UserCard = ({ user, onClick, onChatClick, showChat }) => {
-  const { firstName, lastName, photoUrl, online, connected } = user;
+// const UserCard = ({ user, onClick, onChatClick, showChat }) => {
+//   const { firstName, lastName, photoUrl, online, connected } = user;
+
+const UserCard = ({
+       user,
+       onClick = () => {},
+       onChatClick = () => {},
+       showChat = false
+     }) => {
+        const { firstName, lastName, photoUrl, online, connected } = user;
 
   return (
     <Card
@@ -80,10 +88,10 @@ UserCard.propTypes = {
   showChat: PropTypes.bool,
 };
 
-UserCard.defaultProps = {
-  onClick: () => {},
-  onChatClick: () => {},
-  showChat: false,
-};
+// UserCard.defaultProps = {
+//   onClick: () => {},
+//   onChatClick: () => {},
+//   showChat: false,
+// };
 
 export default UserCard;
