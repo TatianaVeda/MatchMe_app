@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"m/backend/services"
 
@@ -95,19 +96,19 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 		lon, _ := strconv.ParseFloat(r.URL.Query().Get("cityLon"), 64)
 
 		// affinity-фильтры
-		interests := strings.FieldsFunc(r.URL.Query().Get("interests"), func(r rune) bool { return r == ',' })
+		interests := strings.FieldsFunc(r.URL.Query().Get("interests"), func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
 		priorityInterests, _ := strconv.ParseBool(r.URL.Query().Get("priorityInterests"))
 
-		hobbies := strings.FieldsFunc(r.URL.Query().Get("hobbies"), func(r rune) bool { return r == ',' })
+		hobbies := strings.FieldsFunc(r.URL.Query().Get("hobbies"), func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
 		priorityHobbies, _ := strconv.ParseBool(r.URL.Query().Get("priorityHobbies"))
 
-		music := strings.FieldsFunc(r.URL.Query().Get("music"), func(r rune) bool { return r == ',' })
+		music := strings.FieldsFunc(r.URL.Query().Get("music"), func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
 		priorityMusic, _ := strconv.ParseBool(r.URL.Query().Get("priorityMusic"))
 
-		food := strings.FieldsFunc(r.URL.Query().Get("food"), func(r rune) bool { return r == ',' })
+		food := strings.FieldsFunc(r.URL.Query().Get("food"), func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
 		priorityFood, _ := strconv.ParseBool(r.URL.Query().Get("priorityFood"))
 
-		travel := strings.FieldsFunc(r.URL.Query().Get("travel"), func(r rune) bool { return r == ',' })
+		travel := strings.FieldsFunc(r.URL.Query().Get("travel"), func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
 		priorityTravel, _ := strconv.ParseBool(r.URL.Query().Get("priorityTravel"))
 
 		// desire-фильтр

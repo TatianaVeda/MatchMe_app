@@ -749,8 +749,6 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 	travel []string, prioTravel bool,
 	lookingFor string, // для режима desire
 ) ([]RecommendationWithDistance, error) {
-	// 1) Устанавливаем режим работы
-
 	fmt.Println("Mode:", mode)
 	if mode != "desire" {
 		rs.Mode = "affinity"
@@ -758,24 +756,18 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 		rs.Mode = "desire"
 	}
 	fmt.Println("Recommendation mode set to:", rs.Mode)
-
-	// 2) Загружаем профиль (чтобы получить user_id и исключить себя)
 	var me models.User
 	if err := rs.DB.Preload("Profile").
 		First(&me, "id = ?", currentUserID).Error; err != nil {
 		return nil, err
 	}
 	fmt.Printf("Loaded current user: %s, setting coordinates: (%f, %f)\n", me.ID, lat, lon)
-
-	// Подменяем координаты профиля на переданные
 	me.Profile.Latitude = lat
 	me.Profile.Longitude = lon
-
-	// 3) Быстрый гео-отбор кандидатов
 	nearby, err := rs.GetNearbyUsers(
 		lat, lon,
-		me.Preference.MaxRadius, // если хотите, сделайте этот параметр передаваемым
-		100,                     // чуть больше, чтобы потом отсортировать
+		me.Preference.MaxRadius,
+		100,
 		currentUserID,
 	)
 	if err != nil {
@@ -791,8 +783,6 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 		ids[i] = n.ID
 		distMap[n.ID] = n.Distance
 	}
-
-	// 4) Подгружаем Bio у кандидатов
 	var users []models.User
 	if err := rs.DB.Preload("Bio").
 		Where("id IN ?", ids).
@@ -800,17 +790,13 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 		return nil, err
 	}
 	fmt.Printf("Loaded bios for %d users\n", len(users))
-
-	// 5) Считаем score и собираем промежуточный слайс
 	type candWithDist struct {
 		userID   uuid.UUID
 		Score    float64
 		distance float64
 	}
 	var cands []candWithDist
-
 	for _, u := range users {
-		// пропускаем уже отклонённых
 		var rec models.Recommendation
 		if err := rs.DB.
 			Where("user_id = ? AND rec_user_id = ? AND status = ?", currentUserID, u.ID, "declined").
@@ -818,13 +804,10 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 			fmt.Printf("User %s was previously declined. Skipping.\n", u.ID)
 			continue
 		}
-
 		d := distMap[u.ID]
 		var score float64
-
 		if rs.Mode == "affinity" {
 			totalW := 0.0
-			// Interests
 			w := 0.1
 			if prioInterests {
 				w *= 2
@@ -832,28 +815,24 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 			totalW += w
 			score += float64(countCommon(interests, strings.Fields(u.Bio.Interests))) * w
 			fmt.Printf("User %s - Interest Score: %.2f\n", u.ID, score)
-			// Hobbies
 			w = 0.1
 			if prioHobbies {
 				w *= 2
 			}
 			totalW += w
 			score += float64(countCommon(hobbies, strings.Fields(u.Bio.Hobbies))) * w
-			// Music
 			w = 0.1
 			if prioMusic {
 				w *= 2
 			}
 			totalW += w
 			score += float64(countCommon(music, strings.Fields(u.Bio.Music))) * w
-			// Food
 			w = 0.1
 			if prioFood {
 				w *= 2
 			}
 			totalW += w
 			score += float64(countCommon(food, strings.Fields(u.Bio.Food))) * w
-			// Travel
 			w = 0.1
 			if prioTravel {
 				w *= 2
@@ -865,14 +844,12 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 				score /= totalW
 			}
 		} else {
-			// desire
 			for _, tok := range strings.Fields(strings.ToLower(lookingFor)) {
 				if anyTokenMatch(tok, u.Bio.LookingFor) {
 					score += 0.05
 				}
 			}
 		}
-
 		if score > 0 {
 			if score > 1 {
 				score = 1
@@ -883,16 +860,12 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 			fmt.Printf("User %s skipped due to zero score.\n", u.ID)
 		}
 	}
-
-	// 6) Сортировка: по distance asc, затем score desc
 	sort.Slice(cands, func(i, j int) bool {
 		if cands[i].distance != cands[j].distance {
 			return cands[i].distance < cands[j].distance
 		}
 		return cands[i].Score > cands[j].Score
 	})
-
-	// 7) Берём топ-10 и формируем выход
 	limit := 10
 	if len(cands) < limit {
 		limit = len(cands)
