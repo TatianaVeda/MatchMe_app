@@ -17,6 +17,7 @@
 - [API and Ports](#api-and-ports)
 - [Development](#development)
 - [Features](#features)
+- [Setting Recommendation Radius](#setting-recommendation-radius)
 
 ## Technologies
 
@@ -284,6 +285,10 @@ To obtain a JWT token, follow these steps:
 
 This allows you to manage the application using the admin profile created through the browser.
 
+## Setting Recommendation Radius
+
+To search for recommendations within a specific geographical radius, navigate to the "Settings" page of the application. At the bottom of the settings page, you will find an option to set the maximum radius for recommendations. Adjusting this value enables proximity-based filtering for recommendations.
+
 ---
 
 <a id="russian"></a>
@@ -300,6 +305,7 @@ This allows you to manage the application using the admin profile created throug
 - [API и порты](#api-и-порты)
 - [Разработка](#разработка)
 - [Особенности](#особенности)
+- [Настройка радиуса для рекомендаций](#настройка-радиуса-для-рекомендаций)
 
 ## Технологии
 
@@ -566,3 +572,7 @@ docker exec -it m_postgres psql -U user -d sopostavmenya
    Замените `your_admin_email` и `your_password` на ваши фактические данные.
 
 Это позволяет управлять приложением, используя профиль администратора, созданный через браузер.
+
+## Настройка радиуса для рекомендаций
+
+Для поиска рекомендаций в определённом географическом радиусе перейдите на страницу "Настройки" приложения. Внизу страницы настроек вы найдёте опцию для установки максимального радиуса рекомендаций. Настройка этого значения позволяет использовать фильтрацию по близости для рекомендаций.

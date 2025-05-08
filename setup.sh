@@ -97,13 +97,13 @@ fi
 echo "PostgreSQL is running and ready to connect."
 
 # After starting PostgreSQL
-echo "Checking if migrations are supported..."
-if go run main.go -help | grep -q "\-migrate"; then
-  echo "Running database migrations..."
-  go run main.go -migrate || error_exit "Database migration failed" 
-else
-  echo "Migration flag not found. Skipping migrations."
-fi
+# echo "Checking if migrations are supported..."
+# if go run main.go -help | grep -q "\-migrate"; then
+#  echo "Running database migrations..."
+#  go run main.go -migrate || error_exit "Database migration failed" 
+#else
+#  echo "Migration flag not found. Skipping migrations."
+#fi
 
 # Installing dependencies for backend
 echo "Moving to the backend folder and installing Go dependencies..."
@@ -117,7 +117,7 @@ fi
 
 # Updating/creating the go.sum file through go mod tidy (calculates and writes checksums)
 echo "Updating dependencies (go.sum)..."
-go mod tidy
+go mod sum
 
 
 # Running the installation of additional dependencies (if your code processes the -deps flag)
