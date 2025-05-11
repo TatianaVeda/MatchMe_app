@@ -235,13 +235,27 @@ const Recommendations = () => {
                     {rec.firstName} {rec.lastName}
                   </Typography>
                   {typeof rec.distance === 'number' && (
-                    <Typography variant="body2" color="text.secondary">
-                      Расстояние: {rec.distance.toFixed(1)} км
+                    <Typography 
+                      variant="body2" 
+                      color={rec.distance > 50 ? "error" : "text.secondary"}
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
+                      <span>Расстояние: {rec.distance.toFixed(1)} км</span>
+                      {rec.distance > 50 && (
+                        <span style={{ color: 'red' }}>⚠️ Далеко</span>
+                      )}
                     </Typography>
                   )}
                   {typeof rec.score === 'number' && (
-                    <Typography variant="body2" color="text.secondary">
-                      Совпадение: {(rec.score * 100).toFixed(0)} %
+                    <Typography 
+                      variant="body2" 
+                      color={rec.score > 0.7 ? "success.main" : "text.secondary"}
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
+                      <span>Совпадение: {(rec.score * 100).toFixed(0)}%</span>
+                      {rec.score > 0.7 && (
+                        <span style={{ color: 'green' }}>⭐ Отличное совпадение</span>
+                      )}
                     </Typography>
                   )}
                   <Typography variant="body2" color="text.secondary">

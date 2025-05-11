@@ -23,6 +23,14 @@ function authReducer(state, action) {
         accessToken: action.payload.accessToken,
         refreshToken: action.payload.refreshToken,
       };
+    case 'TOKEN_REFRESHED':
+      setAccessToken(action.payload.accessToken);
+      setRefreshToken(action.payload.refreshToken);
+      return {
+        ...state,
+        accessToken: action.payload.accessToken,
+        refreshToken: action.payload.refreshToken,
+      };
     case 'LOGOUT':
       clearTokens();
       return {
@@ -44,23 +52,36 @@ function authReducer(state, action) {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-    // При монтировании, если у нас есть токен — забираем профиль
-    useEffect(() => {
-          // Если токена нет — не дергаем /me
-          if (!state.accessToken) {
-            return;
-          }
-      
-          api.get('/me')
-            .then(({ data }) => {
-              dispatch({ type: 'SET_USER', payload: data });
-            })
-            .catch((err) => {
-              // При 401 или других ошибках очищаем токены и разлогиниваем
-              clearTokens();
-              dispatch({ type: 'LOGOUT' });
-            });
-        }, [state.accessToken]);
+  // При монтировании, если у нас есть токен — забираем профиль
+  useEffect(() => {
+    if (!state.accessToken) {
+      return;
+    }
+
+    api.get('/me')
+      .then(({ data }) => {
+        dispatch({ type: 'SET_USER', payload: data });
+      })
+      .catch((err) => {
+        // Очищаем токены только если это не ошибка 401
+        // (401 обрабатывается в interceptor'е)
+        if (err.response?.status !== 401) {
+          clearTokens();
+          dispatch({ type: 'LOGOUT' });
+        }
+      });
+  }, [state.accessToken]);
+
+  // Добавляем обработчик для обновления токена
+  useEffect(() => {
+    const handleTokenRefresh = (event) => {
+      const { accessToken, refreshToken } = event.detail;
+      dispatch({ type: 'TOKEN_REFRESHED', payload: { accessToken, refreshToken } });
+    };
+
+    window.addEventListener('tokenRefreshed', handleTokenRefresh);
+    return () => window.removeEventListener('tokenRefreshed', handleTokenRefresh);
+  }, []);
 
   return (
     <AuthStateContext.Provider value={state}>

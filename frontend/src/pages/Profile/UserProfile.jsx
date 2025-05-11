@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Box, Typography, Avatar, Button, CircularProgress } from '@mui/material';
+import { 
+  Container, Box, Typography, Avatar, Button, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions
+} from '@mui/material';
 import { getUser, getUserProfile, getUserBio } from '../../api/user';
-import { getConnections } from '../../api/connections';
+import { getConnections, deleteConnection } from '../../api/connections';
 import { toast } from 'react-toastify';
 
 const UserProfile = () => {
@@ -13,6 +16,7 @@ const UserProfile = () => {
   const [bio, setBio] = useState(null);
   const [connectedIds, setConnectedIds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -42,6 +46,17 @@ const UserProfile = () => {
     navigate(`/chat/${id}`);
   };
 
+  const handleDisconnect = async () => {
+    try {
+      await deleteConnection(id);
+      toast.success('Отключение выполнено');
+      setDisconnectDialogOpen(false);
+      navigate('/connections');
+    } catch {
+      toast.error('Ошибка при отключении');
+    }
+  };
+
   if (loading) {
     return (
       <Container sx={{ textAlign: 'center', mt: 4 }}>
@@ -50,11 +65,19 @@ const UserProfile = () => {
     );
   }
 
+  if (!user || !profile) {
+    return (
+      <Container sx={{ textAlign: 'center', mt: 4 }}>
+        <Typography variant="h6">Профиль не найден</Typography>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <Avatar
-          src={user.photoUrl}
+          src={user.photoUrl || '/default-avatar.png'}
           alt={`${user.firstName} ${user.lastName}`}
           sx={{ width: 80, height: 80, mr: 2 }}
         >
@@ -66,29 +89,66 @@ const UserProfile = () => {
       </Box>
 
       <Typography variant="body1" sx={{ mb: 2 }}>
-        {profile.about}
+        {profile.about || 'Нет информации о пользователе'}
       </Typography>
 
       <Typography variant="h6" gutterBottom>
         Биография
       </Typography>
-      <Typography>Интересы: {bio.interests}</Typography>
-      <Typography>Хобби: {bio.hobbies}</Typography>
-      <Typography>Музыка: {bio.music}</Typography>
-      <Typography>Еда: {bio.food}</Typography>
-      <Typography>Путешествия: {bio.travel}</Typography>
-      <Typography>Ищу: {bio.lookingFor}</Typography>
-
-      {connectedIds.includes(id) && (
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{ mt: 3 }}
-          onClick={handleChat}
-        >
-          Перейти в чат
-        </Button>
+      {bio ? (
+        <>
+          <Typography>Интересы: {bio.interests || 'Не указаны'}</Typography>
+          <Typography>Хобби: {bio.hobbies || 'Не указаны'}</Typography>
+          <Typography>Музыка: {bio.music || 'Не указана'}</Typography>
+          <Typography>Еда: {bio.food || 'Не указана'}</Typography>
+          <Typography>Путешествия: {bio.travel || 'Не указаны'}</Typography>
+          <Typography>Ищу: {bio.lookingFor || 'Не указано'}</Typography>
+        </>
+      ) : (
+        <Typography>Биография не заполнена</Typography>
       )}
+
+      <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+        {connectedIds.includes(id) && (
+          <>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleChat}
+            >
+              Перейти в чат
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => setDisconnectDialogOpen(true)}
+            >
+              Отключить
+            </Button>
+          </>
+        )}
+      </Box>
+
+      {/* Модальное окно подтверждения */}
+      <Dialog
+        open={disconnectDialogOpen}
+        onClose={() => setDisconnectDialogOpen(false)}
+      >
+        <DialogTitle>Отключить пользователя?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Вы уверены, что хотите отключиться от этого пользователя?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDisconnectDialogOpen(false)}>
+            Отмена
+          </Button>
+          <Button onClick={handleDisconnect} color="error">
+            Отключить
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

@@ -43,6 +43,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 
 	//moved to protected routes
 	authRouter.HandleFunc("/users/{id}", controllers.GetUser).Methods(http.MethodGet)
+	authRouter.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
 	authRouter.HandleFunc("/users/{id}/bio", controllers.GetUserBio).Methods(http.MethodGet)
 
 	authRouter.HandleFunc("/me", controllers.GetCurrentUser).Methods(http.MethodGet)
