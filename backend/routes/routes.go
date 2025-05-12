@@ -29,7 +29,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 
 	router.HandleFunc("/signup", controllers.Signup).Methods(http.MethodPost)
 	//router.HandleFunc("/users/{id}", controllers.GetUser).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
+	//router.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
 	//router.HandleFunc("/users/{id}/bio", controllers.GetUserBio).Methods(http.MethodGet)
 	// Эндпоинт для обновления токенов не требует аутентификации (он принимает refresh токен)
 	router.HandleFunc("/refresh", controllers.RefreshToken).Methods(http.MethodPost)
@@ -41,9 +41,20 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	authRouter := router.PathPrefix("/").Subrouter()
 	authRouter.Use(controllers.AuthMiddleware) // Подключаем middleware аутентификации
 
+	//test
+	// authRouter.HandleFunc("/{anything}", func(w http.ResponseWriter, r *http.Request) {
+	// 	logrus.Infof("REQUEST Request path: %s", r.URL.Path)
+	// }).Methods(http.MethodGet)
+
+	// usersRouter := authRouter.PathPrefix("/users").Subrouter()
+	// usersRouter.HandleFunc("/{id}", controllers.GetUser).Methods("GET")
+	// usersRouter.HandleFunc("/{id}/bio", controllers.GetUserBio).Methods("GET")
+	// usersRouter.HandleFunc("/{id}/profile", controllers.GetUserProfile).Methods("GET")
+
 	//moved to protected routes
 	authRouter.HandleFunc("/users/{id}", controllers.GetUser).Methods(http.MethodGet)
 	authRouter.HandleFunc("/users/{id}/bio", controllers.GetUserBio).Methods(http.MethodGet)
+	authRouter.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
 
 	authRouter.HandleFunc("/me", controllers.GetCurrentUser).Methods(http.MethodGet)
 	authRouter.HandleFunc("/me/profile", controllers.GetCurrentUserProfile).Methods(http.MethodGet)

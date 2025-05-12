@@ -30,50 +30,137 @@ func InitUserController(database *gorm.DB) {
 // - существует установленное соединение (status = "accepted"),
 // - существует ожидающий запрос (status = "pending"),
 // - запрошенный пользователь входит в список рекомендаций текущего пользователя.
+
+// func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
+// 	// Если запрошен собственный профиль.
+// 	if currentUserID == requestedUserID {
+// 		logrus.Debugf("User %s accessing own profile", currentUserID)
+// 		return true, nil
+// 	}
+
+// 	// Проверяем наличие установленного соединения.
+// 	var conn models.Connection
+// 	err := db.
+// 		Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?)) AND status = ?",
+// 			currentUserID, requestedUserID, requestedUserID, currentUserID, "accepted").
+// 		First(&conn).Error
+// 	if err == nil {
+// 		logrus.Debugf("Connection exists between %s and %s (accepted)", currentUserID, requestedUserID)
+// 		return true, nil
+// 	}
+
+// 	// Проверяем наличие ожидающего запроса.
+// 	err = db.
+// 		Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?)) AND status = ?",
+// 			currentUserID, requestedUserID, requestedUserID, currentUserID, "pending").
+// 		First(&conn).Error
+// 	if err == nil {
+// 		logrus.Debugf("Connection request exists between %s and %s (pending)", currentUserID, requestedUserID)
+// 		return true, nil
+// 	}
+
+// 	// Проверяем, входит ли запрошенный пользователь в рекомендации текущего пользователя.
+// 	recService := services.NewRecommendationService(db, nil)
+// 	recIDs, err := recService.GetRecommendationsForUser(currentUserID, "affinity")
+// 	if err == nil {
+// 		for _, id := range recIDs {
+// 			if id == requestedUserID {
+// 				logrus.Debugf("User %s is in recommendations for %s", requestedUserID, currentUserID)
+// 				return true, nil
+// 			}
+// 		}
+// 	} else {
+// 		logrus.Errorf("Error fetching recommendations for user %s: %v", currentUserID, err)
+// 	}
+
+// 	// Если ни одно условие не выполнено — доступ запрещён.
+// 	logrus.Warnf("Access denied: user %s cannot access data for user %s", currentUserID, requestedUserID)
+// 	return false, nil
+// }
+
 func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
+	logrus.Infof("userHasAccess: checking access from %s to %s", currentUserID, requestedUserID)
+
 	// Если запрошен собственный профиль.
 	if currentUserID == requestedUserID {
-		logrus.Debugf("User %s accessing own profile", currentUserID)
+		logrus.Debugf("userHasAccess: user %s accessing own profile", currentUserID)
 		return true, nil
 	}
 
 	// Проверяем наличие установленного соединения.
+	// var conn models.Connection
+	// err := db.
+	// 	Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?)) AND status = ?",
+	// 		currentUserID, requestedUserID, requestedUserID, currentUserID, "accepted").
+	// 	First(&conn).Error
+	// if err == nil {
+	// 	logrus.Infof("userHasAccess: access granted — accepted connection exists between %s and %s", currentUserID, requestedUserID)
+	// 	return true, nil
+	// } else {
+	// 	logrus.Debugf("userHasAccess: no accepted connection between %s and %s", currentUserID, requestedUserID)
+	// }
+
+	// // Проверяем наличие ожидающего запроса.
+	// err = db.
+	// 	Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?)) AND status = ?",
+	// 		currentUserID, requestedUserID, requestedUserID, currentUserID, "pending").
+	// 	First(&conn).Error
+	// if err == nil {
+	// 	logrus.Infof("userHasAccess: access granted — pending connection request between %s and %s", currentUserID, requestedUserID)
+	// 	return true, nil
+	// } else {
+	// 	logrus.Debugf("userHasAccess: no pending connection between %s and %s", currentUserID, requestedUserID)
+	// }
+
 	var conn models.Connection
 	err := db.
 		Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?)) AND status = ?",
 			currentUserID, requestedUserID, requestedUserID, currentUserID, "accepted").
 		First(&conn).Error
+
 	if err == nil {
-		logrus.Debugf("Connection exists between %s and %s (accepted)", currentUserID, requestedUserID)
+		logrus.Infof("userHasAccess: access granted — accepted connection exists between %s and %s", currentUserID, requestedUserID)
 		return true, nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		logrus.Errorf("userHasAccess: DB error while checking accepted connection: %v", err)
+		return false, err
+	} else {
+		logrus.Debugf("userHasAccess: no accepted connection between %s and %s", currentUserID, requestedUserID)
 	}
 
-	// Проверяем наличие ожидающего запроса.
 	err = db.
 		Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?)) AND status = ?",
 			currentUserID, requestedUserID, requestedUserID, currentUserID, "pending").
 		First(&conn).Error
+
 	if err == nil {
-		logrus.Debugf("Connection request exists between %s and %s (pending)", currentUserID, requestedUserID)
+		logrus.Infof("userHasAccess: access granted — pending connection request between %s and %s", currentUserID, requestedUserID)
 		return true, nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		logrus.Errorf("userHasAccess: DB error while checking pending connection: %v", err)
+		return false, err
+	} else {
+		logrus.Debugf("userHasAccess: no pending connection between %s and %s", currentUserID, requestedUserID)
 	}
 
-	// Проверяем, входит ли запрошенный пользователь в рекомендации текущего пользователя.
+	// Проверяем рекомендации.
+	logrus.Debugf("userHasAccess: checking if %s is in recommendations for %s", requestedUserID, currentUserID)
 	recService := services.NewRecommendationService(db, nil)
 	recIDs, err := recService.GetRecommendationsForUser(currentUserID, "affinity")
-	if err == nil {
+	if err != nil {
+		logrus.Errorf("userHasAccess: error fetching recommendations for user %s: %v", currentUserID, err)
+	} else {
 		for _, id := range recIDs {
 			if id == requestedUserID {
-				logrus.Debugf("User %s is in recommendations for %s", requestedUserID, currentUserID)
+				logrus.Infof("userHasAccess: access granted — user %s is in recommendations for %s", requestedUserID, currentUserID)
 				return true, nil
 			}
 		}
-	} else {
-		logrus.Errorf("Error fetching recommendations for user %s: %v", currentUserID, err)
+		logrus.Debugf("userHasAccess: user %s not found in recommendations for %s", requestedUserID, currentUserID)
 	}
 
-	// Если ни одно условие не выполнено — доступ запрещён.
-	logrus.Warnf("Access denied: user %s cannot access data for user %s", currentUserID, requestedUserID)
+	// Доступ запрещён.
+	logrus.Warnf("userHasAccess: access denied — user %s cannot access data for user %s", currentUserID, requestedUserID)
 	return false, nil
 }
 
@@ -82,8 +169,11 @@ func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
 // Если текущий пользователь не имеет права на просмотр данных запрошенного профиля,
 // возвращается HTTP404.
 func GetUser(w http.ResponseWriter, r *http.Request) {
+	logrus.Error("TRIGGERED GetUser")
 	vars := mux.Vars(r)
+	//requestedID := "84a7951b-fbd4-4ef0-b69f-d23bbe16b7bb" //works!
 	requestedID := vars["id"]
+	logrus.Infof("!!!!!1Requested user ID: %s", requestedID)
 
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -111,13 +201,14 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !allowed {
-		http.Error(w, "User not found", http.StatusNotFound)
+		logrus.Errorf("NOT ALLOWERD TO SEE USER %s: %v", requestedUserID, err)
+		http.Error(w, "User not found", http.StatusForbidden)
 		return
 	}
 
 	var user models.User
 	if err := db.Preload("Profile").First(&user, "id = ?", requestedUserID).Error; err != nil {
-		logrus.Errorf("GetUser: user %s not found: %v", requestedUserID, err)
+		logrus.Errorf("!!!!GetUser: user %s not found: %v", requestedUserID, err)
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
@@ -164,8 +255,12 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	// if !allowed {
+	// 	http.Error(w, "Profile not found", http.StatusNotFound)
+	// 	return
+	// }
 	if !allowed {
-		http.Error(w, "Profile not found", http.StatusNotFound)
+		http.Error(w, "", http.StatusNoContent)
 		return
 	}
 
@@ -215,8 +310,12 @@ func GetUserBio(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	// if !allowed {
+	// 	http.Error(w, "Bio not found", http.StatusNotFound)
+	// 	return
+	// }
 	if !allowed {
-		http.Error(w, "Bio not found", http.StatusNotFound)
+		http.Error(w, "", http.StatusNoContent)
 		return
 	}
 

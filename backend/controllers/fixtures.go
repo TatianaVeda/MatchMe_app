@@ -63,6 +63,74 @@ func ResetFixtures(w http.ResponseWriter, r *http.Request) {
 		"message": "База данных сброшена, администратор сохранён",
 	})
 }
+
+// func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
+// 	numUsers := 100
+// 	if param := r.URL.Query().Get("num"); param != "" {
+// 		if n, err := strconv.Atoi(param); err == nil && n > 0 {
+// 			numUsers = n
+// 		} else {
+// 			logrus.Warnf("GenerateFixtures: неверное значение параметра num (%s), используется %d", param, numUsers)
+// 		}
+// 	}
+// 	rand.Seed(time.Now().UnixNano())
+// 	for i := 1; i <= numUsers; i++ {
+// 		email := fmt.Sprintf("user%d@example.com", i)
+// 		password := "password123"
+// 		user, err := models.CreateUser(fixturesDB, email, password)
+// 		if err != nil {
+// 			logrus.Warnf("GenerateFixtures: ошибка создания пользователя %s: %v", email, err)
+// 			continue
+// 		}
+// 		latitude, longitude, city := randomLocationWithCity()
+// 		profile := models.Profile{
+// 			UserID:    user.ID,
+// 			FirstName: randomFirstName(),
+// 			LastName:  randomLastName(),
+// 			About:     "Фиктивный пользователь для тестирования.",
+// 			PhotoURL:  "/static/images/default.png",
+// 			Online:    false,
+// 			Latitude:  latitude,
+// 			Longitude: longitude,
+// 			City:      city,
+// 		}
+// 		bio := models.Bio{
+// 			UserID:    user.ID,
+// 			Interests: randomInterests(),
+// 			Hobbies:   randomHobbies(),
+// 			Music:     randomMusic(),
+// 			Food:      randomFood(),
+// 			Travel:    randomTravel(),
+// 		}
+// 		if err := fixturesDB.Save(&profile).Error; err != nil {
+// 			logrus.Warnf("GenerateFixtures: ошибка сохранения профиля %s: %v", email, err)
+// 		}
+// 		if err := fixturesDB.Exec(`
+// 		UPDATE profiles
+// 		SET earth_loc = ll_to_earth(?, ?)
+// 		WHERE user_id = ?`,
+// 			profile.Latitude,
+// 			profile.Longitude,
+// 			profile.UserID,
+// 		).Error; err != nil {
+// 			logrus.Warnf("Ошибка обновления earth_loc для %s: %v", email, err)
+// 		}
+// 		logrus.Debugf("BIO Creating bio: %+v", bio)
+// 		// if err := fixturesDB.Create(&bio).Error; err != nil {
+// 		// 	logrus.Warnf("GenerateFixtures: ошибка сохранения биографии %s: %v", email, err)
+// 		// }
+// 		if err := fixturesDB.Create(&bio).Error; err != nil {
+// 			logrus.Warnf("GenerateFixtures: ошибка сохранения биографии %s: %v (bio: %+v)", email, err, bio)
+// 		}
+// 		logrus.Debugf("GenerateFixtures: создан пользователь %s", email)
+// 	}
+// 	logrus.Infof("GenerateFixtures: создано %d фейковых пользователей", numUsers)
+// 	w.Header().Set("Content-Type", "application/json")
+// 	json.NewEncoder(w).Encode(map[string]string{
+// 		"message": fmt.Sprintf("Сгенерировано %d фейковых пользователей", numUsers),
+// 	})
+// }
+
 func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 	numUsers := 100
 	if param := r.URL.Query().Get("num"); param != "" {
@@ -81,6 +149,7 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 			logrus.Warnf("GenerateFixtures: ошибка создания пользователя %s: %v", email, err)
 			continue
 		}
+
 		latitude, longitude, city := randomLocationWithCity()
 		profile := models.Profile{
 			UserID:    user.ID,
@@ -93,30 +162,35 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 			Longitude: longitude,
 			City:      city,
 		}
-		bio := models.Bio{
-			UserID:    user.ID,
-			Interests: randomInterests(),
-			Hobbies:   randomHobbies(),
-			Music:     randomMusic(),
-			Food:      randomFood(),
-			Travel:    randomTravel(),
-		}
 		if err := fixturesDB.Save(&profile).Error; err != nil {
 			logrus.Warnf("GenerateFixtures: ошибка сохранения профиля %s: %v", email, err)
 		}
+
+		// Update bio for generated user
+		bioUpdates := map[string]interface{}{
+			"interests": randomInterests(),
+			"hobbies":   randomHobbies(),
+			"music":     randomMusic(),
+			"food":      randomFood(),
+			"travel":    randomTravel(),
+		}
+		if err := fixturesDB.Model(&models.Bio{}).
+			Where("user_id = ?", user.ID).
+			Updates(bioUpdates).Error; err != nil {
+			logrus.Warnf("GenerateFixtures: ошибка обновления биографии %s: %v", email, err)
+		}
+
 		if err := fixturesDB.Exec(`
-		UPDATE profiles
-		SET earth_loc = ll_to_earth(?, ?)
-		WHERE user_id = ?`,
+			UPDATE profiles
+			SET earth_loc = ll_to_earth(?, ?)
+			WHERE user_id = ?`,
 			profile.Latitude,
 			profile.Longitude,
 			profile.UserID,
 		).Error; err != nil {
 			logrus.Warnf("Ошибка обновления earth_loc для %s: %v", email, err)
 		}
-		if err := fixturesDB.Save(&bio).Error; err != nil {
-			logrus.Warnf("GenerateFixtures: ошибка сохранения биографии %s: %v", email, err)
-		}
+
 		logrus.Debugf("GenerateFixtures: создан пользователь %s", email)
 	}
 	logrus.Infof("GenerateFixtures: создано %d фейковых пользователей", numUsers)
@@ -125,6 +199,7 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 		"message": fmt.Sprintf("Сгенерировано %d фейковых пользователей", numUsers),
 	})
 }
+
 func randomFirstName() string {
 	arr := []string{"Анна", "Иван", "Мария", "Алексей", "Ольга", "Дмитрий", "Елена", "Сергей", "Наталья", "Михаил"}
 	return arr[rand.Intn(len(arr))]

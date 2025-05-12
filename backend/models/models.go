@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// User представляет таблицу пользователей.
 type User struct {
 	ID           uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
 	Email        string    `gorm:"unique;not null" json:"-"`
@@ -22,8 +21,6 @@ type User struct {
 	Bio        Bio        `gorm:"constraint:OnDelete:CASCADE;" json:"bio"`
 	Preference Preference `gorm:"constraint:OnDelete:CASCADE;" json:"preference"`
 }
-
-// Profile представляет информацию "Обо мне" и связанные данные профиля.
 type Profile struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
@@ -35,13 +32,11 @@ type Profile struct {
 	City      string    `gorm:"size:100" json:"city"`
 	Latitude  float64   `json:"latitude"`
 	Longitude float64   `json:"longitude"`
-	EarthLoc  []byte    `gorm:"type:cube;->" json:"-"` // Новое поле только для чтения
+	EarthLoc  []byte    `gorm:"type:cube;->" json:"-"`
 }
-
-// Bio хранит дополнительные биографические данные.
 type Bio struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
-	UserID     uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
+	UserID     uuid.UUID `gorm:"type:uuid;not null;uniqueIndex" json:"userId"`
 	Interests  string    `gorm:"type:varchar(50)" json:"interests"`
 	Hobbies    string    `gorm:"type:varchar(50)" json:"hobbies"`
 	Music      string    `gorm:"type:varchar(50)" json:"music"`
@@ -49,8 +44,6 @@ type Bio struct {
 	Travel     string    `gorm:"type:varchar(50)" json:"travel"`
 	LookingFor string    `gorm:"type:text" json:"lookingFor"`
 }
-
-// Preference хранит настройки поиска пользователя.
 type Preference struct {
 	ID                uint      `gorm:"primaryKey" json:"id"`
 	UserID            uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
@@ -61,8 +54,6 @@ type Preference struct {
 	PriorityFood      bool      `gorm:"default:false" json:"priorityFood"`
 	PriorityTravel    bool      `gorm:"default:false" json:"priorityTravel"`
 }
-
-// Recommendation хранит информацию о рекомендациях.
 type Recommendation struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
@@ -70,8 +61,6 @@ type Recommendation struct {
 	Status    string    `gorm:"size:50;default:'pending'" json:"status"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }
-
-// Connection описывает связь между пользователями.
 type Connection struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
 	UserID       uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
@@ -79,8 +68,6 @@ type Connection struct {
 	Status       string    `gorm:"size:50;not null" json:"status"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }
-
-// Chat представляет чат между двумя пользователями.
 type Chat struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	User1ID   uuid.UUID `gorm:"type:uuid;not null;index" json:"user1Id"`
@@ -88,8 +75,6 @@ type Chat struct {
 	Messages  []Message `gorm:"foreignKey:ChatID;constraint:OnDelete:CASCADE;" json:"messages"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }
-
-// Message представляет отдельное сообщение в чате.
 type Message struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	ChatID    uint      `gorm:"not null;index" json:"chatId"`
@@ -99,18 +84,14 @@ type Message struct {
 	Read      bool      `gorm:"default:false" json:"read"`
 	Sender    User      `json:"sender" gorm:"foreignKey:SenderID"`
 }
-
-// FakeUser используется для фиктивных пользователей.
 type FakeUser struct {
 	ID     uint      `gorm:"primaryKey" json:"id"`
 	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
 }
 
-// InitDB инициализирует подключение к базе данных PostgreSQL с retry-механикой.
 func InitDB(databaseURL string) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
-
 	for i := 1; i <= 10; i++ {
 		db, err = gorm.Open(postgres.Open(databaseURL), &gorm.Config{})
 		if err == nil {
@@ -131,8 +112,6 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("InitDB: не удалось подключиться после нескольких попыток: %w", err)
 	}
-
-	// Создаем расширение uuid-ossp и earthdistance/cube
 	if execErr := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`).Error; execErr != nil {
 		logrus.Warnf("InitDB: не удалось создать extension uuid-ossp: %v", execErr)
 	}
@@ -142,14 +121,10 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 	if execErr := db.Exec(`CREATE EXTENSION IF NOT EXISTS earthdistance`).Error; execErr != nil {
 		logrus.Warnf("InitDB: не удалось создать extension earthdistance: %v", execErr)
 	}
-
-	// Выполняем миграцию всех моделей
 	if migrateErr := Migrate(db); migrateErr != nil {
 		logrus.Errorf("InitDB: ошибка миграции: %v", migrateErr)
 		return nil, migrateErr
 	}
-
-	// Дополнительно: создаём поле earth_loc и индекс, если их нет
 	if err := db.Exec(`
 		ALTER TABLE profiles
 		ADD COLUMN IF NOT EXISTS earth_loc cube
@@ -163,12 +138,9 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 	`).Error; err != nil {
 		logrus.Warnf("InitDB: не удалось создать индекс idx_profiles_earth_loc: %v", err)
 	}
-
 	logrus.Info("InitDB: база данных успешно инициализирована")
 	return db, nil
 }
-
-// Migrate выполняет автоматическую миграцию для всех моделей.
 func Migrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&User{},

@@ -16,6 +16,7 @@ import Signup from './pages/Auth/Signup';
 import MyProfile from './pages/Profile/MyProfile';
 import EditProfile from './pages/Profile/EditProfile';
 import UserProfile from './pages/Profile/UserProfile';
+//import UserProfilePage from './pages/Profile/ConnectedUserProfile';
 import AdminPanel from './pages/Profile/AdminPanel';
 import Recommendations from './pages/Recommendations';
 import Connections from './pages/Connections';
@@ -64,6 +65,8 @@ function AppRoutes() {
       <Route path="/chat/:chatId" element={<PrivateRoute><ChatWindow /></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
       <Route path="/friends" element={<PrivateRoute><Friends /></PrivateRoute>} />
+      {/* <Route path="/users/:id" element={<UserProfilePage />} />
+      <Route path="/users/:id" element={<PrivateRoute><UserProfilePage /></PrivateRoute>} /> */}
       <Route
         path="/admin"
         element={

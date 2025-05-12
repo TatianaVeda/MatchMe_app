@@ -120,7 +120,7 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?))",
 			currentUserID, targetUserID, targetUserID, currentUserID).
 		First(&duplicate).Error; err == nil {
-		logrus.Warnf("PostConnection: дублирующий запрос между %s и %s", currentUserID, targetUserID)
+		logrus.Warnf("PostConnection: дублирующий запрос между %s и %s", currentUserID, targetUserID) //!!!!!!!!!!!!!!Gi
 		http.Error(w, "Connection request already exists or connection already established", http.StatusBadRequest)
 		return
 	}

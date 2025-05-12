@@ -5,18 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import UserCard from '../components/UserCard';
 import { getPendingConnections, updateConnectionRequest, getConnections, deleteConnection } from '../api/connections';
 import { getUser } from '../api/user';
-
 const Connections = () => {
   const [pending, setPending] = useState([]);
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  // Загрузка входящих и принятых подключений
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // Входящие (pending)
       const pendingIds = await getPendingConnections();
       const pendingDetails = await Promise.all(
         pendingIds.map(async (id) => {
@@ -30,8 +26,6 @@ const Connections = () => {
         })
       );
       setPending(pendingDetails.filter((u) => u !== null));
-
-      // Принятые
       const acceptedIds = await getConnections();
       const acceptedDetails = await Promise.all(
         acceptedIds.map(async (id) => {
@@ -51,11 +45,9 @@ const Connections = () => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchAll();
   }, []);
-
   const handleAccept = async (id) => {
     try {
       await updateConnectionRequest(id, 'accept');
@@ -67,7 +59,6 @@ const Connections = () => {
       toast.error('Ошибка при принятии запроса');
     }
   };
-
   const handleDeclinePending = async (id) => {
     try {
       await updateConnectionRequest(id, 'decline');
@@ -77,7 +68,6 @@ const Connections = () => {
       toast.error('Ошибка при отклонении запроса');
     }
   };
-
   const handleDisconnect = async (id) => {
     try {
       await deleteConnection(id);
@@ -87,7 +77,6 @@ const Connections = () => {
       toast.error('Ошибка при отключении');
     }
   };
-
   if (loading) {
     return (
       <Container sx={{ textAlign: 'center', mt: 4 }}>
@@ -95,7 +84,6 @@ const Connections = () => {
       </Container>
     );
   }
-
   return (
     <Container sx={{ mt: 4 }}>
       {/* Входящие запросы */}
@@ -113,7 +101,6 @@ const Connections = () => {
                 showChat={false}
                 onClick={() => navigate(`/users/${user.id}`)}
               />
-              {/* Кнопки Принять/Отклонить */}
               <Grid container spacing={1} justifyContent="center" sx={{ mt: 1 }}>
                 <Grid item>
                   <Button size="small" variant="contained" onClick={() => handleAccept(user.id)}>
@@ -130,8 +117,6 @@ const Connections = () => {
           ))}
         </Grid>
       )}
-
-      {/* Принятые подключения */}
       <Typography variant="h4" gutterBottom>
         Подключения
       </Typography>
@@ -147,7 +132,6 @@ const Connections = () => {
                 onChatClick={() => navigate(`/chat/${conn.id}`)}
                 onClick={() => navigate(`/users/${conn.id}`)}
               />
-              {/* Кнопка Отключить */}
               <Grid container justifyContent="center" sx={{ mt: 1 }}>
                 <Button
                   variant="outlined"
@@ -164,5 +148,4 @@ const Connections = () => {
     </Container>
   );
 };
-
 export default Connections;

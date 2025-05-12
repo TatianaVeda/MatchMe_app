@@ -2,9 +2,21 @@
 import api from './index';
 
 // Получить базовые данные пользователя по id
+// export const getUser = async (userId) => {
+//   const response = await api.get(`/users/${userId}`);
+//   return response.data;
+// };
+
 export const getUser = async (userId) => {
-  const response = await api.get(`/users/${userId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    if (error.response && (error.response.status === 404 || error.response.status === 403)) {
+      return null;
+    }
+    throw new Error("Failed to fetch user");
+  }
 };
 
 // Получить сокращённые данные аутентифицированного пользователя (/me)

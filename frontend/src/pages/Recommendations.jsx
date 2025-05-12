@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { getRecommendations, declineRecommendation } from '../api/recommendations';
 import { getUser, getUserBio } from '../api/user';
 import { sendConnectionRequest } from '../api/connections';
+import { getConnections, getPendingConnections } from '../api/connections';
 const cityOptions = [
   { name: 'Helsinki', lat: 60.1699, lon: 24.9384 },
   { name: 'Espoo', lat: 60.2055, lon: 24.6559 },
@@ -28,6 +29,8 @@ const Recommendations = () => {
   const navigate = useNavigate();
   const [mode, setMode] = useState('affinity');
   const [useProfileFilters, setUseProfileFilters] = useState(true);
+  const [connections, setConnections] = useState([]);
+  const [pending, setPending]       = useState([]);
   const [form, setForm] = useState({
     city: cityOptions[0],
     interests: [], priorityInterests: false,
@@ -40,6 +43,23 @@ const Recommendations = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [decliningId, setDecliningId] = useState(null);
+ // const [sentRequests, setSentRequests] = useState(new Set());
+
+  useEffect(() => {
+    const fetchLinks = async () => {
+      try {
+        const [conns, pend] = await Promise.all([
+          getConnections(),
+          getPendingConnections(),
+        ]);
+        setConnections(conns);
+        setPending(pend);
+      } catch {
+        toast.error('Не удалось загрузить связи');
+      }
+    };
+    fetchLinks();
+  }, []);
   const handleSearch = async e => {
     e.preventDefault();
     setLoading(true);
@@ -76,7 +96,12 @@ const Recommendations = () => {
           }
         })
       );
-      setRecommendations(recData.filter(r => r));
+      setRecommendations(recData
+        .filter(r => r)
+        .filter(r =>
+          !connections.includes(r.id) &&
+          !pending.includes(r.id) 
+        ));
     } catch (err) {
       const msg = err.response?.data || 'Ошибка загрузки рекомендаций';
       toast.error(msg);
@@ -108,6 +133,17 @@ const Recommendations = () => {
       toast.error('Ошибка при запросе');
     }
   };
+  // const handleConnect = async id => {
+  //   try {
+  //     await sendConnectionRequest(id);
+  //     toast.success('Запрос отправлен');
+  //     setSentRequests(prev => new Set(prev).add(id)); // track sent ID
+  //     setRecommendations(prev => prev.filter(r => r.id !== id)); // optionally remove
+  //   } catch {
+  //     toast.error('Ошибка при запросе');
+  //   }
+  // };
+  
   const switchMode = (newMode) => {
     if (newMode !== mode) {
       setMode(newMode);
@@ -254,6 +290,15 @@ const Recommendations = () => {
                   <Button size="small" variant="contained" onClick={() => handleConnect(rec.id)}>
                     Подключиться
                   </Button>
+                  {/* <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => handleConnect(rec.id)}
+                    disabled={sentRequests.has(rec.id)}
+                  >
+                    {sentRequests.has(rec.id) ? 'Запрос отправлен' : 'Подключиться'}
+                  </Button> */}
+
                   <Button
                     size="small"
                     variant="outlined"
