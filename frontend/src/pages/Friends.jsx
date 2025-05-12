@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import UserCard from '../components/UserCard';
 import { getConnections, getPendingConnections, updateConnectionRequest, deleteConnection } from '../api/connections';
 import { getUser } from '../api/user';
+import { getChats } from '../api/chat';
 
 const Friends = () => {
   const navigate = useNavigate();
@@ -117,9 +118,7 @@ const Friends = () => {
               <Grid key={u.id} item xs={12} sm={6} md={4}>
                 <UserCard
                   user={{ ...u, connected: true }}
-                  showChat={true}
                   showDisconnect={true}
-                  onChatClick={() => navigate(`/chat/${u.id}`)}
                   onClick={() => navigate(`/users/${u.id}`)}
                   onDisconnect={() => handleDisconnectClick(u)}
                 />

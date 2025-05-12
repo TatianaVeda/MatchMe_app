@@ -23,17 +23,10 @@ func InitUserController(database *gorm.DB) {
 	logrus.Info("User controller initialized")
 }
 
-// userHasAccess проверяет, имеет ли текущий пользователь (currentUserID)
-// право видеть данные пользователя с идентификатором requestedUserID.
-// Доступ разрешается, если:
-// - запрошен собственный профиль,
-// - существует установленное соединение (status = "accepted"),
-// - существует ожидающий запрос (status = "pending"),
-// - запрошенный пользователь входит в список рекомендаций текущего пользователя.
-func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
-	// Если запрошен собственный профиль.
+// userHasAccess проверяет, имеет ли текущий пользователь доступ к профилю requestedUserID
+func userHasAccess(currentUserID, requestedUserID uuid.UUID, db *gorm.DB) (bool, error) {
+	// Если это свой профиль
 	if currentUserID == requestedUserID {
-		logrus.Debugf("User %s accessing own profile", currentUserID)
 		return true, nil
 	}
 
@@ -44,7 +37,6 @@ func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
 			currentUserID, requestedUserID, requestedUserID, currentUserID, "accepted").
 		First(&conn).Error
 	if err == nil {
-		logrus.Debugf("Connection exists between %s and %s (accepted)", currentUserID, requestedUserID)
 		return true, nil
 	}
 
@@ -64,7 +56,6 @@ func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
 	if err == nil {
 		for _, id := range recIDs {
 			if id == requestedUserID {
-				logrus.Debugf("User %s is in recommendations for %s", requestedUserID, currentUserID)
 				return true, nil
 			}
 		}
@@ -103,8 +94,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid requested user ID", http.StatusBadRequest)
 		return
 	}
-
-	allowed, err := userHasAccess(currentUserID, requestedUserID)
+	//allowed, err := userHasAccess(currentUserID, requestedUserID)
+	allowed, err := userHasAccess(currentUserID, requestedUserID, db)
 	if err != nil {
 		logrus.Errorf("GetUser: error checking access for user %s: %v", requestedUserID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -158,7 +149,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allowed, err := userHasAccess(currentUserID, requestedUserID)
+	allowed, err := userHasAccess(currentUserID, requestedUserID, db)
 	if err != nil {
 		logrus.Errorf("GetUserProfile: error checking access: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -178,7 +169,11 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	logrus.Infof("Profile of user %s retrieved by user %s", requestedUserID, currentUserID)
 	response := map[string]interface{}{
-		"about": profile.About,
+		"about":     profile.About,
+		"firstName": profile.FirstName,
+		"lastName":  profile.LastName,
+		"photoUrl":  profile.PhotoURL,
+		"city":      profile.City,
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -209,7 +204,7 @@ func GetUserBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allowed, err := userHasAccess(currentUserID, requestedUserID)
+	allowed, err := userHasAccess(currentUserID, requestedUserID, db)
 	if err != nil {
 		logrus.Errorf("GetUserBio: error checking access: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -229,9 +224,8 @@ func GetUserBio(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.First(&bio, "user_id = ?", requestedUserID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logrus.Warnf("GetUserBio: bio for user %s not found, returning empty", requestedUserID)
-			empty := models.Bio{UserID: requestedUserID}
-			json.NewEncoder(w).Encode(empty)
+			logrus.Warnf("GetUserBio: bio for user %s not found", requestedUserID)
+			http.Error(w, "Bio not found", http.StatusNotFound)
 			return
 		}
 		logrus.Errorf("GetUserBio: failed to get bio for user %s: %v", requestedUserID, err)
@@ -350,12 +344,11 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	// }
 	if err := db.First(&bio, "user_id = ?", userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logrus.Warnf("GetUserBio: bio for user %s not found, returning empty", userID)
-			empty := models.Bio{UserID: userID}
-			json.NewEncoder(w).Encode(empty)
+			logrus.Warnf("GetCurrentUserBio: bio for user %s not found", userID)
+			http.Error(w, "Bio not found", http.StatusNotFound)
 			return
 		}
-		logrus.Errorf("GetUserBio: failed to get bio for user %s: %v", userID, err)
+		logrus.Errorf("GetCurrentUserBio: failed to get bio for user %s: %v", userID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -377,4 +370,9 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 
 	logrus.Infof("Bio for current user %s retrieved", userID)
 	json.NewEncoder(w).Encode(bio)
+}
+
+// Геттер для тестов и других пакетов
+func GetDB() *gorm.DB {
+	return db
 }

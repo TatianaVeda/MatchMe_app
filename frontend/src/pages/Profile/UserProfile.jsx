@@ -7,6 +7,7 @@ import {
 import { getUser, getUserProfile, getUserBio } from '../../api/user';
 import { getConnections, deleteConnection } from '../../api/connections';
 import { toast } from 'react-toastify';
+import { getChats } from '../../api/chat';
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -41,9 +42,16 @@ const UserProfile = () => {
     load();
   }, [id, navigate]);
 
-  const handleChat = () => {
-    // предположим, что чат уже создан при соединении
-    navigate(`/chat/${id}`);
+  const handleChat = async () => {
+    // Получаем список чатов
+    const chats = await getChats();
+    // ищем по otherUserId, а для перехода используем chatId!
+    const chat = chats.find(c => String(c.otherUserId) === String(id));
+    if (chat && chat.chatId) {
+      navigate(`/chat/${chat.chatId}`);
+    } else {
+      toast.error('Чат с этим пользователем не найден');
+    }
   };
 
   const handleDisconnect = async () => {

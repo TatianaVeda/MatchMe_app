@@ -3,7 +3,7 @@ import { AppBar, Toolbar, Typography, IconButton, Button, Drawer, List, ListItem
   ListItemText, Box
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, NavLink } from 'react-router-dom';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import axios from '../api/index';
 import { toast } from 'react-toastify';
@@ -82,7 +82,7 @@ const drawer = (
         <>
           {navItems.map(item => (
             <ListItem key={item.to} disablePadding>
-              <ListItemButton component={Link} to={item.to}>
+              <ListItemButton component={NavLink} to={item.to}>
                 <ListItemText primary={item.label} />
               </ListItemButton>
             </ListItem>
@@ -166,7 +166,21 @@ const drawer = (
   ) : (
     <>
       {navItems.map(item => (
-        <Button key={item.to} color="inherit" component={Link} to={item.to}>
+        <Button
+          key={item.to}
+          component={NavLink}
+          to={item.to}
+          sx={({ isActive }) => ({
+            color: 'inherit',
+            borderBottom: isActive ? '3px solid #fff' : 'none',
+            fontWeight: isActive ? 'bold' : 'normal',
+            borderRadius: 0,
+            mx: 1,
+            fontSize: '1rem',
+            background: 'none',
+            textTransform: 'none',
+          })}
+        >
           {item.label}
         </Button>
       ))}

@@ -24,7 +24,7 @@ const UserCard = ({
       <CardMedia
         component="img"
         height="140"
-        image={user.avatar || '/default-avatar.png'}
+        image={user.photoUrl || '/default-avatar.png'}
         alt={`${user.firstName} ${user.lastName}`}
       />
       <CardContent sx={{ flexGrow: 1 }}>

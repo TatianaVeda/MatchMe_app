@@ -10,6 +10,7 @@
 
 #/frontend
 /tests
+/backend/tests
 
 # production
 /build

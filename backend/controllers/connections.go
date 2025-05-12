@@ -88,6 +88,18 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Cannot send connection request to yourself", http.StatusBadRequest)
 		return
 	}
+	// Новая проверка: существует ли пользователь с таким id
+	var targetUser models.User
+	if err := connectionsDB.First(&targetUser, "id = ?", targetUserID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			logrus.Warnf("PostConnection: пользователь %s не найден", targetUserID)
+			http.Error(w, "Target user not found", http.StatusNotFound)
+			return
+		}
+		logrus.Errorf("PostConnection: ошибка поиска пользователя %s: %v", targetUserID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	/*
 		// Проверка: существует ли уже ожидающий запрос от целевого пользователя к текущему.
 		var existing models.Connection
@@ -291,40 +303,4 @@ func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(pendingIDs)
-}
-
-// userHasAccess проверяет, имеет ли текущий пользователь доступ к профилю targetUserID
-func userHasAccess(currentUserID, targetUserID uuid.UUID, db *gorm.DB) bool {
-	// Если это свой профиль
-	if currentUserID == targetUserID {
-		return true
-	}
-
-	// Проверяем, есть ли установленное соединение
-	var connection models.Connection
-	if err := db.Where(
-		"((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?)) AND status = ?",
-		currentUserID, targetUserID, targetUserID, currentUserID, "accepted",
-	).First(&connection).Error; err == nil {
-		return true
-	}
-
-	// Проверяем, есть ли ожидающий запрос
-	if err := db.Where(
-		"((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?)) AND status = ?",
-		currentUserID, targetUserID, targetUserID, currentUserID, "pending",
-	).First(&connection).Error; err == nil {
-		return true
-	}
-
-	// Проверяем, входит ли пользователь в рекомендации
-	var recommendation models.Recommendation
-	if err := db.Where(
-		"user_id = ? AND rec_user_id = ? AND status != ?",
-		currentUserID, targetUserID, "declined",
-	).First(&recommendation).Error; err == nil {
-		return true
-	}
-
-	return false
 }

@@ -29,7 +29,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 
 	router.HandleFunc("/signup", controllers.Signup).Methods(http.MethodPost)
 	//router.HandleFunc("/users/{id}", controllers.GetUser).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
+	//router.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
 	//router.HandleFunc("/users/{id}/bio", controllers.GetUserBio).Methods(http.MethodGet)
 	// Эндпоинт для обновления токенов не требует аутентификации (он принимает refresh токен)
 	router.HandleFunc("/refresh", controllers.RefreshToken).Methods(http.MethodPost)

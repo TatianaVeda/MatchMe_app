@@ -9,9 +9,15 @@ import { Box, Typography } from '@mui/material';
 //   });
 
 const ChatBubble = ({ message, isOwn = false }) => {
-  const time = new Date(message.timestamp).toLocaleTimeString([], {
+  const dateObj = new Date(message.timestamp);
+  const time = dateObj.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
+  });
+  const date = dateObj.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
   });
 
   return (
@@ -52,7 +58,7 @@ const ChatBubble = ({ message, isOwn = false }) => {
             component="div"
             sx={{ textAlign: 'right', mt: 0.5 }}
           >
-            {time} {isOwn && (message.read ? '✓✓' : '✓')}
+            {date} {time} {isOwn && (message.read ? '✓✓' : '✓')}
           </Typography>
         </Box>
       </Box>
