@@ -44,24 +44,55 @@ const Recommendations = () => {
   const [loading, setLoading] = useState(false);
   const [decliningId, setDecliningId] = useState(null);
  // const [sentRequests, setSentRequests] = useState(new Set());
+ // 1) Список userId, которым мы уже отправили запрос
+ const [sentRequests, setSentRequests] = useState(() => {
+  const saved = localStorage.getItem('sentRequests');
+  return saved ? JSON.parse(saved) : [];
+});
 
+// 2) Сохраняем его каждый раз при изменении
+useEffect(() => {
+  localStorage.setItem('sentRequests', JSON.stringify(sentRequests));
+}, [sentRequests]);
+
+  // useEffect(() => {
+  //   const fetchLinks = async () => {
+  //     try {
+  //       const [conns, pend] = await Promise.all([
+  //         getConnections(),
+  //         getPendingConnections(),
+  //       ]);
+  //       setConnections(conns);
+  //       setPending(pend);
+  //     } catch {
+  //       toast.error('Не удалось загрузить связи');
+  //     }
+  //   };
+  //   fetchLinks();
+  // }, []);
+// 1) Вынесем функцию загрузки связей в константу:
+const fetchLinks = async () => {
+    try {
+      const [conns, pend] = await Promise.all([
+        getConnections(),
+        getPendingConnections(),
+      ]);
+      setConnections(conns);
+      setPending(pend);
+    } catch {
+      toast.error('Не удалось загрузить связи');
+    }
+  };
+  
+  // 2) При монтировании — один раз:
   useEffect(() => {
-    const fetchLinks = async () => {
-      try {
-        const [conns, pend] = await Promise.all([
-          getConnections(),
-          getPendingConnections(),
-        ]);
-        setConnections(conns);
-        setPending(pend);
-      } catch {
-        toast.error('Не удалось загрузить связи');
-      }
-    };
     fetchLinks();
   }, []);
+
+
   const handleSearch = async e => {
     e.preventDefault();
+    await fetchLinks();
     setLoading(true);
     const params = { mode, withDistance: true, useProfile: useProfileFilters };
     if (!useProfileFilters) {
@@ -128,7 +159,7 @@ const Recommendations = () => {
     try {
       await sendConnectionRequest(id);
       toast.success('Запрос отправлен');
-      setRecommendations(prev => prev.filter(r => r.id !== id));
+      setSentRequests(prev => [...prev, id]);
     } catch {
       toast.error('Ошибка при запросе');
     }
@@ -287,17 +318,24 @@ const Recommendations = () => {
                   </Typography>
                 </CardContent>
                 <CardActions>
-                  <Button size="small" variant="contained" onClick={() => handleConnect(rec.id)}>
-                    Подключиться
-                  </Button>
-                  {/* <Button
-                    size="small"
-                    variant="contained"
-                    onClick={() => handleConnect(rec.id)}
-                    disabled={sentRequests.has(rec.id)}
-                  >
-                    {sentRequests.has(rec.id) ? 'Запрос отправлен' : 'Подключиться'}
-                  </Button> */}
+                 {/* определяем, отправлен ли уже запрос этому rec.id */}
+{(() => {
+  const isSent = sentRequests.includes(rec.id);
+  return (
+    <Button
+      size="small"
+      variant="contained"
+      onClick={() => handleConnect(rec.id)}
+      disabled={isSent}
+      sx={ isSent
+        ? { backgroundColor: 'grey.400', cursor: 'default' }
+        : {}
+      }
+    >
+      {isSent ? 'Запрос отправлен' : 'Подключиться'}
+    </Button>
+  );
+})()}
 
                   <Button
                     size="small"

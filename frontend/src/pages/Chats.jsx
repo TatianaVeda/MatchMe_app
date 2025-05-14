@@ -19,35 +19,7 @@ const Chats = () => {
   const { setChats } = useChatDispatch();
   const [loading, setLoading] = useState(true);
 
-  // useEffect(() => {
-  //   const loadChats = async () => {
-  //     try {
-  //       const { data } = await api.get('/chats');
-  //       setChats(data);
-  //     } catch {
-  //       toast.error('Ошибка загрузки чатов');
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   loadChats();
-  // }, []); // <-- пустой массив зависимостей 🡲 запускается только при маунте
-
-  // useEffect(() => {
-  //   const loadChats = async () => {
-  //     try {
-  //       const { data } = await api.get('/chats');
-  //       console.log('API response data:', data); // Log the fetched chat data
-  //       setChats(data);
-  //     } catch {
-  //       toast.error('Ошибка загрузки чатов');
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   loadChats();
-  // }, []);
-  
+ //works, no pagination 
   useEffect(() => {
     const loadChats = async () => {
       try {
@@ -68,7 +40,7 @@ const Chats = () => {
       }
     };
     loadChats();
-  }, [setChats]);
+  }, [setChats]);  
 
   if (loading) {
     return (

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Box, Typography, Avatar, Button, CircularProgress } from '@mui/material';
 import { getUser, getUserProfile, getUserBio } from '../../api/user';
-import { getConnections } from '../../api/connections';
+import { getConnections, deleteConnection  } from '../../api/connections';
 import { toast } from 'react-toastify';
 const UserProfile = () => {
   const { id } = useParams();
@@ -11,6 +11,18 @@ const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [bio, setBio] = useState(null);
   const [connectedIds, setConnectedIds] = useState([]);
+  const handleRemoveFriend = async (id) => {
+    try {
+      await deleteConnection(id);
+      toast.success('Пользователь удалён из друзей');
+      // обновляем список connectedIds в локальном состоянии
+      setConnectedIds(prev => prev.filter(uid => uid !== id));
+    } catch {
+      toast.error('Не удалось удалить друга');
+    }
+  };
+  
+
   const [loading, setLoading] = useState(true);
   // useEffect(() => {
   //   const load = async () => {
@@ -163,7 +175,7 @@ const UserProfile = () => {
         ) : (
           <Typography>Биография недоступна</Typography>
         )}
-      {connectedIds.includes(id) && (
+      {/* {connectedIds.includes(id) && (
         <Button
           variant="contained"
           color="primary"
@@ -172,7 +184,27 @@ const UserProfile = () => {
         >
           Перейти в чат
         </Button>
-      )}
+      )} */}
+      {connectedIds.includes(id) && (
+  <>
+    <Button
+      variant="contained"
+      color="primary"
+      sx={{ mt: 3, mr: 1 }}
+      onClick={handleChat}
+    >
+      Перейти в чат
+    </Button>
+    <Button
+      variant="outlined"
+      color="error"
+      sx={{ mt: 3 }}
+      onClick={() => handleRemoveFriend(id)}
+    >
+      Удалить из друзей
+    </Button>
+  </>
+)}
     </Container>
   );
 };

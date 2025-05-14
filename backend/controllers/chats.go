@@ -465,3 +465,32 @@ func PostMessage(w http.ResponseWriter, r *http.Request) {
 
 	//json.NewEncoder(w).Encode(newMsg)
 }
+
+func CreateOrGetChat(w http.ResponseWriter, r *http.Request) {
+	userIDStr := r.Context().Value("userID").(string)
+	userID, _ := uuid.Parse(userIDStr)
+	var req struct {
+		OtherUserID string `json:"otherUserId"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+	otherID, err := uuid.Parse(req.OtherUserID)
+	if err != nil {
+		http.Error(w, "Invalid other_user_id", http.StatusBadRequest)
+		return
+	}
+	// Попробовать найти существующий чат
+	var chat models.Chat
+	err = chatsDB.
+		Where("(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",
+			userID, otherID, otherID, userID).
+		First(&chat).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		chat = models.Chat{User1ID: userID, User2ID: otherID}
+		if err := chatsDB.Create(&chat).Error; err != nil {
+			http.Error(w, "Cannot create chat", http.StatusInternalServerError)
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]uint{"chatId": chat.ID})
+}

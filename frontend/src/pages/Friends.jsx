@@ -7,12 +7,23 @@ import { useNavigate } from 'react-router-dom';
 import UserCard from '../components/UserCard';
 import { getConnections, getPendingConnections, updateConnectionRequest, deleteConnection } from '../api/connections';
 import { getUser } from '../api/user';
+import { useChatState } from '../contexts/ChatContext';
+
 const Friends = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
   const [friends, setFriends] = useState([]);
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { chats } = useChatState();
+  const handleChatClick = (userId) => {
+    const existingChat = chats.find(c => c.otherUserID === userId);
+    if (existingChat) {
+      navigate(`/chat/${existingChat.id}`);
+    } else {
+      navigate(`/chat/new?other_user_id=${userId}`);
+    }
+  };
   const fetchFriends = async () => {
     try {
       const ids = await getConnections();
@@ -92,14 +103,35 @@ const Friends = () => {
           <Typography>У вас пока нет друзей.</Typography>
         ) : (
           <Grid container spacing={2}>
-            {friends.map(u => (
+            {/* {friends.map(u => (
               <Grid key={u.id} item xs={12} sm={6} md={4}>
                 <UserCard
                   user={{ ...u, connected: true }}
                   showChat={true}
                   onChatClick={() => navigate(`/chat/${u.id}`)}
                   onClick={() => navigate(`/users/${u.id}`)}
-                />
+                /> */}
+
+{friends.map(u => (
+    <Grid key={u.id} item xs={12} sm={6} md={4}>
+      <UserCard
+        user={{ ...u, connected: true }}
+        showChat={true}
+        // onChatClick={() => navigate(`/chat/${u.id}`)}
+        onChatClick={() => handleChatClick(u.id)}
+        onClick={() => navigate(`/users/${u.id}`)}
+      />
+      {/* новая кнопка удаления */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          color="error"
+          onClick={() => handleRemove(u.id)}
+        >
+          Удалить из друзей
+        </Button>
+      </Box>
               </Grid>
             ))}
           </Grid>
