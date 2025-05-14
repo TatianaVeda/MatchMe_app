@@ -7,10 +7,11 @@ import { useNavigate } from 'react-router-dom';
 import UserCard from '../components/UserCard';
 import { getConnections, getPendingConnections, updateConnectionRequest, deleteConnection } from '../api/connections';
 import { getUser } from '../api/user';
-import { useChatState } from '../contexts/ChatContext';
+import { useChatState, useChatDispatch  } from '../contexts/ChatContext';
 
 const Friends = () => {
   const navigate = useNavigate();
+  const { setChats } = useChatDispatch();
   const [tab, setTab] = useState(0);
   const [friends, setFriends] = useState([]);
   const [pending, setPending] = useState([]);
@@ -80,6 +81,12 @@ const Friends = () => {
       await deleteConnection(id);
       toast.success('Пользователь удалён из друзей');
       setFriends(f => f.filter(u => u.id !== id));
+      // убрать чат из списка чатов
+      setChats(chs => chs.filter(c => c.otherUserID !== id));
+      // если сейчас открыт этот чат — редиректим назад
+      if (window.location.pathname === `/chat/${id}`) {
+        navigate('/chats');
+      }
     } catch {
       toast.error('Ошибка при удалении');
     }

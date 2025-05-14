@@ -364,7 +364,7 @@ import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container, Box, Typography, TextField, Button,
-  CircularProgress, List, Divider
+  CircularProgress, List, Divider, Pagination
 } from '@mui/material';
 import api from '../api/index';
 import { toast } from 'react-toastify';
@@ -384,6 +384,9 @@ const ChatWindow = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
+  const [totalCount, setTotalCount] = useState(0);    // ← общее число сообщений
+  const pageSize = 10;                                 // ← сообщений на страницу
+  const pageCount = Math.ceil(totalCount / pageSize);  // ← всего страниц
   const messages = allMessages[chatId] || [];
   const isTyping = typingStatuses[chatId];
   useEffect(() => {
@@ -410,10 +413,18 @@ const ChatWindow = () => {
   }, [chatId, page, location.search, navigate]);
   const fetchMessages = async (p = 1) => {
     try {
-      const { data } = await api.get(`/chats/${chatId}`, {
-        params: { page: p, limit: 20 }
+      // const { data } = await api.get(`/chats/${chatId}`, {
+      //   params: { page: p, limit: 20 }
+      // });
+      // setMessages(chatId, p === 1 ? data : [...data, ...messages]);
+       // теперь сервер отдаёт { messages: [...], totalCount: N, page, limit }
+    const { data } = await api.get(`/chats/${chatId}`, {
+        params: { page: p, limit: pageSize }
       });
-      setMessages(chatId, p === 1 ? data : [...data, ...messages]);
+      // обновляем локальные сообщения и общее число
+      //setMessages(chatId, data.messages);?????????????????!!!!!!!!!!!!!!!!!!!!!!!!!!
+      setTotalCount(data.totalCount);
+      setMessages(chatId, [...data.messages].reverse());
     } catch {
       toast.error('Ошибка загрузки сообщений');
     } finally {
@@ -477,13 +488,31 @@ const ChatWindow = () => {
           </Box>
         ) : (
           <>
-            {page > 1 && (
+            {/* {page > 1 && (
               <Box sx={{ textAlign: 'center', mb: 1 }}>
                 <Button onClick={() => setPage(p => p + 1)}>
                   Загрузить ещё
                 </Button>
               </Box>
+            )} */}
+
+            {/* пагинация */}
+            {/* {pageCount > 1 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+                <Pagination
+                  count={pageCount}
+                  page={page}
+                  onChange={(_, newPage) => {
+                    setPage(newPage);
+                    setLoading(true);
+                    fetchMessages(newPage);
+                  }}
+                  color="primary"
+                />
+              </Box>
             )}
+
+
             <List>
               {messages.map(msg => (
                 <Fragment key={msg.id}>
@@ -495,7 +524,36 @@ const ChatWindow = () => {
                 </Fragment>
               ))}
             </List>
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} /> */}
+             <List>
+          {messages.map(msg => (
+            <Fragment key={msg.id}>
+              <ChatBubble
+                message={msg}
+                isOwn={msg.sender_id === user.id}
+              />
+              <Divider component="li" />
+            </Fragment>
+          ))}
+        </List>
+
+        {/* пагинация внизу */}
+        {pageCount > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Pagination
+              count={pageCount}
+              page={page}
+              onChange={(_, newPage) => {
+                setPage(newPage);
+                setLoading(true);
+                fetchMessages(newPage);
+              }}
+              color="primary"
+            />
+          </Box>
+        )}
+
+        <div ref={messagesEndRef} />
           </>
         )}
       </Box>

@@ -4,9 +4,12 @@ import { Container, Box, Typography, Avatar, Button, CircularProgress } from '@m
 import { getUser, getUserProfile, getUserBio } from '../../api/user';
 import { getConnections, deleteConnection  } from '../../api/connections';
 import { toast } from 'react-toastify';
+import { useChatState, useChatDispatch  } from '../../contexts/ChatContext';
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { chats } = useChatState();
+  const { setChats } = useChatDispatch();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [bio, setBio] = useState(null);
@@ -17,6 +20,11 @@ const UserProfile = () => {
       toast.success('Пользователь удалён из друзей');
       // обновляем список connectedIds в локальном состоянии
       setConnectedIds(prev => prev.filter(uid => uid !== id));
+      // убрать чат из списка чатов
+      setChats(chs => chs.filter(c => c.otherUserID !== id));
+      if (window.location.pathname === `/chat/${id}`) {
+        navigate('/chats');
+      }
     } catch {
       toast.error('Не удалось удалить друга');
     }
@@ -185,7 +193,7 @@ const UserProfile = () => {
           Перейти в чат
         </Button>
       )} */}
-      {connectedIds.includes(id) && (
+      {/* {connectedIds.includes(id) && (
   <>
     <Button
       variant="contained"
@@ -194,7 +202,26 @@ const UserProfile = () => {
       onClick={handleChat}
     >
       Перейти в чат
-    </Button>
+    </Button> */}
+    {connectedIds.includes(id) && (
+        <>
+          {/* 2) Новая кнопка «Перейти в чат» */}
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{ mt: 3, mr: 1 }}
+            onClick={() => {
+              // если чат уже существует — открываем его, иначе создаём новый
+              const existing = chats.find(c => c.otherUserID === id);
+              if (existing) {
+                navigate(`/chat/${existing.id}`);
+              } else {
+                navigate(`/chat/new?other_user_id=${id}`);
+              }
+            }}
+          >
+           Перейти в чат
+          </Button>
     <Button
       variant="outlined"
       color="error"

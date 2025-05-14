@@ -257,6 +257,15 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logrus.Infof("DeleteConnection: подключение между %s и %s успешно удалено", currentUserID, targetUserID)
+	// ---- ВСТАВКА: удаляем чат между этими пользователями ----
+	if err := connectionsDB.
+		Where("(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",
+			currentUserID, targetUserID, targetUserID, currentUserID).
+		Delete(&models.Chat{}).Error; err != nil {
+		logrus.Warnf("DeleteConnection: не удалось удалить чат между %s и %s: %v", currentUserID, targetUserID, err)
+	} else {
+		logrus.Infof("DeleteConnection: чат между %s и %s успешно удалён", currentUserID, targetUserID)
+	}
 	json.NewEncoder(w).Encode(map[string]string{"message": "Disconnected successfully"})
 }
 
