@@ -117,7 +117,7 @@ fi
 
 # Updating/creating the go.sum file through go mod tidy (calculates and writes checksums)
 echo "Updating dependencies (go.sum)..."
-go mod sum
+go mod tidy
 
 
 # Running the installation of additional dependencies (if your code processes the -deps flag)
