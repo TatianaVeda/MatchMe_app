@@ -18,6 +18,7 @@
 - [Development](#development)
 - [Features](#features)
 - [Setting Recommendation Radius](#setting-recommendation-radius)
+- [Database Reset and Dummy User Generation](#database-reset-and-dummy-user-generation)
 
 ## Technologies
 
@@ -232,62 +233,27 @@ docker exec -it m_postgres psql -U user -d sopostavmenya
 - **Docker**: Easy deployment in any environment
 - **CORS**: Configured security for cross-domain requests
 
-### Running create_admin_user.go
+### Obtaining JWT Token (for developers and testers)
 
-To create an admin account, follow these steps:
+If you want to test the API directly (for example, via Postman or curl), obtain a JWT token by sending a POST request to `/login`:
 
-1. **Run the create_admin_user.go file**:
-   - Navigate to the `backend` directory and execute the command:
-     ```bash
-     go run create_admin_user.go
-     ```
-   - This will create an admin account in the database.
-
-Ensure the database is configured and accessible before running this command.
-
-### Using create_admin_user.go
-
-The `create_admin_user.go` file allows you to perform the following actions:
-
-- **Reset the database:**
-  - Use the `-resetDB` flag to reset the database.
-  - Example command:
-    ```bash
-    go run create_admin_user.go -resetDB
-    ```
-
-- **Create an admin user:**
-  - Use the `-createAdmin` flag to create an admin user account.
-  - Example command:
-    ```bash
-    go run create_admin_user.go -createAdmin
-    ```
-
-These commands allow you to manage the database and admin accounts without modifying the main application code.
-
-### Creating Admin Profile via Browser
-
-You can also create an admin profile through the browser and then obtain a JWT token using the login endpoint.
-
-### Obtaining JWT Token
-
-To obtain a JWT token, follow these steps:
-
-1. **Send a request to the `/login` endpoint**: Use `curl` to send a request with your credentials.
-
-   ```bash
-   curl -X POST http://localhost:8080/login \
-   -H "Content-Type: application/json" \
-   -d '{"email":"your_admin_email","password":"your_password"}'
-   ```
-
-   Replace `your_admin_email` and `your_password` with your actual credentials.
-
-This allows you to manage the application using the admin profile created through the browser.
+```bash
+curl -X POST http://localhost:8080/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"your_admin_email","password":"your_password"}'
+```
 
 ## Setting Recommendation Radius
 
 To search for recommendations within a specific geographical radius, navigate to the "Settings" page of the application. At the bottom of the settings page, you will find an option to set the maximum radius for recommendations. Adjusting this value enables proximity-based filtering for recommendations.
+
+## Database Reset and Dummy User Generation
+
+These features are available only to the administrator via the admin panel in the frontend.
+
+- To access the admin panel, log in with AdminEmail and the AdminPassword (specified in `config/constants.go`).
+- The admin panel provides buttons for database reset (`/admin/reset-fixtures`) and dummy user generation (`/admin/generate-fixtures?num=N`).
+- When resetting the database, the admin user is created automatically using the config data.
 
 ---
 
@@ -306,6 +272,7 @@ To search for recommendations within a specific geographical radius, navigate to
 - [Разработка](#разработка)
 - [Особенности](#особенности)
 - [Настройка радиуса для рекомендаций](#настройка-радиуса-для-рекомендаций)
+- [Сброс базы данных и генерация фиктивных пользователей](#сброс-базы-данных-и-генерация-фиктивных-пользователей)
 
 ## Технологии
 
@@ -520,59 +487,24 @@ docker exec -it m_postgres psql -U user -d sopostavmenya
 - **Docker**: Простое развертывание в любой среде
 - **CORS**: Настроена безопасность для междоменных запросов
 
-### Запуск создания администратора
+### Получение JWT токена (для разработчиков и тестировщиков)
 
-Для создания учетной записи администратора выполните следующий шаг:
+Если вы хотите тестировать API напрямую (например, через Postman или curl), получите JWT токен через POST-запрос на `/login`:
 
-1. **Запустите файл create_admin_user.go**: 
-   - Перейдите в директорию `backend` и выполните команду:
-     ```bash
-     go run create_admin_user.go
-     ```
-   - Это создаст учетную запись администратора в базе данных.
-
-Убедитесь, что база данных настроена и доступна перед запуском этой команды.
-
-### Использование create_admin_user.go
-
-Файл `create_admin_user.go` позволяет выполнять следующие действия:
-
-- **Сброс базы данных:**
-  - Используйте флаг `-resetDB` для сброса базы данных.
-  - Пример команды:
-    ```bash
-    go run create_admin_user.go -resetDB
-    ```
-
-- **Создание администратора:**
-  - Используйте флаг `-createAdmin` для создания учетной записи администратора.
-  - Пример команды:
-    ```bash
-    go run create_admin_user.go -createAdmin
-    ```
-
-Эти команды позволяют управлять базой данных и учетными записями администратора без изменения основного кода приложения.
-
-### Создание профиля администратора через браузер
-
-Вы также можете создать профиль администратора через браузер, а затем получить JWT токен, используя эндпоинт для входа в систему.
-
-### Получение JWT токена
-
-Чтобы получить JWT токен, выполните следующие шаги:
-
-1. **Отправьте запрос на эндпоинт `/login`**: Используйте `curl` для отправки запроса с вашими учетными данными.
-
-   ```bash
-   curl -X POST http://localhost:8080/login \
-   -H "Content-Type: application/json" \
-   -d '{"email":"your_admin_email","password":"your_password"}'
-   ```
-
-   Замените `your_admin_email` и `your_password` на ваши фактические данные.
-
-Это позволяет управлять приложением, используя профиль администратора, созданный через браузер.
+```bash
+curl -X POST http://localhost:8080/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"your_admin_email","password":"your_password"}'
+```
 
 ## Настройка радиуса для рекомендаций
 
 Для поиска рекомендаций в определённом географическом радиусе перейдите на страницу "Настройки" приложения. Внизу страницы настроек вы найдёте опцию для установки максимального радиуса рекомендаций. Настройка этого значения позволяет использовать фильтрацию по близости для рекомендаций.
+
+## Сброс базы данных и генерация фиктивных пользователей
+
+Эти функции доступны только для администратора через админ-панель на фронтенде.
+
+- Для доступа к админ-панели войдите с AdminEmail и паролем администратора AdminPassword (указаны в config/constants.go).
+- В админ-панели доступны кнопки для сброса базы (`/admin/reset-fixtures`) и генерации фиктивных пользователей (`/admin/generate-fixtures?num=N`).
+- При сбросе базы админ создаётся автоматически с данными из конфига.
