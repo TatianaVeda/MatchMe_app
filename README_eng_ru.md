@@ -67,27 +67,6 @@ Before running the application, ensure that the `config_local.env` file is prope
 
 Ensure these variables are updated according to your local setup.
 
-### Generating Dummy Users
-
-To generate dummy users for testing purposes, you can use the `ResetFixtures` 
-function in the `fixtures.go` file. This function will reset the database and 
-populate it with a specified number of dummy users. You can trigger this function 
-via an API call to the backend server. Follow these steps:
-
-1. **Start the Backend Server**: Ensure your backend server is running. You can start it using:
-   ```bash
-   npm run dev:backend
-   ```
-
-2. **Trigger the ResetFixtures Function**: Use a tool like `curl` or Postman to send a request to the backend API to reset the database and generate dummy users. For example, using `curl`:
-   ```bash
-   curl -X POST http://localhost:8080/api/reset-fixtures
-   ```
-
-The `createAdminUser` function in the `create_admin_user.go` file is used to create 
-an initial admin user in the database. This is typically done during the initial 
-setup to ensure that an admin account is available for managing the application.This will reset the database and populate it with dummy users as defined in the `fixtures.go` file.
-
 ### Automatic Installation (Recommended)
 
 1. Clone the repository:
@@ -320,28 +299,6 @@ These features are available only to the administrator via the admin panel in th
 - **LOG_LEVEL**: Уровень логирования (например, debug, info, warn, error).
 
 Убедитесь, что эти переменные обновлены в соответствии с вашей локальной конфигурацией.
-
-### Генерация фиктивных пользователей
-
-Для генерации фиктивных пользователей в целях тестирования вы можете использовать 
-функцию `ResetFixtures` в файле `fixtures.go`. Эта функция сбросит базу данных и 
-заполнит её указанным количеством фиктивных пользователей. Вы можете вызвать эту 
-функцию через API-запрос к серверу. В целях тестирования выполните следующие шаги:
-
-1. **Запустите сервер**: Убедитесь, что ваш сервер запущен. Вы можете запустить его с помощью команды:
-   ```bash
-   npm run dev:backend
-   ```
-
-2. **Вызовите функцию ResetFixtures**: Используйте инструмент, такой как `curl` или Postman, чтобы отправить запрос к API сервера для сброса базы данных и генерации фиктивных пользователей. Например, с помощью `curl`:
-   ```bash
-   curl -X POST http://localhost:8080/api/reset-fixtures
-   ```
-
-Функция `createAdminUser` в файле `create_admin_user.go` используется для создания 
-начального администратора в базе данных. Это обычно делается во время начальной 
-настройки, чтобы обеспечить наличие учетной записи администратора для управления 
-приложением. Это сбросит базу данных и заполнит её фиктивными пользователями, как определено в файле `fixtures.go`.
 
 ### Automatic Installation (Recommended)
 
