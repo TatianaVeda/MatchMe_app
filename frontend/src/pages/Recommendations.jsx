@@ -466,7 +466,8 @@ const fetchLinks = async () => {
       }
     }
     try {
-      const recs = await getRecommendations({ params });
+      // const recs = await getRecommendations({ params });
+      const recs = await getRecommendations({ params: { ...params, limit: 20 } });
       const recData = await Promise.all(
         recs.map(async ({ id, distance, score }) => {
           try {
@@ -479,12 +480,23 @@ const fetchLinks = async () => {
           }
         })
       );
-      setRecommendations(recData
-        .filter(r => r)
-        .filter(r =>
-          !connections.includes(r.id) &&
-          !pending.includes(r.id) 
-        ));
+      // setRecommendations(recData
+      //   .filter(r => r)
+      //   .filter(r =>
+      //     !connections.includes(r.id) &&
+      //     !pending.includes(r.id) 
+      //   ));
+      // отфильтровали все ненужные
+const filtered = recData
+.filter(r => r)
+.filter(r =>
+  !connections.includes(r.id) &&
+  !pending.includes(r.id)
+);
+
+// а потом из оставшихся берём не более 10
+setRecommendations(filtered.slice(0, 10));
+
     } catch (err) {
       const msg = err.response?.data || 'Ошибка загрузки рекомендаций';
       toast.error(msg);

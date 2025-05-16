@@ -388,7 +388,9 @@ const ChatWindow = () => {
   const pageSize = 10;                                 // ← сообщений на страницу
   const pageCount = Math.ceil(totalCount / pageSize);  // ← всего страниц
   const messages = allMessages[chatId] || [];
-  const isTyping = typingStatuses[chatId];
+  // const isTyping = typingStatuses[chatId];
+  const chatIdNum = Number(chatId);
+const isTyping  = typingStatuses[chatIdNum];
   useEffect(() => {
     if (chatId === 'new') {
       const otherUserID = new URLSearchParams(location.search).get('other_user_id');
@@ -424,7 +426,8 @@ const ChatWindow = () => {
       // обновляем локальные сообщения и общее число
       //setMessages(chatId, data.messages);?????????????????!!!!!!!!!!!!!!!!!!!!!!!!!!
       setTotalCount(data.totalCount);
-      setMessages(chatId, [...data.messages].reverse());
+      setMessages(chatId, data.messages);
+      //setMessages(chatId, [...data.messages].reverse());
     } catch {
       toast.error('Ошибка загрузки сообщений');
     } finally {
@@ -450,7 +453,13 @@ const ChatWindow = () => {
         { content }
       );
       sendMessage(chatId, content);            // через WS
-      setMessages(chatId, [...messages, saved]); // локально
+      // setMessages(chatId, [...messages, saved]); // локально
+      // Приводим поле senderId → sender_id, чтобы ChatBubble сразу понял, что это ваше сообщение
+    const normalized = {
+        ...saved,
+        sender_id: saved.senderId
+      };
+      setMessages(chatId, [...messages, normalized]);
       setNewMessage('');
     } catch {
       toast.error('Ошибка отправки сообщения');
@@ -469,11 +478,7 @@ const ChatWindow = () => {
       <Typography variant="h4" gutterBottom>
         {chatId === 'new' ? 'Создание чата...' : `Чат ${chatId}`}
       </Typography>
-      {isTyping && (
-        <Typography variant="body2" color="textSecondary" sx={{ mb: 1, fontStyle: 'italic' }}>
-          Пользователь печатает...
-        </Typography>
-      )}
+      
       <Box sx={{
         border: '1px solid #ccc',
         borderRadius: 2,
@@ -535,6 +540,11 @@ const ChatWindow = () => {
               <Divider component="li" />
             </Fragment>
           ))}
+         {isTyping && (
+        <Typography variant="body2" color="textSecondary" sx={{ mb: 1, fontStyle: 'italic' }}>
+          Пользователь печатает...
+        </Typography>
+      )}
         </List>
 
         {/* пагинация внизу */}

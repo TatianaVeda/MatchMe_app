@@ -948,7 +948,7 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 		return cands[i].Score > cands[j].Score
 	})
 
-	limit := 10
+	limit := 50
 	if len(cands) < limit {
 		limit = len(cands)
 	}

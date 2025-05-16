@@ -244,10 +244,17 @@ func (c *Client) readPump() {
 
 		var req struct {
 			Action   string `json:"action"`
-			ChatID   string `json:"chatId"`   // требуется только для subscribe/unsubscribe
-			IsOnline *bool  `json:"isOnline"` // используется для heartbeat
-			IsTyping *bool  `json:"isTyping"` // новое поле для набора текста
+			ChatID   string `json:"chat_id"`   // вместо "chatId"
+			IsOnline *bool  `json:"is_online"` // вместо "isOnline"
+			IsTyping *bool  `json:"is_typing"` // вместо "isTyping"
 		}
+
+		// var req struct {
+		// 	Action   string `json:"action"`
+		// 	ChatID   string `json:"chatId"`   // требуется только для subscribe/unsubscribe
+		// 	IsOnline *bool  `json:"isOnline"` // используется для heartbeat
+		// 	IsTyping *bool  `json:"isTyping"` // новое поле для набора текста
+		// }
 		if err := json.Unmarshal(msg, &req); err != nil {
 			logrus.Errorf("readPump: ошибка разбора сообщения от клиента %s: %v", c.UserID, err)
 			continue

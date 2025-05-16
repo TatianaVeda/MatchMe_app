@@ -50,10 +50,27 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
+      <Route
+  path="/"
+  element={
+    user?.id
+      ? <Navigate to="/me" replace />
+      : <Navigate to="/login" replace />
+  }
+/>
       {/* Публичные маршруты */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+      {/* <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} /> */}
+
+<Route
+        path="/login"
+        element={user ? <Navigate to="/me" replace /> : <Login />}
+      />
+      <Route
+        path="/signup"
+        element={user ? <Navigate to="/me" replace /> : <Signup />}
+      />
 
       {/* Защищённые маршруты */}
       <Route path="/me" element={<PrivateRoute><MyProfile /></PrivateRoute>} />
