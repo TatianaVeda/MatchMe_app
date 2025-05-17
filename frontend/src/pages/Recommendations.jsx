@@ -361,7 +361,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Grid, Card, CardContent, CardMedia, Typography, Button, CardActions,
 CircularProgress, ToggleButton, ToggleButtonGroup, Box, TextField, FormControl, InputLabel, 
-Select, MenuItem, Checkbox, ListItemText, FormControlLabel } from '@mui/material';
+Select, MenuItem, Checkbox, ListItemText, FormControlLabel, CardActionArea } from '@mui/material';
 import { toast } from 'react-toastify';
 import { getRecommendations, declineRecommendation } from '../api/recommendations';
 import { getUser, getUserBio } from '../api/user';
@@ -490,8 +490,8 @@ const fetchLinks = async () => {
 const filtered = recData
 .filter(r => r)
 .filter(r =>
-  !connections.includes(r.id) &&
-  !pending.includes(r.id)
+  !connections.includes(r.id) //&&
+  //!pending.includes(r.id)
 );
 
 // а потом из оставшихся берём не более 10
@@ -655,6 +655,7 @@ setRecommendations(filtered.slice(0, 10));
           {recommendations.map(rec => (
             <Grid item xs={12} sm={6} md={4} key={rec.id}>
               <Card>
+              <CardActionArea onClick={() => navigate(`/users/${rec.id}`)}>
                 <CardMedia
                   component="img"
                   height="140"
@@ -681,6 +682,7 @@ setRecommendations(filtered.slice(0, 10));
                       : 'Информация отсутствует'}
                   </Typography>
                 </CardContent>
+                </CardActionArea>
                 <CardActions>
                   {(() => {
                     const isFriend     = connections.includes(rec.id);
