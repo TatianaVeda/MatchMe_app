@@ -8,7 +8,8 @@
     "dev": "npm run dev:db && concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && go run main.go",
     "dev:frontend": "cd frontend && npm start",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf node_modules frontend/node_modules backend/node_modules package-lock.json frontend/package-lock.json backend/go.sum backend/go.mod && npm install && cd frontend && npm install && cd ../backend && go mod tidy && cd .."
   },
   "keywords": [],
   "author": "",
