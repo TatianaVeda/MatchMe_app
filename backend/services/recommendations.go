@@ -798,13 +798,36 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 		}
 	}
 
+	// 7) Сортируем: сначала по score ↓, потом по distance ↑
 	sort.Slice(cands, func(i, j int) bool {
-		if math.Abs(cands[i].Distance-cands[j].Distance) > 1e-9 {
-			return cands[i].Distance < cands[j].Distance
+		// Нормализуем score с учетом расстояния
+		scoreI := cands[i].Score * (1.0 - (cands[i].Distance / 100.0))
+		scoreJ := cands[j].Score * (1.0 - (cands[j].Distance / 100.0))
+
+		// Если разница в нормализованном score значительная (>0.15), используем его
+		if math.Abs(scoreI-scoreJ) > 0.15 {
+			return scoreI > scoreJ
 		}
-		return cands[i].Score > cands[j].Score
+
+		// Если нормализованные score близки, используем оригинальный score
+		if math.Abs(cands[i].Score-cands[j].Score) > 0.1 {
+			return cands[i].Score > cands[j].Score
+		}
+
+		// Если и score близки, учитываем расстояние
+		// Кандидаты дальше 50 км получают пониженный приоритет
+		if cands[i].Distance > 50 && cands[j].Distance <= 50 {
+			return false
+		}
+		if cands[i].Distance <= 50 && cands[j].Distance > 50 {
+			return true
+		}
+
+		// В остальных случаях сортируем по расстоянию
+		return cands[i].Distance < cands[j].Distance
 	})
 
+	// 8) Берём до 10 результатов
 	limit := 10
 	if len(cands) < limit {
 		limit = len(cands)
@@ -941,11 +964,33 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 		}
 	}
 
+	// 7) Сортируем: сначала по score ↓, потом по distance ↑
 	sort.Slice(cands, func(i, j int) bool {
-		if math.Abs(cands[i].Distance-cands[j].Distance) > 1e-9 {
-			return cands[i].Distance < cands[j].Distance
+		// Нормализуем score с учетом расстояния
+		scoreI := cands[i].Score * (1.0 - (cands[i].Distance / 100.0))
+		scoreJ := cands[j].Score * (1.0 - (cands[j].Distance / 100.0))
+
+		// Если разница в нормализованном score значительная (>0.15), используем его
+		if math.Abs(scoreI-scoreJ) > 0.15 {
+			return scoreI > scoreJ
 		}
-		return cands[i].Score > cands[j].Score
+
+		// Если нормализованные score близки, используем оригинальный score
+		if math.Abs(cands[i].Score-cands[j].Score) > 0.1 {
+			return cands[i].Score > cands[j].Score
+		}
+
+		// Если и score близки, учитываем расстояние
+		// Кандидаты дальше 50 км получают пониженный приоритет
+		if cands[i].Distance > 50 && cands[j].Distance <= 50 {
+			return false
+		}
+		if cands[i].Distance <= 50 && cands[j].Distance > 50 {
+			return true
+		}
+
+		// В остальных случаях сортируем по расстоянию
+		return cands[i].Distance < cands[j].Distance
 	})
 
 	limit := 10

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Tab, Tabs, Box,
-  Grid, Card, CardMedia, CardContent, CardActions, Button, CircularProgress
+  Grid, Card, CardMedia, CardContent, CardActions, Button, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +9,7 @@ import UserCard from '../components/UserCard';
 import { getConnections, getPendingConnections, updateConnectionRequest, deleteConnection } from '../api/connections';
 import { getUser } from '../api/user';
 import { useChatState } from '../contexts/ChatContext';
+import { getChats } from '../api/chat';
 
 const Friends = () => {
   const navigate = useNavigate();
@@ -15,6 +17,8 @@ const Friends = () => {
   const [friends, setFriends] = useState([]);
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const { chats } = useChatState();
   const handleChatClick = (userId) => {
     const existingChat = chats.find(c => c.otherUserID === userId);
@@ -66,6 +70,7 @@ const Friends = () => {
       toast.error('Ошибка при принятии');
     }
   };
+  
   const handleDecline = async id => {
     try {
       await updateConnectionRequest(id, 'decline');
@@ -80,10 +85,31 @@ const Friends = () => {
       await deleteConnection(id);
       toast.success('Пользователь удалён из друзей');
       setFriends(f => f.filter(u => u.id !== id));
+      // убрать чат из списка чатов
+      setChats(chs => chs.filter(c => c.otherUserID !== id));
+      // если сейчас открыт этот чат — редиректим назад
+      if (window.location.pathname === `/chat/${id}`) {
+        navigate('/chats');
+      }
     } catch {
       toast.error('Ошибка при удалении');
     }
   };
+ /*  const handleDisconnectClick = (user) => {
+    setSelectedUser(user);
+    setDisconnectDialogOpen(true);
+  };
+
+  const handleDisconnectConfirm = async () => {
+    try {
+      await deleteConnection(selectedUser.id);
+      toast.success('Отключение выполнено');
+      setDisconnectDialogOpen(false);
+      fetchFriends(); // Перезагружаем список друзей
+    } catch {
+      toast.error('Ошибка при отключении');
+    }
+  }; */
   if (loading) {
     return (
       <Container sx={{ textAlign:'center', mt:4 }}>
@@ -98,7 +124,7 @@ const Friends = () => {
         <Tab label="Мои друзья" />
         <Tab label="Запросы" />
       </Tabs>
-{tab === 0 && (
+      {tab === 0 && (
         friends.length === 0 ? (
           <Typography>У вас пока нет друзей.</Typography>
         ) : (
@@ -107,8 +133,7 @@ const Friends = () => {
               <Grid key={u.id} item xs={12} sm={6} md={4}>
                 <UserCard
                   user={{ ...u, connected: true }}
-                  showChat={true}
-                  onChatClick={() => navigate(`/chat/${u.id}`)}
+                  showDisconnect={true}
                   onClick={() => navigate(`/users/${u.id}`)}
                 /> */}
 
@@ -120,6 +145,7 @@ const Friends = () => {
         // onChatClick={() => navigate(`/chat/${u.id}`)}
         onChatClick={() => handleChatClick(u.id)}
         onClick={() => navigate(`/users/${u.id}`)}
+                  onDisconnect={() => handleDisconnectClick(u)}
       />
       {/* новая кнопка удаления */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
@@ -171,6 +197,26 @@ const Friends = () => {
           </Grid>
         )
       )}
+
+      <Dialog
+        open={disconnectDialogOpen}
+        onClose={() => setDisconnectDialogOpen(false)}
+      >
+        <DialogTitle>Отключить пользователя?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Вы уверены, что хотите отключиться от {selectedUser?.firstName} {selectedUser?.lastName}?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDisconnectDialogOpen(false)}>
+            Отмена
+          </Button>
+          <Button onClick={handleDisconnectConfirm} color="error">
+            Отключить
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

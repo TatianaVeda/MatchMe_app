@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Box, Typography, Avatar, Button, CircularProgress } from '@mui/material';
+import { 
+  Container, Box, Typography, Avatar, Button, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions
+} from '@mui/material';
 import { getUser, getUserProfile, getUserBio } from '../../api/user';
-import { getConnections, deleteConnection  } from '../../api/connections';
+import { getConnections, deleteConnection} from '../../api/connections';
 import { toast } from 'react-toastify';
+import { getChats } from '../../api/chat';
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -17,6 +21,12 @@ const UserProfile = () => {
       toast.success('Пользователь удалён из друзей');
       // обновляем список connectedIds в локальном состоянии
       setConnectedIds(prev => prev.filter(uid => uid !== id));
+      setConnectedIds(prev => prev.filter(uid => uid !== id));
+      // убрать чат из списка чатов
+      getChats(chs => chs.filter(c => c.otherUserID !== id));
+      if (window.location.pathname === `/chat/${id}`) {
+        navigate('/chats');
+      }
     } catch {
       toast.error('Не удалось удалить друга');
     }
@@ -24,6 +34,7 @@ const UserProfile = () => {
   
 
   const [loading, setLoading] = useState(true);
+  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
   // useEffect(() => {
   //   const load = async () => {
   //     try {
@@ -126,8 +137,27 @@ const UserProfile = () => {
   }, [id, navigate]);
   
 
-  const handleChat = () => {
-    navigate(`/chat/${id}`);
+  const handleChat = async () => {
+    // Получаем список чатов
+    const chats = await getChats();
+    // ищем по otherUserId, а для перехода используем chatId!
+    const chat = chats.find(c => String(c.otherUserId) === String(id));
+    if (chat && chat.chatId) {
+      navigate(`/chat/${chat.chatId}`);
+    } else {
+      toast.error('Чат с этим пользователем не найден');
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await deleteConnection(id);
+      toast.success('Отключение выполнено');
+      setDisconnectDialogOpen(false);
+      navigate('/connections');
+    } catch {
+      toast.error('Ошибка при отключении');
+    }
   };
   if (loading) {
     return (
@@ -136,18 +166,20 @@ const UserProfile = () => {
       </Container>
     );
   }
-  if (!user) {
+
+  if (!user || !profile) {
     return (
       <Container sx={{ textAlign: 'center', mt: 4 }}>
-        <Typography variant="h5">Пользователь не найден</Typography>
+        <Typography variant="h6">Профиль не найден</Typography>
       </Container>
     );
   }
+ 
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <Avatar
-          src={user.photoUrl}
+          src={user.photoUrl || '/default-avatar.png'}
           alt={`${user.firstName} ${user.lastName}`}
           sx={{ width: 80, height: 80, mr: 2 }}
         >
@@ -158,53 +190,65 @@ const UserProfile = () => {
         </Typography>
       </Box>
       <Typography variant="body1" sx={{ mb: 2 }}>
-        {profile?.about || 'Информация недоступна'}
+        {profile?.about || 'Нет информации о пользователе' || 'Информация недоступна'}
       </Typography>
       <Typography variant="h6" gutterBottom>
-          Биография
-        </Typography>
-        {bio ? (
+        Биография
+      </Typography>
+      {bio ? (
+        <>
+          <Typography>Интересы: {bio.interests || 'Не указаны'}</Typography>
+          <Typography>Хобби: {bio.hobbies || 'Не указаны'}</Typography>
+          <Typography>Музыка: {bio.music || 'Не указана'}</Typography>
+          <Typography>Еда: {bio.food || 'Не указана'}</Typography>
+          <Typography>Путешествия: {bio.travel || 'Не указаны'}</Typography>
+          <Typography>Ищу: {bio.lookingFor || 'Не указано'}</Typography>
+        </>
+      ) : (
+        <Typography>Биография не заполнена</Typography>
+      )}
+
+      <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+        {connectedIds.includes(id) && (
           <>
-            <Typography>Интересы: {bio.interests}</Typography>
-            <Typography>Хобби: {bio.hobbies}</Typography>
-            <Typography>Музыка: {bio.music}</Typography>
-            <Typography>Еда: {bio.food}</Typography>
-            <Typography>Путешествия: {bio.travel}</Typography>
-            <Typography>Ищу: {bio.lookingFor}</Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleChat}
+            >
+              Перейти в чат
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() =>handleRemoveFriend(id)} //setDisconnectDialogOpen(true)
+            >
+              Delete Friend
+            </Button>
           </>
-        ) : (
-          <Typography>Биография недоступна</Typography>
         )}
-      {/* {connectedIds.includes(id) && (
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{ mt: 3 }}
-          onClick={handleChat}
-        >
-          Перейти в чат
-        </Button>
-      )} */}
-      {connectedIds.includes(id) && (
-  <>
-    <Button
-      variant="contained"
-      color="primary"
-      sx={{ mt: 3, mr: 1 }}
-      onClick={handleChat}
-    >
-      Перейти в чат
-    </Button>
-    <Button
-      variant="outlined"
-      color="error"
-      sx={{ mt: 3 }}
-      onClick={() => handleRemoveFriend(id)}
-    >
-      Удалить из друзей
-    </Button>
-  </>
-)}
+      </Box>
+
+      {/* Модальное окно подтверждения */}
+      <Dialog
+        open={disconnectDialogOpen}
+        onClose={() => setDisconnectDialogOpen(false)}
+      >
+        <DialogTitle>Delete Friend?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this friend?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDisconnectDialogOpen(false)}>
+            Отмена
+          </Button>
+          <Button onClick={handleDisconnect} color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

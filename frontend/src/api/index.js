@@ -16,7 +16,7 @@ const api = axios.create({
 api.interceptors.request.use(
   config => {
     const token = getAccessToken();
-    //console.log('🔑 Access token:', token); // Debug
+    console.log('🔑 Request interceptor - Access token:', token ? 'present' : 'missing');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -30,6 +30,8 @@ api.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
+    console.log('🔑 Response interceptor - Status:', error.response?.status);
+    console.log('🔑 Response interceptor - URL:', originalRequest.url);
 
     // Если получили 401, ещё не пробовали обновлять, и это не сам /refresh
     if (
@@ -37,28 +39,42 @@ api.interceptors.response.use(
       !originalRequest._retry &&
       !originalRequest.url.includes('/refresh')
     ) {
+      console.log('🔑 Attempting token refresh...');
       originalRequest._retry = true;
 
       const refreshToken = getRefreshToken();
+      console.log('🔑 Refresh token:', refreshToken ? 'present' : 'missing');
+      
       if (refreshToken) {
         try {
           // Делаем refresh
           const { data } = await api.post('/refresh', { refreshToken });
           const { accessToken: newAccessToken, refreshToken: newRefreshToken } = data;
+          console.log('🔑 New tokens received');
 
           // Сохраняем новые токены
           setAccessToken(newAccessToken);
           setRefreshToken(newRefreshToken);
 
+          // Отправляем событие об обновлении токена
+          window.dispatchEvent(new CustomEvent('tokenRefreshed', {
+            detail: {
+              accessToken: newAccessToken,
+              refreshToken: newRefreshToken
+            }
+          }));
+
           // Повторяем исходный запрос с обновлённым accessToken
           originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
           return api(originalRequest);
         } catch (refreshError) {
+          console.error('🔑 Token refresh failed:', refreshError);
           // Если обновление не удалось — чистим и пробрасываем ошибку
           clearTokens();
           return Promise.reject(refreshError);
         }
       } else {
+        console.log('🔑 No refresh token available');
         // Нет refreshToken — сразу очищаем и пробрасываем
         clearTokens();
       }

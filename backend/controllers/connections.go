@@ -88,32 +88,44 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Cannot send connection request to yourself", http.StatusBadRequest)
 		return
 	}
-
-	// Проверка: существует ли уже ожидающий запрос от целевого пользователя к текущему.
-	var existing models.Connection
-	if err := connectionsDB.
-		Where("user_id = ? AND connection_id = ? AND status = ?", targetUserID, currentUserID, "pending").
-		First(&existing).Error; err == nil {
-		// Обратный запрос найден – обновляем его до accepted (взаимное подключение).
-		existing.Status = "accepted"
-		if err := connectionsDB.Save(&existing).Error; err != nil {
-			logrus.Errorf("PostConnection: ошибка обновления запроса от %s к %s: %v", targetUserID, currentUserID, err)
-			http.Error(w, "Error updating connection request", http.StatusInternalServerError)
+	// Новая проверка: существует ли пользователь с таким id
+	var targetUser models.User
+	if err := connectionsDB.First(&targetUser, "id = ?", targetUserID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			logrus.Warnf("PostConnection: пользователь %s не найден", targetUserID)
+			http.Error(w, "Target user not found", http.StatusNotFound)
 			return
 		}
-		logrus.Infof("PostConnection: взаимное подключение между %s и %s", currentUserID, targetUserID)
-		sockets.BroadcastNotification(targetUserID, "Your connection request has been mutually accepted!")
-		chatService := services.NewChatService(connectionsDB)
-		chat, err := chatService.CreateChat(targetUserID, currentUserID)
-		if err != nil {
-			logrus.Errorf("PostConnection: ошибка создания чата между %s и %s: %v", targetUserID, currentUserID, err)
-		} else {
-			logrus.Infof("PostConnection: чат с ID %d создан между %s и %s", chat.ID, targetUserID, currentUserID)
-		}
-		json.NewEncoder(w).Encode(map[string]string{"message": "Connection mutually accepted"})
+		logrus.Errorf("PostConnection: ошибка поиска пользователя %s: %v", targetUserID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-
+	/*
+		// Проверка: существует ли уже ожидающий запрос от целевого пользователя к текущему.
+		var existing models.Connection
+		if err := connectionsDB.
+			Where("user_id = ? AND connection_id = ? AND status = ?", targetUserID, currentUserID, "pending").
+			First(&existing).Error; err == nil {
+			// Обратный запрос найден – обновляем его до accepted (взаимное подключение).
+			existing.Status = "accepted"
+			if err := connectionsDB.Save(&existing).Error; err != nil {
+				logrus.Errorf("PostConnection: ошибка обновления запроса от %s к %s: %v", targetUserID, currentUserID, err)
+				http.Error(w, "Error updating connection request", http.StatusInternalServerError)
+				return
+			}
+			logrus.Infof("PostConnection: взаимное подключение между %s и %s", currentUserID, targetUserID)
+			sockets.BroadcastNotification(targetUserID, "Your connection request has been mutually accepted!")
+			chatService := services.NewChatService(connectionsDB)
+			chat, err := chatService.CreateChat(targetUserID, currentUserID)
+			if err != nil {
+				logrus.Errorf("PostConnection: ошибка создания чата между %s и %s: %v", targetUserID, currentUserID, err)
+			} else {
+				logrus.Infof("PostConnection: чат с ID %d создан между %s и %s", chat.ID, targetUserID, currentUserID)
+			}
+			json.NewEncoder(w).Encode(map[string]string{"message": "Connection mutually accepted"})
+			return
+		}
+	*/
 	// Проверка на дублирование запроса (в любом направлении).
 	var duplicate models.Connection
 	if err := connectionsDB.

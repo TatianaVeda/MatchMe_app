@@ -185,14 +185,12 @@ const EditProfile = () => {
 
       // Обновляем профиль
       await updateMyProfile({
-                firstName: values.firstName,
-                lastName:  values.lastName,
-                about:     values.about,
-                city:      values.city.name,
-                latitude:  values.city.lat,
-                longitude: values.city.lon
-              });
-      // Обновляем биографию, включая lookingFor
+        firstName: values.firstName,
+        lastName: values.lastName,
+        about: values.about,
+        city: values.city, // Передаём только название города
+      });
+      // Обновляем биографию
       await updateMyBio({
         interests: values.interests.join(' '),
         hobbies:   values.hobbies.join(' '),

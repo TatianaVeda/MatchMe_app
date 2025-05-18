@@ -193,7 +193,6 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid requested user ID", http.StatusBadRequest)
 		return
 	}
-
 	allowed, err := userHasAccess(currentUserID, requestedUserID)
 	if err != nil {
 		logrus.Errorf("GetUser: error checking access for user %s: %v", requestedUserID, err)
@@ -273,7 +272,11 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	logrus.Infof("Profile of user %s retrieved by user %s", requestedUserID, currentUserID)
 	response := map[string]interface{}{
-		"about": profile.About,
+		"about":     profile.About,
+		"firstName": profile.FirstName,
+		"lastName":  profile.LastName,
+		"photoUrl":  profile.PhotoURL,
+		"city":      profile.City,
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -328,9 +331,8 @@ func GetUserBio(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.First(&bio, "user_id = ?", requestedUserID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logrus.Warnf("GetUserBio: bio for user %s not found, returning empty", requestedUserID)
-			empty := models.Bio{UserID: requestedUserID}
-			json.NewEncoder(w).Encode(empty)
+			logrus.Warnf("GetUserBio: bio for user %s not found", requestedUserID)
+			http.Error(w, "Bio not found", http.StatusNotFound)
 			return
 		}
 		logrus.Errorf("GetUserBio: failed to get bio for user %s: %v", requestedUserID, err)
@@ -449,12 +451,11 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	// }
 	if err := db.First(&bio, "user_id = ?", userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logrus.Warnf("GetUserBio: bio for user %s not found, returning empty", userID)
-			empty := models.Bio{UserID: userID}
-			json.NewEncoder(w).Encode(empty)
+			logrus.Warnf("GetCurrentUserBio: bio for user %s not found", userID)
+			http.Error(w, "Bio not found", http.StatusNotFound)
 			return
 		}
-		logrus.Errorf("GetUserBio: failed to get bio for user %s: %v", userID, err)
+		logrus.Errorf("GetCurrentUserBio: failed to get bio for user %s: %v", userID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -477,3 +478,8 @@ func GetCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	logrus.Infof("Bio for current user %s retrieved", userID)
 	json.NewEncoder(w).Encode(bio)
 }
+
+// Геттер для тестов и других пакетов
+/* func GetDB() *gorm.DB {
+	return db
+} */
