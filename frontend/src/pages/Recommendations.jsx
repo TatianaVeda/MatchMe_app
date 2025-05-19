@@ -367,6 +367,7 @@ import { getRecommendations, declineRecommendation } from '../api/recommendation
 import { getUser, getUserBio } from '../api/user';
 import { sendConnectionRequest } from '../api/connections';
 import { getConnections, getPendingConnections } from '../api/connections';
+import { getSentConnections } from '../api/connections';
 const cityOptions = [
   { name: 'Helsinki', lat: 60.1699, lon: 24.9384 },
   { name: 'Espoo', lat: 60.2055, lon: 24.6559 },
@@ -417,20 +418,42 @@ useEffect(() => {
     });
 }, []);
 
+const [sent, setSent] = useState([]);
+
+useEffect(() => {
+  Promise.all([
+    getPendingConnections(),
+    getSentConnections()
+  ]).then(([pend, sent]) => {
+    setPending(pend);
+    setSent(sent);
+  });
+}, []);
+
 // 2) Сохраняем его каждый раз при изменении
 // useEffect(() => {
 //   localStorage.setItem('sentRequests', JSON.stringify(sentRequests));
 // }, [sentRequests]);
 
 // 1) Вынесем функцию загрузки связей в константу:
+// const fetchLinks = async () => {
+//     try {
+//       const [conns, pend] = await Promise.all([
+//         getConnections(),
+//         getPendingConnections(),
+//       ]);
+//       setConnections(conns);
+//       setPending(pend);
 const fetchLinks = async () => {
-    try {
-      const [conns, pend] = await Promise.all([
-        getConnections(),
-        getPendingConnections(),
-      ]);
-      setConnections(conns);
-      setPending(pend);
+  try {
+    const [conns, pend, sent] = await Promise.all([
+      getConnections(),
+      getPendingConnections(),
+      getSentConnections(),
+    ]);
+    setConnections(conns);
+    setPending(pend);
+    setSent(sent);
     } catch {
       toast.error('Не удалось загрузить связи');
     }
@@ -686,7 +709,9 @@ setRecommendations(filtered.slice(0, 10));
                 <CardActions>
                   {(() => {
                     const isFriend     = connections.includes(rec.id);
-                    const isPendingReq = pending   .includes(rec.id);
+                    //const isPendingReq = pending   .includes(rec.id);
+                    const isPendingReq = pending.includes(rec.id) || sent.includes(rec.id);
+
 
                     if (isFriend) {
                       return (

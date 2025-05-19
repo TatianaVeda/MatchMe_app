@@ -2,6 +2,9 @@ import api from './index';
 export const getUser = async (userId) => {
   try {
     const response = await api.get(`/users/${userId}`);
+    // if (response.status === 204) {
+    //   return null;
+    // }
     return response.data;
   } catch (error) {
     if (error.response && (error.response.status === 404 || error.response.status === 403)) {

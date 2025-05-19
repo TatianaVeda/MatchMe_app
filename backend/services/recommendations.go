@@ -649,22 +649,40 @@ func (rs *RecommendationService) GetNearbyUsers(
 	fmt.Printf("[DEBUG] Excluding user ID: %s\n", excludeID)
 	var list []Nearby
 	err := rs.DB.
+		// SELECT
+		//   user_id   AS id,
+		//   earth_distance(earth_loc, ll_to_earth(?, ?)) / 1000.0 AS distance
+		// FROM profiles
+		// WHERE
+		//   earth_box(ll_to_earth(?, ?), ?) @> earth_loc
+		//   AND earth_distance(earth_loc, ll_to_earth(?, ?)) <= ?
+		//   AND user_id != ?
+		// ORDER BY distance ASC
+		// LIMIT ?
 		Raw(`
-            SELECT
-              user_id   AS id,
-              earth_distance(earth_loc, ll_to_earth(?, ?)) / 1000.0 AS distance
-            FROM profiles
-            WHERE 
-              earth_box(ll_to_earth(?, ?), ?) @> earth_loc
-              AND earth_distance(earth_loc, ll_to_earth(?, ?)) <= ?
-              AND user_id != ?
-            ORDER BY distance ASC
-            LIMIT ?
+			SELECT
+			p.user_id   AS id,
+			earth_distance(p.earth_loc, ll_to_earth(?, ?)) / 1000.0 AS distance
+		  FROM profiles p
+		  WHERE 
+			earth_box(ll_to_earth(?, ?), ?) @> p.earth_loc
+			AND earth_distance(p.earth_loc, ll_to_earth(?, ?)) <= ?
+			AND p.user_id != ?
+			AND NOT EXISTS (
+			  SELECT 1
+			  FROM recommendations r
+			  WHERE
+				r.user_id       = ?
+				AND r.rec_user_id = p.user_id
+				AND r.status     = 'declined'
+			)
+		  ORDER BY distance ASC
+		  LIMIT ?
         `,
 			lat, lon,
 			lat, lon, maxMeters,
 			lat, lon, maxMeters,
-			excludeID, limit,
+			excludeID, excludeID, limit,
 		).
 		Scan(&list).Error
 	if err != nil {
@@ -677,6 +695,57 @@ func (rs *RecommendationService) GetNearbyUsers(
 	}
 	return list, nil
 }
+
+// func (rs *RecommendationService) GetNearbyUsers(
+// 	lat, lon, maxRadius float64,
+// 	limit int,
+// 	excludeID uuid.UUID,
+// ) ([]Nearby, error) {
+// 	maxMeters := maxRadius * 1000.0
+// 	fmt.Printf("[DEBUG] Searching nearby users from lat=%.6f, lon=%.6f, radius=%.2f km\n", lat, lon, maxRadius)
+// 	fmt.Printf("[DEBUG] Excluding user ID: %s\n", excludeID)
+// 	var list []Nearby
+// 	err := rs.DB.
+// 		Raw(`
+//             SELECT
+//               user_id   AS id,
+//               earth_distance(earth_loc, ll_to_earth(?, ?)) / 1000.0 AS distance
+//             FROM profiles
+//             WHERE
+//               earth_box(ll_to_earth(?, ?), ?) @> earth_loc
+//               AND earth_distance(earth_loc, ll_to_earth(?, ?)) <= ?
+// 			  AND user_id != ?
+// 			  AND NOT EXISTS (
+// 				SELECT 1 FROM recommendations
+// 				WHERE
+// 				  (
+// 					(user_id = ? AND rec_user_id = profiles.user_id)
+// 					OR
+// 					(user_id = profiles.user_id AND rec_user_id = ?)
+// 				  )
+// 				  AND status = 'declined'
+// 			)
+//             ORDER BY distance ASC
+//             LIMIT ?
+//         `,
+// 			lat, lon, // for SELECT and earth_box
+// 			lat, lon, maxMeters, // for earth_box
+// 			lat, lon, maxMeters, // for earth_distance
+// 			excludeID,            // for user_id != ?
+// 			excludeID, excludeID, // for NOT EXISTS subquery (2 times)
+// 			limit,
+// 		).
+// 		Scan(&list).Error
+// 	if err != nil {
+// 		fmt.Printf("[ERROR] Nearby query failed: %v\n", err)
+// 		return nil, err
+// 	}
+// 	fmt.Printf("[DEBUG] Nearby users found: %d\n", len(list))
+// 	for _, n := range list {
+// 		fmt.Printf("[DEBUG] User %s at %.2f km\n", n.ID, n.Distance)
+// 	}
+// 	return list, nil
+// }
 
 func (rs *RecommendationService) GetRecommendationsForUser(
 	currentUserID uuid.UUID,

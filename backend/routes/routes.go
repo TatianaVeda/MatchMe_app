@@ -75,6 +75,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	authRouter.HandleFunc("/recommendations/{id}/decline", controllers.DeclineRecommendation).Methods(http.MethodPost)
 	authRouter.HandleFunc("/connections", controllers.GetConnections).Methods(http.MethodGet)
 	authRouter.HandleFunc("/connections/pending", controllers.GetPendingConnections).Methods(http.MethodGet)
+	authRouter.HandleFunc("/connections/sent", controllers.GetSentConnections).Methods(http.MethodGet)
 	authRouter.HandleFunc("/connections/{id}", controllers.PostConnection).Methods(http.MethodPost)
 	authRouter.HandleFunc("/connections/{id}", controllers.PutConnection).Methods(http.MethodPut)
 	authRouter.HandleFunc("/connections/{id}", controllers.DeleteConnection).Methods(http.MethodDelete)

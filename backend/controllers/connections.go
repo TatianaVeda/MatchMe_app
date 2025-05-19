@@ -302,35 +302,103 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 // 	json.NewEncoder(w).Encode(pendingIDs)
 // }
 
+// func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
+// 	userIDStr, ok := r.Context().Value("userID").(string)
+// 	if !ok {
+// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+// 		return
+// 	}
+// 	currentUserID, _ := uuid.Parse(userIDStr)
+
+// 	// берем и входящие, и исходящие pending-заявки
+// 	var conns []models.Connection
+// 	if err := connectionsDB.
+// 		Where("((user_id = ? AND status = ?) OR (connection_id = ? AND status = ?))",
+// 			currentUserID, "pending",
+// 			currentUserID, "pending").
+// 		Find(&conns).Error; err != nil {
+// 		http.Error(w, "Error fetching pending connections", http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	// собираем IDs другой стороны
+// 	pendingIDs := make([]uuid.UUID, 0, len(conns))
+// 	for _, c := range conns {
+// 		if c.UserID == currentUserID {
+// 			pendingIDs = append(pendingIDs, c.ConnectionID) // исходящие
+// 		} else {
+// 			pendingIDs = append(pendingIDs, c.UserID) // входящие
+// 		}
+// 	}
+
+// 	w.Header().Set("Content-Type", "application/json")
+// 	json.NewEncoder(w).Encode(pendingIDs)
+// }
+
+// GetPendingConnections возвращает только входящие запросы (status="pending").
 func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		logrus.Error("GetPendingConnections: userID не найден в контексте")
+		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
 		return
 	}
-	currentUserID, _ := uuid.Parse(userIDStr)
+	currentUserID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		logrus.Errorf("GetPendingConnections: неверный userID: %v", err)
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		return
+	}
 
-	// берем и входящие, и исходящие pending-заявки
 	var conns []models.Connection
 	if err := connectionsDB.
-		Where("((user_id = ? AND status = ?) OR (connection_id = ? AND status = ?))",
-			currentUserID, "pending",
-			currentUserID, "pending").
+		Where("connection_id = ? AND status = ?", currentUserID, "pending").
 		Find(&conns).Error; err != nil {
+		logrus.Errorf("GetPendingConnections: ошибка получения входящих запросов: %v", err)
 		http.Error(w, "Error fetching pending connections", http.StatusInternalServerError)
 		return
 	}
 
-	// собираем IDs другой стороны
-	pendingIDs := make([]uuid.UUID, 0, len(conns))
+	incomingIDs := make([]uuid.UUID, 0, len(conns))
 	for _, c := range conns {
-		if c.UserID == currentUserID {
-			pendingIDs = append(pendingIDs, c.ConnectionID) // исходящие
-		} else {
-			pendingIDs = append(pendingIDs, c.UserID) // входящие
-		}
+		incomingIDs = append(incomingIDs, c.UserID)
 	}
 
+	logrus.Infof("GetPendingConnections: найдено %d входящих запросов для %s", len(incomingIDs), currentUserID)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(pendingIDs)
+	json.NewEncoder(w).Encode(incomingIDs)
+}
+
+// GetSentConnections возвращает список исходящих (sent) запросов со статусом "pending".
+func GetSentConnections(w http.ResponseWriter, r *http.Request) {
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		logrus.Error("GetSentConnections: userID не найден в контексте")
+		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
+		return
+	}
+	currentUserID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		logrus.Errorf("GetSentConnections: неверный userID: %v", err)
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
+		return
+	}
+
+	var conns []models.Connection
+	if err := connectionsDB.
+		Where("user_id = ? AND status = ?", currentUserID, "pending").
+		Find(&conns).Error; err != nil {
+		logrus.Errorf("GetSentConnections: ошибка получения исходящих запросов для %s: %v", currentUserID, err)
+		http.Error(w, "Error fetching sent connections", http.StatusInternalServerError)
+		return
+	}
+
+	sentIDs := make([]uuid.UUID, 0, len(conns))
+	for _, c := range conns {
+		sentIDs = append(sentIDs, c.ConnectionID)
+	}
+
+	logrus.Infof("GetSentConnections: найдено %d исходящих запросов для %s", len(sentIDs), currentUserID)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(sentIDs)
 }
