@@ -219,13 +219,28 @@ const Friends = () => {
   };
 
   // load full user objects given an array of IDs
+  // const loadUsers = async (ids) => {
+  //   return Promise.all(ids.map(async id => {
+  //     const u = await getUser(id);
+  //     return { id, ...u };
+  //   }));
+  // };
+
   const loadUsers = async (ids) => {
-    return Promise.all(ids.map(async id => {
+    const rawUsers = await Promise.all(ids.map(async id => {
       const u = await getUser(id);
       return { id, ...u };
     }));
+    return await fetchOnlineStatusForUsers(rawUsers);
   };
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchFriends();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);  
+  
   const fetchFriends = async () => {
     const ids = await getConnections();
     setFriends(await loadUsers(ids));
@@ -240,6 +255,21 @@ const Friends = () => {
     const ids = await getSentConnections();
     setOutgoing(await loadUsers(ids));
   };
+
+  const fetchOnlineStatusForUsers = async (users) => {
+    const updated = await Promise.all(users.map(async (u) => {
+      try {
+        const res = await fetch(`/api/user/online?user_id=${u.id}`);
+        const data = await res.json();
+        return { ...u, online: data.online };
+      } catch (err) {
+        console.error(`Error fetching status for user ${u.id}:`, err);
+        return { ...u, online: false };
+      }
+    }));
+    return updated;
+  };
+  
 
   useEffect(() => {
     setLoading(true);

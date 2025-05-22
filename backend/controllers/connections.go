@@ -102,7 +102,7 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logrus.Infof("PostConnection: взаимное подключение между %s и %s", currentUserID, targetUserID)
-		sockets.BroadcastNotification(targetUserID, "Your connection request has been mutually accepted!")
+		//sockets.BroadcastNotification(targetUserID, "Your connection request has been mutually accepted!")
 		chatService := services.NewChatService(connectionsDB)
 		chat, err := chatService.CreateChat(targetUserID, currentUserID)
 		if err != nil {
@@ -137,7 +137,8 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logrus.Infof("PostConnection: запрос на подключение отправлен от %s к %s", currentUserID, targetUserID)
-	sockets.BroadcastNotification(targetUserID, "You have a new connection request!")
+	//sockets.BroadcastNotification(targetUserID, "You have a new connection request!")
+	go sockets.BroadcastNotification(targetUserID, `{"type":"connection_request"}`)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Connection request sent"})
 }
@@ -195,7 +196,8 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logrus.Infof("PutConnection: пользователь %s принял запрос от %s", currentUserID, senderUserID)
-		sockets.BroadcastNotification(senderUserID, "Your connection request has been accepted!")
+		//sockets.BroadcastNotification(senderUserID, "Your connection request has been accepted!")
+		go sockets.BroadcastNotification(senderUserID, `{"type":"connection_request_accepted"}`)
 		chatService := services.NewChatService(connectionsDB)
 		chat, err := chatService.CreateChat(senderUserID, currentUserID)
 		if err != nil {
@@ -206,12 +208,13 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"message": "Connection accepted"})
 	case "decline":
 		if err := connectionsDB.Delete(&connection).Error; err != nil {
-			logrus.Errorf("PutConnection: ошибка удаления запроса от %s к %s: %v", senderUserID, currentUserID, err)
+			logrus.Errorf("!!!!!!!11PutConnection: ошибка удаления запроса от %s к %s: %v", senderUserID, currentUserID, err)
 			http.Error(w, "Error deleting connection request", http.StatusInternalServerError)
 			return
 		}
-		logrus.Infof("PutConnection: пользователь %s отклонил запрос от %s", currentUserID, senderUserID)
-		sockets.BroadcastNotification(senderUserID, "Your connection request has been declined.")
+		logrus.Infof("!!!!!!!!!PutConnection: пользователь %s отклонил запрос от %s", currentUserID, senderUserID)
+		//sockets.BroadcastNotification(senderUserID, "Your connection request has been declined.")
+		go sockets.BroadcastNotification(senderUserID, `{"type":"connection_request_declined"}`)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Connection declined"})
 	default:
 		logrus.Warn("PutConnection: получено неверное действие")

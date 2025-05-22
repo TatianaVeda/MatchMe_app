@@ -11,10 +11,14 @@ import (
 	"time"
 
 	"m/backend/config"
+	"m/backend/controllers"
 	"m/backend/middleware"
 	"m/backend/models"
 	"m/backend/routes"
+	"m/backend/services"
 	"m/backend/sockets"
+
+	"github.com/go-redis/redis/v8"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -64,17 +68,30 @@ func main() {
 	if err != nil {
 		log.Fatalf("Ошибка подключения к БД: %v", err)
 	}
+
+	// 1) Настраиваем Redis для presence
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     config.AppConfig.RedisURL,
+		Password: "",
+		DB:       0,
+	})
+	presenceService := services.NewPresenceService(rdb)
+
 	// Если используется GORM v2, явного закрытия соединения не требуется
 
 	// Устанавливаем экземпляр базы данных для пакета sockets,
 	// чтобы функции обновления онлайн-статуса могли её использовать.
 	sockets.SetDB(db)
+	// Передаём PresenceService в контроллер чатов и в контроллер рекомендаций
+	controllers.InitChatsController(db, presenceService)
+	controllers.InitRecommendationControllerService(db, presenceService)
 	// Создаем маршрутизатор и применяем глобальный CORS-мидлвар
 	router := mux.NewRouter()
 	router.Use(middleware.CorsMiddleware)
 
 	// Инициализируем все маршруты, передавая подключение к БД
-	routes.InitRoutes(router, db)
+	//routes.InitRoutes(router, db)
+	routes.InitRoutes(router, db, presenceService)
 
 	// Раздача статики для картинок
 	// любой запрос к /static/... будет браться из папки ./static
@@ -88,9 +105,24 @@ func main() {
 		http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	// Запускаем WebSocket-сервер в отдельной горутине (на порту, указанном в конфигурации)
+	// go func() {
+	// 	// sockets.InitWebSocketServer(presenceService)
+	// 	// wsAddr := ":" + config.AppConfig.WebSocketPort
+
+	// 	wsAddr := ":" + config.AppConfig.WebSocketPort
+	// 	err := sockets.InitWebSocketServer(presenceService, wsAddr)
+	// 	if err := sockets.RunWebSocketServer(wsAddr); err != nil {
+	// 		log.Fatalf("Ошибка запуска WebSocket сервера: %v", err)
+	// 	}
+
+	// 	// if err := sockets.RunWebSocketServer(wsAddr); err != nil {
+	// 	// 	log.Fatalf("Ошибка запуска WebSocket сервера: %v", err)
+	// 	// }
+	// }()
+
 	go func() {
 		wsAddr := ":" + config.AppConfig.WebSocketPort
-		if err := sockets.RunWebSocketServer(wsAddr); err != nil {
+		if err := sockets.InitWebSocketServer(presenceService, wsAddr); err != nil {
 			log.Fatalf("Ошибка запуска WebSocket сервера: %v", err)
 		}
 	}()
@@ -140,6 +172,7 @@ func installDependencies() {
 		"github.com/golang-jwt/jwt/v4",
 		"github.com/joho/godotenv",
 		"github.com/sirupsen/logrus",
+		"github.com/go-redis/redis/v8@latest",
 	}
 
 	for _, dep := range deps {

@@ -3,6 +3,7 @@ package routes
 import (
 	"m/backend/controllers"
 	"m/backend/middleware"
+	"m/backend/services"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -11,19 +12,25 @@ import (
 )
 
 // InitRoutes инициализирует все маршруты приложения.
-func InitRoutes(router *mux.Router, db *gorm.DB) {
+func InitRoutes(router *mux.Router, db *gorm.DB, ps *services.PresenceService) {
 	logrus.Info("Initializing routes...")
 	// Инициализируем контроллеры с подключением к базе данных.
 	controllers.InitUserController(db)
 	// Инициализируем контроллер для рекомендаций через сервисный слой.
-	controllers.InitRecommendationControllerService(db)
+	//controllers.InitRecommendationControllerService(db)
 	controllers.InitConnectionsController(db)
-	controllers.InitChatsController(db)
+	//controllers.InitChatsController(db)
+	// создаём один PresenceService
+	//ps := services.NewPresenceService( /* тут ваши параметры, например Redis-клиент */ )
+
+	controllers.InitRecommendationControllerService(db, ps)
+	controllers.InitChatsController(db, ps)
 	controllers.InitProfileController(db)        // Инициализация контроллеров профиля
 	controllers.InitFixturesController(db)       // Инициализация фикстур
 	controllers.InitAuthenticationController(db) // Добавляем инициализацию нашего нового контроллера
 	controllers.InitPreferencesController(db)
 	controllers.InitCitiesController(db)
+	presenceCtrl := controllers.NewPresenceController(ps)
 
 	// --- Публичные эндпоинты пользователей ---
 
@@ -35,7 +42,8 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	router.HandleFunc("/refresh", controllers.RefreshToken).Methods(http.MethodPost)
 	router.HandleFunc("/login", controllers.Login).Methods(http.MethodPost)
 	router.HandleFunc("/cities", controllers.GetCities).Methods(http.MethodGet)
-
+	//router.HandleFunc("/api/user/online", services.GetUserOnlineStatusHandler(ps)).Methods("GET")
+	router.HandleFunc("/api/user/online", presenceCtrl.GetOnlineStatus).Methods("GET")
 	// --- Эндпоинты для аутентифицированного пользователя ---
 	// Создаем subrouter для защищенных маршрутов и подключаем AuthMiddleware.
 	authRouter := router.PathPrefix("/").Subrouter()
@@ -86,6 +94,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB) {
 	authRouter.HandleFunc("/me/preferences", controllers.GetPreferences).Methods(http.MethodGet)
 	authRouter.HandleFunc("/me/preferences", controllers.UpdatePreferences).Methods(http.MethodPut)
 
+	//authRouter.HandleFunc("/api/user/online", services.GetUserOnlineStatusHandler(ps)).Methods("GET")
 	// --- Административные эндпоинты ---
 	// создаём отдельный subrouter с префиксом `/admin`, внутри — AuthMiddleware и затем AdminOnly
 	adminOnly := middleware.AdminOnly(db)

@@ -1,3 +1,24 @@
+# version: '3.8'
+# services:
+#   db:
+#     image: postgres:15-alpine
+#     container_name: m_postgres
+#     restart: unless-stopped
+#     env_file:
+#       - backend/config/config_local.env
+#     environment:
+#       # Переопределяем, чтобы PostgreSQL читал переменные
+#       POSTGRES_USER: ${POSTGRES_USER:-user}
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+#       POSTGRES_DB: ${POSTGRES_DB:-sopostavmenya}
+#     ports:
+#       - '${DB_PORT:-5433}:5432'
+#     volumes:
+#       - pgdata:/var/lib/postgresql/data
+
+# volumes:
+#   pgdata: {}
+
 version: '3.8'
 services:
   db:
@@ -7,7 +28,6 @@ services:
     env_file:
       - backend/config/config_local.env
     environment:
-      # Переопределяем, чтобы PostgreSQL читал переменные
       POSTGRES_USER: ${POSTGRES_USER:-user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: ${POSTGRES_DB:-sopostavmenya}
@@ -16,5 +36,15 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: m_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+
 volumes:
   pgdata: {}
+  redisdata: {}

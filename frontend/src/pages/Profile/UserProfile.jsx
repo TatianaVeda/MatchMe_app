@@ -183,26 +183,6 @@ const UserProfile = () => {
         ) : (
           <Typography>Биография недоступна</Typography>
         )}
-      {/* {connectedIds.includes(id) && (
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{ mt: 3 }}
-          onClick={handleChat}
-        >
-          Перейти в чат
-        </Button>
-      )} */}
-      {/* {connectedIds.includes(id) && (
-  <>
-    <Button
-      variant="contained"
-      color="primary"
-      sx={{ mt: 3, mr: 1 }}
-      onClick={handleChat}
-    >
-      Перейти в чат
-    </Button> */}
     {connectedIds.includes(id) && (
         <>
           {/* 2) Новая кнопка «Перейти в чат» */}

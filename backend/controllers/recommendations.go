@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"m/backend/models"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,18 +17,31 @@ import (
 	"gorm.io/gorm"
 )
 
+// containsUUID проверяет, есть ли x в срезе arr.
+func containsUUID(arr []uuid.UUID, x uuid.UUID) bool {
+	for _, v := range arr {
+		if v == x {
+			return true
+		}
+	}
+	return false
+}
+
 // RecommendationOutput — DTO для ответа с расстоянием.
 type RecommendationOutput struct {
 	ID       uuid.UUID `json:"id"`
 	Distance float64   `json:"distance"`
 	Score    float64   `json:"score"`
+	Online   bool      `json:"online"`
 }
 
 var recommendationService *services.RecommendationService
+var presenceService *services.PresenceService
 
 // InitRecommendationControllerService вызывается из main.go или routes.go
-func InitRecommendationControllerService(db *gorm.DB) {
+func InitRecommendationControllerService(db *gorm.DB, ps *services.PresenceService) {
 	recommendationService = services.NewRecommendationService(db, nil)
+	presenceService = ps // ✅ добавили
 	logrus.Info("Recommendations controller initialized")
 }
 
@@ -73,6 +87,29 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Mode:", mode)
 	fmt.Println("UseProfile:", useProfile)
+
+	// 0) Выгружаем список pending-запросов и declined-рекомендаций
+	var pendingIDs, declinedIDs []uuid.UUID
+	// 0.1 pending: кто отправил вам запрос, а вы ещё не приняли
+	recommendationService.DB.
+		Model(&models.Connection{}).
+		Where("connection_id = ? AND status = ?", currentUserID, "pending").
+		Pluck("user_id", &pendingIDs)
+	// 0.2 declined: кого вы уже отклонили (таблица recommendation_declines)
+	// recommendationService.DB.
+	// 	Table("recommendation_declines").
+	// 	Where("user_id = ?", currentUserID).
+	// 	Pluck("recommendation_id", &declinedIDs)
+
+	// recommendationService.DB.
+	// 	Table("recommendation_declines").
+	// 	Where("user_id = ?", currentUserID).
+	// 	Pluck("recommendation_id", &declinedIDs)
+
+	recommendationService.DB.
+		Model(&models.Recommendation{}).
+		Where("user_id = ? AND status = ?", currentUserID, "declined").
+		Pluck("rec_user_id", &declinedIDs)
 
 	var (
 		idsWithDist []services.RecommendationWithDistance
@@ -195,11 +232,27 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 5) Отфильтровываем из выдачи тех, кому вы уже написали или кого отклонили
+	filtered := make([]services.RecommendationWithDistance, 0, len(idsWithDist))
+	for _, rec := range idsWithDist {
+		if containsUUID(pendingIDs, rec.UserID) || containsUUID(declinedIDs, rec.UserID) {
+			continue
+		}
+		filtered = append(filtered, rec)
+	}
+	idsWithDist = filtered
+
 	// 5) Сериализуем ответ
 	if withDist {
 		out := make([]RecommendationOutput, len(idsWithDist))
 		for i, rec := range idsWithDist {
-			out[i] = RecommendationOutput{ID: rec.UserID, Distance: rec.Distance, Score: rec.Score}
+			online, _ := presenceService.IsOnline(rec.UserID.String()) // ✅ добавили
+			out[i] = RecommendationOutput{
+				ID:       rec.UserID,
+				Distance: rec.Distance,
+				Score:    rec.Score,
+				Online:   online, // ✅ установили флаг
+			}
 		}
 		json.NewEncoder(w).Encode(out)
 	} else {

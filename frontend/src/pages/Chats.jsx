@@ -1,12 +1,6 @@
 // /m/frontend/src/pages/Chats.jsx
 import React, { useState, useEffect } from 'react';
-import {
-  Container,
-  Typography,
-  Grid,
-  Skeleton,
-  Box
-} from '@mui/material';
+import { Container, Typography, Grid, Skeleton, Badge } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/index';
 import { toast } from 'react-toastify';
@@ -19,12 +13,11 @@ const Chats = () => {
   const { setChats } = useChatDispatch();
   const [loading, setLoading] = useState(true);
 
- //works, no pagination 
+  // 1) Загружаем список чатов
   useEffect(() => {
     const loadChats = async () => {
       try {
         const { data } = await api.get('/chats');
-        // нормализация: chatId → id
         const normalized = data.map(c => ({
           id:               c.chatId,
           otherUserID:      c.otherUserId,
@@ -40,7 +33,16 @@ const Chats = () => {
       }
     };
     loadChats();
-  }, [setChats]);  
+  }, [setChats]);
+
+  // 2) Функция перехода в чат
+  const handleChatClick = (chat) => {
+    if (chat.id) {
+      navigate(`/chat/${chat.id}`);
+    } else {
+      navigate(`/chat/new?other_user_id=${chat.otherUserID}`);
+    }
+  };
 
   if (loading) {
     return (
@@ -70,38 +72,32 @@ const Chats = () => {
       <Typography variant="h4" gutterBottom>Чаты</Typography>
       <Grid container spacing={2}>
         {chats.map(chat => (
-          // <Grid item xs={12} sm={6} md={4} key={chat.chat_id}>
-          <Grid item xs={12} sm={6} md={4} key={chat.id}>
-            <Box
-              sx={{ position: 'relative', cursor: 'pointer' }}
-              onClick={() => {
-                console.log('Chat ID:', chat.id); // Log chat.id
-                console.log('Other User ID:', chat.otherUserID); // Log chat.otherUserID
-               // если чат существует — открываем, иначе создаём новый
-               if (chat.id) {
-                navigate(`/chat/${chat.id}`);
-              } else {
-                navigate(`/chat/new?other_user_id=${chat.otherUserID}`);
-              }
-            }}
-          >
+          <Grid item xs={12} sm={6} md={4} key={chat.otherUserID}>
+            {/* Badge поверх аватарки */}
+            <Badge
+              badgeContent={chat.unreadCount}
+              color="error"
+              overlap="circular"
+              invisible={chat.unreadCount === 0}
+              anchorOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
               <UserCard
                 user={{
                   id:        chat.otherUserID,
                   firstName: chat.otherUser?.firstName,
                   lastName:  chat.otherUser?.lastName,
-                  photoUrl: chat.otherUser?.photoUrl,
-                  online:    chat.otherUserOnline
+                  photoUrl:  chat.otherUser?.photoUrl,
+                  online:    chat.otherUserOnline,
+                  connected: true, 
                 }}
+                showChat
+                onChatClick={() => handleChatClick(chat)}         // клик по иконке чата
+                onClick={() => navigate(`/users/${chat.otherUserID}`)} // клик по имени/аватару
               />
-              {chat.unreadCount > 0 && (
-                <Box sx={{ position: 'absolute', top: 8, right: 16 }}>
-                  <Typography variant="caption" color="error">
-                    {chat.unreadCount}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+            </Badge>
           </Grid>
         ))}
       </Grid>
@@ -110,3 +106,7 @@ const Chats = () => {
 };
 
 export default Chats;
+
+
+
+

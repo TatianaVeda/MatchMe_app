@@ -4,8 +4,10 @@
   "main": "index.js",
   "scripts": {
     "all": "chmod +x setup.sh && bash setup.sh",
+    "dev:redis": "docker compose up -d redis",
     "dev:db": "docker compose up -d db",
-    "dev": "npm run dev:db && concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev?old": "npm run dev:db && concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "npm run dev:db && npm run dev:redis && concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && go run main.go",
     "dev:frontend": "cd frontend && npm start",
     "test": "echo \"Error: no test specified\" && exit 1"

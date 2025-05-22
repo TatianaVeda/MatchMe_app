@@ -134,12 +134,11 @@ const UserCard = ({
       <CardActionArea>
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
           <Badge
-            color="success"
-            variant="dot"
-            invisible={!online}
-            overlap="circular"
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          >
+  color={ online ? "success" : "error" }  // если online=true — зелёный, иначе — красный
+  variant="dot"
+  overlap="circular"
+  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+>
             <Avatar
               src={photoUrl || undefined}
               alt={`${firstName} ${lastName}`}
