@@ -22,25 +22,6 @@ const Login = () => {
   const navigate = useNavigate();
   const dispatch = useAuthDispatch();
 
-  // const handleSubmit = async (values, { setSubmitting }) => {
-  //   try {
-  //     const data = await login({
-  //       email: values.email,
-  //       password: values.password,
-  //     });
-  //     dispatch({ type: 'LOGIN_SUCCESS', payload: data });
-  //     toast.success('Успешный вход в систему');
-  //     navigate('/me');
-  //   } catch (err) {
-  //     const msg =
-  //       err.response?.data?.message ||
-  //       'Ошибка входа. Проверьте введённые данные.';
-  //     toast.error(msg);
-  //   } finally {
-  //     setSubmitting(false);
-  //   }
-  // };
-
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
       const data = await login({
@@ -48,22 +29,12 @@ const Login = () => {
         password: values.password,
       });
   
-      // 🔒 Validate presence of token
       if (!data || !data.accessToken) {
         throw new Error('Ошибка: не удалось получить токен.');
       }
   
       dispatch({ type: 'LOGIN_SUCCESS', payload: data });
       toast.success('Успешный вход в систему');
-  
-      // 🔍 Optionally fetch profile here BEFORE navigating
-      // const profile = await GetCurrentUserProfile().catch(() => null);
-      // if (!profile) {
-      //   toast.error('Ошибка входа. Проверьте введённые данные.');
-      //   return;
-      // }
-  
-      // ✅ Now route only if profile exists
       if (values.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         navigate('/admin');
       } else {
@@ -79,39 +50,6 @@ const Login = () => {
       setSubmitting(false);
     }
   };
-  
-  
-
-  // const handleSubmit = async (values, { setSubmitting }) => {
-  //   try {
-  //     const data = await login({
-  //       email: values.email,
-  //       password: values.password,
-  //     });
-  
-  //     // Make sure login was truly successful
-  //     if (!data || !data.accessToken) {
-  //       throw new Error('Ошибка: пользователь не найден или токен отсутствует');
-  //     }
-  
-  //     dispatch({ type: 'LOGIN_SUCCESS', payload: data });
-  //     toast.success('Успешный вход в систему');
-  
-  //     if (values.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-  //       navigate('/admin');
-  //     } else {
-  //       navigate('/me');
-  //     }
-  //   } catch (err) {
-  //     const msg =
-  //       err.response?.data?.message ||
-  //       err.message ||
-  //       'Ошибка входа. Проверьте введённые данные.';
-  //     toast.error(msg);
-  //   } finally {
-  //     setSubmitting(false);
-  //   }
-  // }; 
 
   return (
     <Container maxWidth="sm">

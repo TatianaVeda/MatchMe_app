@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuthState } from '../../contexts/AuthContext';
 
-// Импорт API-методов
 import { getMyProfile, getMyBio } from '../../api/user';
 
 const MyProfile = () => {
@@ -14,15 +13,6 @@ const MyProfile = () => {
   const navigate = useNavigate();
   const { accessToken } = useAuthState();
 
-  // const fetchProfile = async () => {
-  //   try {
-  //     const data = await getMyProfile();
-  //     setProfile(data);
-  //   } catch (error) {
-  //     toast.error(error.response?.data?.message || 'Ошибка загрузки профиля');
-  //   }
-  // };
-
   const fetchProfile = async () => {
     try {
       const data = await getMyProfile();
@@ -31,7 +21,6 @@ const MyProfile = () => {
       const status = error.response?.status;
   
       if (status === 404) {
-        // Profile doesn't exist yet — don't show error
         setProfile(null);
       } else {
         toast.error(error.response?.data?.message || 'Ошибка загрузки профиля');
@@ -80,15 +69,6 @@ const MyProfile = () => {
     );
   }
 
-  // if (!profile) {
-  //   return (
-  //     <Container sx={{ mt: 4 }}>
-  //       <Typography variant="h6">Профиль не найден.</Typography>
-  //     </Container>
-  //   );
-  // }
-
-  // If profile is not found, show a message and a link to edit profile
   if (!profile) {
     return (
       <Container sx={{ mt: 4 }}>
@@ -115,21 +95,18 @@ const MyProfile = () => {
         </Typography>
       </Box>
 
-      {/* О себе */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="body1" color="textSecondary">
           {profile.about || 'Информация о пользователе не заполнена.'}
         </Typography>
       </Box>
 
-      {/* Город */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="body1">
           Город: {profile.city || 'Не указан'}
         </Typography>
       </Box>
 
-      {/* Биография */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>
           Биография

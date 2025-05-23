@@ -29,12 +29,11 @@ const musicOptions     = ["рок","джаз","классика","поп","хи�
 const foodOptions      = ["итальянская","азиатская","русская","французская","мексиканская"];
 const travelOptions    = ["пляж","горы","города","экспедиции","экотуризм"];
 
-// Добавлено поле lookingFor в схему валидации
 const EditProfileSchema = Yup.object().shape({
   firstName: Yup.string().max(255, 'Имя слишком длинное').required('Укажите имя'),
   lastName: Yup.string().max(255, 'Фамилия слишком длинная').required('Укажите фамилию'),
   about: Yup.string().max(1000, 'Описание слишком длинное'),
-  // city: Yup.string().required('Выберите город'),
+
   city: Yup.object({
     name: Yup.string().required(),
     lat: Yup.string().required(),
@@ -55,39 +54,7 @@ const EditProfile = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-  //   const loadData = async () => {
-  //            try {
-  //              // параллельно грузим профиль, биографию и предпочтения
-  //              const [profile, bio, prefs] = await Promise.all([
-  //                getMyProfile(),
-  //                getMyBio(),
-  //                getMyPreferences(),
-  //              ]);
-  // setInitialValues({
-  //         firstName: profile.firstName || '',
-  //         lastName: profile.lastName || '',
-  //         about: profile.about || '',
-  //         city: cityOptions.find(c => c.name === profile.city) || {
-  //           name:  profile.city || cityOptions[0].name,
-  //           lat:   profile.latitude  || cityOptions[0].lat,
-  //           lon:   profile.longitude || cityOptions[0].lon,
-  //         },
-  //         interests: bio.interests ? bio.interests.split(' ') : [],
-  //         hobbies:   bio.hobbies   ? bio.hobbies.split(' ')   : [],
-  //         music:     bio.music     ? bio.music.split(' ')     : [],
-  //         food:      bio.food      ? bio.food.split(' ')      : [],
-  //         travel:    bio.travel    ? bio.travel.split(' ')    : [],
-  //         lookingFor: bio.lookingFor || '',
-  //         priorityInterests: prefs.priorityInterests,
-  //         priorityHobbies:   prefs.priorityHobbies,
-  //         priorityMusic:     prefs.priorityMusic,
-  //         priorityFood:      prefs.priorityFood,
-  //         priorityTravel:    prefs.priorityTravel,
-  //       });
-  //     } catch {
-  //       toast.error('Ошибка загрузки данных профиля');
-  //     }
-  //   };
+  
     const loadData = async () => {
       try {
         const [profileRaw, bioRaw, prefsRaw] = await Promise.all([
@@ -172,18 +139,15 @@ const EditProfile = () => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      // Ensure coordinates are present
       let latitude = values.city.lat;
       let longitude = values.city.lon;
 
-      // If either lat or lon is missing or empty, fallback to city default
       if (!latitude || !longitude) {
         const fallbackCity = cityOptions.find(c => c.name === values.city.name);
         latitude = fallbackCity?.lat;
         longitude = fallbackCity?.lon;
       }
 
-      // Обновляем профиль
       await updateMyProfile({
                 firstName: values.firstName,
                 lastName:  values.lastName,
@@ -192,14 +156,13 @@ const EditProfile = () => {
                 latitude:  values.city.lat,
                 longitude: values.city.lon
               });
-      // Обновляем биографию, включая lookingFor
       await updateMyBio({
         interests: values.interests.join(' '),
         hobbies:   values.hobbies.join(' '),
         music:     values.music.join(' '),
         food:      values.food.join(' '),
         travel:    values.travel.join(' '),
-        lookingFor: values.lookingFor,  // сохраняем новое поле
+        lookingFor: values.lookingFor,  
         priorityInterests:   values.priorityInterests,
         priorityHobbies:     values.priorityHobbies,
         priorityMusic:       values.priorityMusic,
@@ -222,7 +185,6 @@ const EditProfile = () => {
           Редактировать профиль
         </Typography>
 
-      {/* Блок загрузки / удаления фото */}
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle1">Загрузить фото</Typography>
           <input
@@ -239,7 +201,6 @@ const EditProfile = () => {
           >
             Загрузить
           </Button>
-          {/* Новая кнопка удалить фото */}
           <Button
             variant="outlined"
             color="error"
@@ -252,7 +213,6 @@ const EditProfile = () => {
           {uploading && <Typography variant="body2">Загрузка...</Typography>}
         </Box>
 
-        {/* Геолокация */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6">Местоположение</Typography>
           <Button
@@ -264,17 +224,7 @@ const EditProfile = () => {
                 toast.error('Геолокация не поддерживается');
                 return;
               }
-              // navigator.geolocation.getCurrentPosition(
-              //   ({ coords }) => {
-              //     api.put('/me/profile', {
-              //       latitude: coords.latitude,
-              //       longitude: coords.longitude
-              //     })
-              //       .then(() => toast.success('Локация сохранена'))
-              //       .catch(() => toast.error('Не удалось сохранить координаты'));
-              //   },
-              //   () => toast.error('Не удалось получить местоположение')
-              // );
+              
               navigator.geolocation.getCurrentPosition(
                 ({ coords }) => {
                   api.put('/me/location', {
@@ -330,10 +280,8 @@ const EditProfile = () => {
                 helperText={<ErrorMessage name="about" />}
               />
 
-                {/* Город */}
      <FormControl fullWidth margin="normal" error={touched.city && Boolean(errors.city)}>
        <InputLabel id="city-label">Город</InputLabel>
-       {/* используем render-проп чтобы получить доступ к setFieldValue */}
        <Field name="city">
          {({ field, form }) => (
            <Select
@@ -361,7 +309,6 @@ const EditProfile = () => {
                 Биография
               </Typography>
 
-              {/* Interests */}
      <FormControl fullWidth margin="normal" error={touched.interests && Boolean(errors.interests)}>
        <InputLabel id="interests-label">Интересы</InputLabel>
        <Field name="interests">
@@ -387,7 +334,6 @@ const EditProfile = () => {
        <ErrorMessage name="interests" component="div" style={{ color: 'red' }} />
      </FormControl>
 
-     {/* Hobbies */}
      <FormControl fullWidth margin="normal" error={touched.hobbies && Boolean(errors.hobbies)}>
   <InputLabel id="hobbies-label">Хобби</InputLabel>
   <Field name="hobbies">
@@ -413,7 +359,6 @@ const EditProfile = () => {
   <ErrorMessage name="hobbies" component="div" style={{ color: 'red' }} />
 </FormControl>
 
-     {/* Music */}
      <FormControl fullWidth margin="normal" error={touched.music && Boolean(errors.music)}>
   <InputLabel id="music-label">Музыка</InputLabel>
   <Field name="music">
@@ -439,7 +384,6 @@ const EditProfile = () => {
   <ErrorMessage name="music" component="div" style={{ color: 'red' }} />
 </FormControl>
 
-     {/* Food */}
      <FormControl fullWidth margin="normal" error={touched.food && Boolean(errors.food)}>
   <InputLabel id="food-label">Еда</InputLabel>
   <Field name="food">
@@ -465,7 +409,6 @@ const EditProfile = () => {
   <ErrorMessage name="food" component="div" style={{ color: 'red' }} />
 </FormControl>
 
-     {/* Travel */}
      <FormControl fullWidth margin="normal" error={touched.travel && Boolean(errors.travel)}>
   <InputLabel id="travel-label">Путешествия</InputLabel>
   <Field name="travel">
@@ -491,7 +434,6 @@ const EditProfile = () => {
   <ErrorMessage name="travel" component="div" style={{ color: 'red' }} />
 </FormControl>
               
-              {/* Поле кого ищу */}
               <Field
                 name="lookingFor"
                 as={TextField}

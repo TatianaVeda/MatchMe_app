@@ -15,13 +15,11 @@ import (
 
 var connectionsDB *gorm.DB
 
-// InitConnectionsController инициализирует контроллер подключений.
 func InitConnectionsController(db *gorm.DB) {
 	connectionsDB = db
 	logrus.Info("Connections controller initialized")
 }
 
-// GetConnections возвращает список взаимных подключений (только статус "accepted").
 func GetConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -58,9 +56,7 @@ func GetConnections(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(connectedIDs)
 }
 
-// PostConnection обрабатывает отправку запроса на подключение.
 func PostConnection(w http.ResponseWriter, r *http.Request) {
-	// Извлечение идентификатора текущего пользователя из контекста.
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
 		logrus.Error("PostConnection: userID не найден в контексте")
@@ -74,7 +70,6 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем идентификатор целевого пользователя из URL.
 	vars := mux.Vars(r)
 	targetIDStr := vars["id"]
 	targetUserID, err := uuid.Parse(targetIDStr)
@@ -89,12 +84,10 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверка: существует ли уже ожидающий запрос от целевого пользователя к текущему.
 	var existing models.Connection
 	if err := connectionsDB.
 		Where("user_id = ? AND connection_id = ? AND status = ?", targetUserID, currentUserID, "pending").
 		First(&existing).Error; err == nil {
-		// Обратный запрос найден – обновляем его до accepted (взаимное подключение).
 		existing.Status = "accepted"
 		if err := connectionsDB.Save(&existing).Error; err != nil {
 			logrus.Errorf("PostConnection: ошибка обновления запроса от %s к %s: %v", targetUserID, currentUserID, err)
@@ -102,7 +95,7 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logrus.Infof("PostConnection: взаимное подключение между %s и %s", currentUserID, targetUserID)
-		//sockets.BroadcastNotification(targetUserID, "Your connection request has been mutually accepted!")
+
 		chatService := services.NewChatService(connectionsDB)
 		chat, err := chatService.CreateChat(targetUserID, currentUserID)
 		if err != nil {
@@ -114,7 +107,6 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверка на дублирование запроса (в любом направлении).
 	var duplicate models.Connection
 	if err := connectionsDB.
 		Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?))",
@@ -125,7 +117,6 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Создаем новый запрос на подключение со статусом "pending".
 	newConn := models.Connection{
 		UserID:       currentUserID,
 		ConnectionID: targetUserID,
@@ -137,15 +128,13 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logrus.Infof("PostConnection: запрос на подключение отправлен от %s к %s", currentUserID, targetUserID)
-	//sockets.BroadcastNotification(targetUserID, "You have a new connection request!")
+
 	go sockets.BroadcastNotification(targetUserID, `{"type":"connection_request"}`)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Connection request sent"})
 }
 
-// PutConnection обрабатывает принятие или отклонение запроса на подключение.
 func PutConnection(w http.ResponseWriter, r *http.Request) {
-	// Извлекаем идентификатор текущего пользователя.
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
 		logrus.Error("PutConnection: userID не найден в контексте")
@@ -159,7 +148,6 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем идентификатор отправителя запроса из URL.
 	vars := mux.Vars(r)
 	senderIDStr := vars["id"]
 	senderUserID, err := uuid.Parse(senderIDStr)
@@ -196,7 +184,7 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logrus.Infof("PutConnection: пользователь %s принял запрос от %s", currentUserID, senderUserID)
-		//sockets.BroadcastNotification(senderUserID, "Your connection request has been accepted!")
+
 		go sockets.BroadcastNotification(senderUserID, `{"type":"connection_request_accepted"}`)
 		chatService := services.NewChatService(connectionsDB)
 		chat, err := chatService.CreateChat(senderUserID, currentUserID)
@@ -212,8 +200,8 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Error deleting connection request", http.StatusInternalServerError)
 			return
 		}
-		logrus.Infof("!!!!!!!!!PutConnection: пользователь %s отклонил запрос от %s", currentUserID, senderUserID)
-		//sockets.BroadcastNotification(senderUserID, "Your connection request has been declined.")
+		logrus.Infof("PutConnection: пользователь %s отклонил запрос от %s", currentUserID, senderUserID)
+
 		go sockets.BroadcastNotification(senderUserID, `{"type":"connection_request_declined"}`)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Connection declined"})
 	default:
@@ -223,7 +211,6 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteConnection удаляет уже установленное взаимное подключение.
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -260,7 +247,7 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logrus.Infof("DeleteConnection: подключение между %s и %s успешно удалено", currentUserID, targetUserID)
-	// ---- ВСТАВКА: удаляем чат между этими пользователями ----
+
 	if err := connectionsDB.
 		Where("(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",
 			currentUserID, targetUserID, targetUserID, currentUserID).
@@ -272,73 +259,6 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Disconnected successfully"})
 }
 
-// // Новый метод для входящих запросов
-// func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
-// 	userIDStr, ok := r.Context().Value("userID").(string)
-// 	if !ok {
-// 		logrus.Error("GetPendingConnections: userID не найден в контексте")
-// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-// 		return
-// 	}
-// 	currentUserID, err := uuid.Parse(userIDStr)
-// 	if err != nil {
-// 		logrus.Errorf("GetPendingConnections: неверный userID: %v", err)
-// 		http.Error(w, "Invalid userID", http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	var conns []models.Connection
-// 	if err := connectionsDB.
-// 		Where("connection_id = ? AND status = ?", currentUserID, "pending").
-// 		Find(&conns).Error; err != nil {
-// 		logrus.Errorf("GetPendingConnections: ошибка получения pending-запросов: %v", err)
-// 		http.Error(w, "Error fetching pending connections", http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	pendingIDs := make([]uuid.UUID, 0, len(conns))
-// 	for _, c := range conns {
-// 		pendingIDs = append(pendingIDs, c.UserID)
-// 	}
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(pendingIDs)
-// }
-
-// func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
-// 	userIDStr, ok := r.Context().Value("userID").(string)
-// 	if !ok {
-// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-// 		return
-// 	}
-// 	currentUserID, _ := uuid.Parse(userIDStr)
-
-// 	// берем и входящие, и исходящие pending-заявки
-// 	var conns []models.Connection
-// 	if err := connectionsDB.
-// 		Where("((user_id = ? AND status = ?) OR (connection_id = ? AND status = ?))",
-// 			currentUserID, "pending",
-// 			currentUserID, "pending").
-// 		Find(&conns).Error; err != nil {
-// 		http.Error(w, "Error fetching pending connections", http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	// собираем IDs другой стороны
-// 	pendingIDs := make([]uuid.UUID, 0, len(conns))
-// 	for _, c := range conns {
-// 		if c.UserID == currentUserID {
-// 			pendingIDs = append(pendingIDs, c.ConnectionID) // исходящие
-// 		} else {
-// 			pendingIDs = append(pendingIDs, c.UserID) // входящие
-// 		}
-// 	}
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(pendingIDs)
-// }
-
-// GetPendingConnections возвращает только входящие запросы (status="pending").
 func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -372,7 +292,6 @@ func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(incomingIDs)
 }
 
-// GetSentConnections возвращает список исходящих (sent) запросов со статусом "pending".
 func GetSentConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {

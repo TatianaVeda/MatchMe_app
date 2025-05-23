@@ -13,7 +13,6 @@ const Chats = () => {
   const { setChats } = useChatDispatch();
   const [loading, setLoading] = useState(true);
 
-  // 1) Загружаем список чатов
   useEffect(() => {
     const loadChats = async () => {
       try {
@@ -35,7 +34,6 @@ const Chats = () => {
     loadChats();
   }, [setChats]);
 
-  // 2) Функция перехода в чат
   const handleChatClick = (chat) => {
     if (chat.id) {
       navigate(`/chat/${chat.id}`);
@@ -73,7 +71,7 @@ const Chats = () => {
       <Grid container spacing={2}>
         {chats.map(chat => (
           <Grid item xs={12} sm={6} md={4} key={chat.otherUserID}>
-            {/* Badge поверх аватарки */}
+        
             <Badge
               badgeContent={chat.unreadCount}
               color="error"
@@ -94,8 +92,8 @@ const Chats = () => {
                   connected: true, 
                 }}
                 showChat
-                onChatClick={() => handleChatClick(chat)}         // клик по иконке чата
-                onClick={() => navigate(`/users/${chat.otherUserID}`)} // клик по имени/аватару
+                onChatClick={() => handleChatClick(chat)}         
+                onClick={() => navigate(`/users/${chat.otherUserID}`)} 
               />
             </Badge>
           </Grid>

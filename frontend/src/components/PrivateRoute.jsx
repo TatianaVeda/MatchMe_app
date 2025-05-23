@@ -8,7 +8,6 @@ const PrivateRoute = ({ children }) => {
   if (!accessToken) {
     return <Navigate to="/login" replace />;
   }
-   // Если токен есть, отрисовываем дочерние компоненты
    return children;
 };
 

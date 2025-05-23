@@ -15,7 +15,7 @@ import (
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Извлекаем заголовок Authorization
+
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			logrus.Warn("AuthMiddleware: отсутствует заголовок Authorization")
@@ -53,12 +53,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Token expired", http.StatusUnauthorized)
 			return
 		}
-		// if claims.RegisteredClaims.ExpiresAt == nil ||
-		// 	claims.RegisteredClaims.ExpiresAt.Time.Before(time.Now()) {
-		// 	logrus.Warn("AuthMiddleware: срок действия токена истёк")
-		// 	http.Error(w, "Token expired", http.StatusUnauthorized)
-		// 	return
-		// }
 		if services.IsBlacklisted(tokenString) {
 			logrus.Warn("AuthMiddleware: токен находится в чёрном списке (отозван)")
 			http.Error(w, "Token revoked", http.StatusUnauthorized)

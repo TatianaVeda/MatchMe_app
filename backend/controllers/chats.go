@@ -22,8 +22,6 @@ import (
 
 var chatsDB *gorm.DB
 
-// presenceService используется для получения актуального онлайн-статуса из Redis
-
 func InitChatsController(db *gorm.DB, ps *services.PresenceService) {
 	chatsDB = db
 	presenceService = ps
@@ -125,15 +123,6 @@ func GetChats(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// var otherProfile models.Profile
-		// otherOnline := false
-		// if presenceService != nil {
-		// 	if online, _ := presenceService.IsOnline(otherUserID.String()); online {
-		// 		otherOnline = true
-		// 	}
-		// }
-
-		// 1) Загрузка профиля второго участника
 		var otherProfile models.Profile
 		if err := chatsDB.
 			Select("first_name", "last_name", "photo_url").
@@ -141,7 +130,6 @@ func GetChats(w http.ResponseWriter, r *http.Request) {
 			First(&otherProfile).Error; err != nil {
 			logrus.Warnf("GetChats: профиль пользователя %s не найден: %v", otherUserID, err)
 		}
-		// 2) Статус онлайн
 		otherOnline := false
 		if presenceService != nil {
 			if online, _ := presenceService.IsOnline(otherUserID.String()); online {
@@ -172,7 +160,6 @@ func GetChats(w http.ResponseWriter, r *http.Request) {
 		summaries = append(summaries, summary)
 	}
 
-	// Сортируем чаты по последней активности
 	sort.Slice(summaries, func(i, j int) bool {
 		var ti, tj time.Time
 		if !summaries[i].LastMessage.Timestamp.IsZero() {
@@ -193,7 +180,7 @@ func GetChats(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetChatHistory(w http.ResponseWriter, r *http.Request) {
-	// 1. Проверяем авторизацию
+
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -208,7 +195,6 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	chatIDStr := vars["chatId"]
 
-	// 2. Если это новая сессия ("new"), создаём или возвращаем существующий чат
 	if chatIDStr == "new" {
 		otherUserIDStr := r.URL.Query().Get("other_user_id")
 		if otherUserIDStr == "" {
@@ -247,7 +233,6 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. Преобразуем chatId и проверяем доступ
 	chatID, err := strconv.ParseUint(chatIDStr, 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid chat_id", http.StatusBadRequest)
@@ -263,7 +248,6 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 4. Считаем общее количество сообщений в чате
 	var totalCount int64
 	if err := chatsDB.
 		Model(&models.Message{}).
@@ -273,7 +257,6 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 5. Читаем параметры пагинации
 	page, limit := 1, 10
 	if p := r.URL.Query().Get("page"); p != "" {
 		if pi, _ := strconv.Atoi(p); pi > 0 {
@@ -287,7 +270,6 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 	}
 	offset := (page - 1) * limit
 
-	// 6. Подгружаем нужную страницу сообщений
 	var messages []models.Message
 	if err := chatsDB.
 		Preload("Sender.Profile").
@@ -300,7 +282,6 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 7. Фоново отмечаем все непрочитанные как прочитанные
 	go func() {
 		_ = chatsDB.
 			Model(&models.Message{}).
@@ -308,13 +289,11 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 			Update("read", true).Error
 	}()
 
-	// 8. Если нужно, внутри страницы вернуть хронологический порядок (старые сверху):
 	for i := 0; i < len(messages)/2; i++ {
 		j := len(messages) - 1 - i
 		messages[i], messages[j] = messages[j], messages[i]
 	}
 
-	// 9. Маппим в DTO
 	respMessages := make([]ChatMessageResponse, len(messages))
 	for i, m := range messages {
 		fullName := "Unknown"
@@ -331,7 +310,6 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 10. Отдаём JSON с сообщениями и метаданными
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"messages":   respMessages,
@@ -341,8 +319,6 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /chats/{chat_id}/messages
-// Создает новое сообщение в чате и уведомляет участников через WebSocket.
 func PostMessage(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -404,23 +380,15 @@ func PostMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// go func(msg models.Message) {
-	// 	if err := sockets.BroadcastNewMessage(msg); err != nil {
-	// 		logrus.Errorf("PostMessage: ошибка отправки сообщения через WebSocket: %v", err)
-	// 	}
-	// }(newMsg)
-
-	// Сразу загружаем полный объект сообщения с предзагрузкой профиля отправителя
 	var fullMsg models.Message
 	if err := chatsDB.
 		Preload("Sender.Profile").
 		First(&fullMsg, newMsg.ID).
 		Error; err != nil {
 		logrus.Errorf("PostMessage: не удалось Preload Sender.Profile: %v", err)
-		// даже если упало — отправим всё равно newMsg, но без имени
+
 		fullMsg = newMsg
 	}
-	// Шлём уже fullMsg, в котором есть Sender.Profile
 	go func(msg models.Message) {
 		if err := sockets.BroadcastNewMessage(msg); err != nil {
 			logrus.Errorf("PostMessage: ошибка BroadcastNewMessage: %v", err)
@@ -431,16 +399,8 @@ func PostMessage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	// var fullMsg models.Message
-	// if err := chatsDB.Preload("Sender.Profile").First(&fullMsg, newMsg.ID).Error; err != nil {
-	// 	logrus.Errorf("PostMessage: ошибка при загрузке полного сообщения: %v", err)
-	// 	http.Error(w, "Error loading full message", http.StatusInternalServerError)
-	// 	return
-	// }
-
 	json.NewEncoder(w).Encode(fullMsg)
 
-	//json.NewEncoder(w).Encode(newMsg)
 }
 
 func CreateOrGetChat(w http.ResponseWriter, r *http.Request) {
@@ -455,7 +415,6 @@ func CreateOrGetChat(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid other_user_id", http.StatusBadRequest)
 		return
 	}
-	// Попробовать найти существующий чат
 	var chat models.Chat
 	err = chatsDB.
 		Where("(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",

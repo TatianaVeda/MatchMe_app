@@ -47,10 +47,9 @@ func LoadConfig() {
 		SMTPPort:            getEnvAsInt("SMTP_PORT", 587),
 		SMTPUser:            getEnv("SMTP_USER", "user@example.com"),
 		SMTPPassword:        getEnv("SMTP_PASSWORD", "password"),
-		//RedisURL:            getEnv("REDIS_URL", "redis://localhost:6379"),
-		RedisURL:     getEnv("REDIS_URL", "localhost:6379"),
-		RedisTimeout: getEnvAsInt("REDIS_TIMEOUT", 5),
-		LogLevel:     getEnv("LOG_LEVEL", "debug"),
+		RedisURL:            getEnv("REDIS_URL", "localhost:6379"),
+		RedisTimeout:        getEnvAsInt("REDIS_TIMEOUT", 5),
+		LogLevel:            getEnv("LOG_LEVEL", "debug"),
 	}
 
 	AppConfig.IsDev = AppConfig.Environment == "development"

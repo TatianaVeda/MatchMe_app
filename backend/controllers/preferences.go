@@ -13,14 +13,11 @@ import (
 
 var preferencesDB *gorm.DB
 
-// InitPreferencesController нужно вызвать при старте (см. следующий пункт)
 func InitPreferencesController(db *gorm.DB) {
 	preferencesDB = db
 	logrus.Info("Preferences controller initialized")
 }
 
-// GetPreferences возвращает запись Preference для текущего пользователя.
-// Если записи нет — создаёт с дефолтными значениями.
 func GetPreferences(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -39,7 +36,6 @@ func GetPreferences(w http.ResponseWriter, r *http.Request) {
 		First(&pref).Error
 
 	if err == gorm.ErrRecordNotFound {
-		// создаём дефолтную запись
 		pref = models.Preference{
 			UserID:    uid,
 			MaxRadius: 0,
@@ -59,8 +55,6 @@ func GetPreferences(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pref)
 }
 
-// UpdatePreferences обновляет MaxRadius у записи Preference.
-// Ожидает JSON { "maxRadius": <число> }.
 func UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -87,7 +81,6 @@ func UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 		First(&pref).Error
 
 	if err == gorm.ErrRecordNotFound {
-		// если нет — создаём
 		pref = models.Preference{
 			UserID:    uid,
 			MaxRadius: req.MaxRadius,
@@ -102,7 +95,6 @@ func UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	} else {
-		// обновляем существующую
 		pref.MaxRadius = req.MaxRadius
 		if err := preferencesDB.Save(&pref).Error; err != nil {
 			logrus.Errorf("UpdatePreferences: error saving preferences: %v", err)

@@ -11,7 +11,6 @@ import (
 
 var DB *sql.DB
 
-// Init устанавливает подключение к базе данных PostgreSQL.
 func Init() {
 	var err error
 	DB, err = sql.Open("postgres", config.AppConfig.DatabaseURL)

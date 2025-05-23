@@ -2,18 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Box, Typography } from '@mui/material';
 
-// const ChatBubble = ({ message, isOwn }) => {
-//   const time = new Date(message.timestamp).toLocaleTimeString([], {
-//     hour: '2-digit',
-//     minute: '2-digit',
-//   });
-
 const ChatBubble = ({ message, isOwn = false }) => {
-  // const time = new Date(message.timestamp).toLocaleTimeString([], {
-  //   hour: '2-digit',
-  //   minute: '2-digit',
-  // });
-// форматируем дату и время
+
 const dt = new Date(message.timestamp);
 const date = dt.toLocaleDateString('default', {
   day:   '2-digit',
@@ -35,7 +25,6 @@ const time = dt.toLocaleTimeString('default', {
       }}
     >
       <Box sx={{ maxWidth: '75%' }}>
-        {/* Имя отправителя — только если чужое сообщение */}
         {!isOwn && message.sender_name && (
           <Typography
             variant="caption"
@@ -77,13 +66,10 @@ ChatBubble.propTypes = {
     content: PropTypes.string,
     timestamp: PropTypes.string,
     read: PropTypes.bool,
-    sender_name: PropTypes.string, // добавили!
+    sender_name: PropTypes.string, 
   }).isRequired,
   isOwn: PropTypes.bool,
 };
 
-// ChatBubble.defaultProps = {
-//   isOwn: false,
-// };
 
 export default ChatBubble;

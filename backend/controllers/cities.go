@@ -34,16 +34,13 @@ func InitCitiesController(db *gorm.DB) {
 	citiesDB = db
 }
 
-// GET /cities
 func GetCities(w http.ResponseWriter, r *http.Request) {
-	// 1) вытягиваем все непустые города (DISTINCT)
 	type row struct {
 		City      string
 		Latitude  float64
 		Longitude float64
 	}
 	var rows []row
-	// Берём первую встречающуюся пару (latitude, longitude) для каждого города
 	err := citiesDB.
 		Model(&models.Profile{}).
 		Select("DISTINCT ON (city) city, latitude, longitude").
@@ -55,7 +52,6 @@ func GetCities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2) мапим в выходную структуру
 	cities := make([]City, len(rows))
 	for i, r := range rows {
 		cities[i] = City{

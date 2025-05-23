@@ -2,10 +2,8 @@ import api from './index';
 export const getUser = async (userId) => {
   try {
     const response = await api.get(`/users/${userId}`);
-    // if (response.status === 204) {
-    //   return null;
-    // }
-    return response.data;
+
+    return { id: userId, ...response.data };
   } catch (error) {
     if (error.response && (error.response.status === 404 || error.response.status === 403)) {
       return null;
@@ -96,4 +94,12 @@ export const updateMyPreferences = async ({
     priorityTravel
   });
   return response.data;
+};
+
+export const getBatchOnlineStatus = async (ids) => {
+  if (!ids.length) return {};
+  const { data } = await api.get('/api/user/online/batch', {
+    params: { ids: ids.join(',') }
+  });
+  return data; 
 };

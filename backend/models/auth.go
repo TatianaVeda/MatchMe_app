@@ -14,13 +14,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Ошибки для обработки аутентификации.
 var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
-// HashPassword возвращает bcrypt-хэш для переданного пароля.
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -31,7 +29,6 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-// CheckPasswordHash сравнивает пароль с его bcrypt-хэшем.
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if err != nil {
@@ -41,79 +38,20 @@ func CheckPasswordHash(password, hash string) bool {
 	return true
 }
 
-// CreateUser регистрирует нового пользователя, выполняя валидацию email и пароля,
-// хэширование пароля и создание записи в БД.
-// func CreateUser(db *gorm.DB, email, password string) (*User, error) {
-// 	if err := utils.ValidateEmail(email); err != nil {
-// 		logrus.Warnf("CreateUser: неверный формат email %s: %v", email, err)
-// 		return nil, err
-// 	}
-// 	if err := utils.ValidatePassword(password); err != nil {
-// 		logrus.Warnf("CreateUser: пароль не соответствует требованиям: %v", err)
-// 		return nil, err
-// 	}
-
-// 	var count int64
-// 	if err := db.Model(&User{}).Where("email = ?", email).Count(&count).Error; err != nil {
-// 		logrus.Errorf("CreateUser: ошибка проверки существования email %s: %v", email, err)
-// 		return nil, err
-// 	}
-// 	if count > 0 {
-// 		logrus.Warnf("CreateUser: пользователь с данным email уже зарегистрирован")
-// 		return nil, errors.New("email already registered")
-// 	}
-
-// 	hash, err := HashPassword(password)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	user := &User{
-// 		ID:           uuid.New(),
-// 		Email:        email,
-// 		PasswordHash: hash,
-
-// 	}
-// 	user.Profile = Profile{UserID: user.ID}
-// 	user.Bio = Bio{UserID: user.ID}
-// 	user.Preference = Preference{UserID: user.ID}
-
-// 	if err := db.Create(user).Error; err != nil {
-// 		logrus.Errorf("CreateUser: ошибка создания пользователя %s: %v", email, err)
-// 		return nil, err
-// 	}
-// 	// Сразу создаём пустой профиль и биографию
-// 	user.Profile.UserID = user.ID
-// 	user.Bio.UserID = user.ID
-// 	user.Preference.UserID = user.ID
-// 	if err := db.Create(&user.Profile).Error; err != nil {
-// 		return nil, err
-// 	}
-// 	if err := db.Create(&user.Bio).Error; err != nil {
-// 		return nil, err
-// 	}
-// 	if err := db.Create(&user.Preference).Error; err != nil {
-// 		return nil, err
-// 	}
-
-// 	logrus.Infof("CreateUser: пользователь успешно создан")
-// 	return user, nil
-// }
-
 func CreateUser(db *gorm.DB, email, password string) (*User, error) {
-	// Специальная обработка админа
+
 	if email == config.AdminEmail {
-		// Проверяем пароль администратора
+
 		if password != config.AdminPassword {
 			logrus.Warnf("CreateUser: неверный пароль администратора для email %s", email)
 			return nil, errors.New("invalid admin credentials")
 		}
-		// Генерируем хэш пароля
+
 		hash, err := HashPassword(password)
 		if err != nil {
 			return nil, err
 		}
-		// Создаем пользователя с заданным AdminID
+
 		adminUUID := uuid.MustParse(config.AdminID)
 		user := &User{
 			ID:           adminUUID,
@@ -130,7 +68,7 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 		logrus.Infof("CreateUser: администратор создан с ID=%s", user.ID)
 		return user, nil
 	}
-	// Валидация email и пароля
+
 	if err := utils.ValidateEmail(email); err != nil {
 		logrus.Warnf("CreateUser: неверный формат email %s: %v", email, err)
 		return nil, err
@@ -140,7 +78,6 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 		return nil, err
 	}
 
-	// Проверяем, что email ещё не занят
 	var count int64
 	if err := db.Model(&User{}).Where("email = ?", email).Count(&count).Error; err != nil {
 		logrus.Errorf("CreateUser: ошибка проверки существования email %s: %v", email, err)
@@ -151,32 +88,25 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 		return nil, errors.New("email already registered")
 	}
 
-	// Хэшируем пароль
 	hash, err := HashPassword(password)
 	if err != nil {
 		return nil, err
 	}
 
-	// Формируем модель пользователя с вложенными структурами
 	user := &User{
 		ID:           uuid.New(),
 		Email:        email,
 		PasswordHash: hash,
-		Profile:      Profile{}, // GORM подставит user.ID автоматически
+		Profile:      Profile{},
 		Bio:          Bio{},
 		Preference:   Preference{},
 	}
 
-	// Сохраняем пользователя вместе со всеми ассоциациями
 	if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Create(user).Error; err != nil {
 		logrus.Errorf("CreateUser: ошибка создания пользователя и ассоциаций: %v", err)
 		return nil, err
 	}
-	// По умолчанию создаём связанные Profile и Bio (чтобы GetCurrentUserProfile/getCurrentUserBio не падали)
-	// defaultProfile := Profile{UserID: user.ID}
-	// if err := db.Create(&defaultProfile).Error; err != nil {
-	// 	logrus.Warnf("CreateUser: не удалось создать default Profile: %v", err)
-	// }
+
 	defaultBio := Bio{UserID: user.ID}
 	if err := db.Create(&defaultBio).Error; err != nil {
 		logrus.Warnf("CreateUser: не удалось создать default Bio: %v", err)
@@ -186,18 +116,7 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 	return user, nil
 }
 
-// AuthenticateUser выполняет аутентификацию, сравнивая переданный пароль с сохранённым хэшем.
-// При успешном сравнении возвращает пользователя.
 func AuthenticateUser(db *gorm.DB, email, password string) (*User, error) {
-	// var user User
-	// if err := db.Where("email = ?", email).First(&user).Error; err != nil {
-	// 	if errors.Is(err, gorm.ErrRecordNotFound) {
-	// 		logrus.Warnf("AuthenticateUser: пользователь с email %s не найден", email)
-	// 		return nil, ErrUserNotFound
-	// 	}
-	// 	logrus.Errorf("AuthenticateUser: ошибка поиска пользователя %s: %v", email, err)
-	// 	return nil, err
-	// }
 
 	var user User
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
@@ -218,14 +137,12 @@ func AuthenticateUser(db *gorm.DB, email, password string) (*User, error) {
 	return &user, nil
 }
 
-// JWTClaims определяет полезную нагрузку для JWT-токена.
 type JWTClaims struct {
 	UserID uuid.UUID `json:"userId"`
 	jwt.RegisteredClaims
 	ExpiresAt int64 `json:"exp"`
 }
 
-// GenerateJWT генерирует JWT-токен для аутентифицированного пользователя.
 func GenerateJWT(userID uuid.UUID, secret string) (string, error) {
 	claims := JWTClaims{
 		UserID:    userID,
@@ -235,14 +152,6 @@ func GenerateJWT(userID uuid.UUID, secret string) (string, error) {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
-
-	//    claims := JWTClaims{
-	// 	       UserID: userID,
-	// 	       RegisteredClaims: jwt.RegisteredClaims{
-	// 	           ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)),
-	// 	           IssuedAt:  jwt.NewNumericDate(time.Now()),
-	// 	       },
-	// 	   }
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(secret))
@@ -255,7 +164,6 @@ func GenerateJWT(userID uuid.UUID, secret string) (string, error) {
 	return tokenString, nil
 }
 
-// ParseJWT проверяет JWT-токен и возвращает его claims.
 func ParseJWT(tokenString, secret string) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
@@ -275,7 +183,6 @@ func ParseJWT(tokenString, secret string) (*JWTClaims, error) {
 	return claims, nil
 }
 
-// Access token будет иметь короткий срок жизни (например, 15 минут).
 func GenerateAccessToken(userID uuid.UUID, secret string) (string, error) {
 	claims := JWTClaims{
 		UserID:    userID,
@@ -286,13 +193,6 @@ func GenerateAccessToken(userID uuid.UUID, secret string) (string, error) {
 		},
 	}
 
-	// claims := JWTClaims{
-	// 	UserID: userID,
-	// 	RegisteredClaims: jwt.RegisteredClaims{
-	// 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
-	// 		IssuedAt:  jwt.NewNumericDate(time.Now()),
-	// 	},
-	// }
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }
@@ -306,13 +206,6 @@ func GenerateRefreshToken(userID uuid.UUID, secret string, expiresInMinutes int)
 		},
 	}
 
-	// claims := JWTClaims{
-	// 	UserID: userID,
-	// 	RegisteredClaims: jwt.RegisteredClaims{
-	// 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresInMinutes) * time.Minute)),
-	// 		IssuedAt:  jwt.NewNumericDate(time.Now()),
-	// 	},
-	// }
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }

@@ -4,22 +4,18 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"m/backend/models"
-	//"m/backend/middleware"
 	"m/backend/config"
+	"m/backend/models"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
-// AdminOnly возвращает middleware, которое проверяет, имеет ли текущий пользователь административные права.
-// Здесь для демонстрации считается, что пользователь с email "admin@example.com" является администратором.
-// Если у вас есть булево поле IsAdmin в модели User, замените условие проверки соответственно.
 func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Извлекаем userID, установленный предыдущим middleware (например, JWT-аутентификация).
+
 			userIDStr, ok := r.Context().Value("userID").(string)
 			if !ok {
 				logrus.Warn("AdminOnly: userID не найден в контексте")
@@ -41,8 +37,6 @@ func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Проверка административных прав.
-			//if user.Email != fixtures.AdminEmail {
 			if user.Email != config.AdminEmail {
 				logrus.Warnf("AdminOnly: пользователь %s не является администратором", uid)
 				w.WriteHeader(http.StatusForbidden)

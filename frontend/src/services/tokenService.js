@@ -8,7 +8,6 @@ export const getAccessToken = () => {
     localStorage.setItem('accessToken', token);
   };
   
-  // Аналогично для refreshToken
   export const getRefreshToken = () => {
     return localStorage.getItem('refreshToken');
   };

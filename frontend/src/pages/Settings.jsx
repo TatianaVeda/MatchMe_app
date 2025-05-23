@@ -13,25 +13,20 @@ import axios from '../api/index';
 import { toast } from 'react-toastify';
 
 const Settings = () => {
-  // --- состояние для трёх секций ---
   const [loading, setLoading] = useState(true);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
-  // Начальное состояние настроек (предпочтений)
   const [preferences, setPreferences] = useState({
-    maxRadius: ''    // Максимальный радиус для рекомендаций
-    //location: ''      // Местоположение (например, название города)
+    maxRadius: ''    
   });
   const [saving, setSaving] = useState(false);
 
-   // 2) Email
    const [email, setEmail] = useState({
     currentEmail: '',
     newEmail: ''
   });
 
-  // 3) Password
   const [passwords, setPasswords] = useState({
     current: '',
     next: '',
@@ -41,11 +36,9 @@ const Settings = () => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        // Параметры рекомендаций
         const prefRes = await axios.get('/me/preferences');
         setPreferences({ maxRadius: prefRes.data.maxRadius || '' });
 
-        // Текущий e-mail
         const meRes = await axios.get('/me');
         setEmail(email => ({ ...email, currentEmail: meRes.data.email || '' }));
       } catch (err) {
@@ -65,8 +58,6 @@ const Settings = () => {
     );
   }
 
-  // ----- ОБРАБОТЧИКИ -----
-  // Preferences
   const handlePrefChange = e => {
     setPreferences({ maxRadius: e.target.value });
   };
@@ -85,7 +76,6 @@ const Settings = () => {
     }
   };
 
-  // Email
   const handleEmailChange = e => {
     setEmail({ ...email, newEmail: e.target.value });
   };
@@ -109,7 +99,6 @@ const Settings = () => {
     }
   };
 
-  // Password
   const handlePasswordChange = e => {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
@@ -139,7 +128,6 @@ const Settings = () => {
     <Container maxWidth="sm" sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>Настройки</Typography>
 
-      {/* Секция смены e-mail */}
       <Box component="form" onSubmit={submitEmail} sx={{ p: 2, mb: 3, border: '1px solid #ccc', borderRadius: 2 }}>
         <Typography variant="h6" gutterBottom>Сменить e-mail</Typography>
         <TextField
@@ -170,7 +158,6 @@ const Settings = () => {
 
       <Divider />
 
-      {/* Секция смены пароля */}
       <Box component="form" onSubmit={submitPassword} sx={{ p: 2, my: 3, border: '1px solid #ccc', borderRadius: 2 }}>
         <Typography variant="h6" gutterBottom>Сменить пароль</Typography>
         <TextField
@@ -215,7 +202,6 @@ const Settings = () => {
 
       <Divider />
 
-      {/* Секция предпочтений (радиус) */}
       <Box component="form" onSubmit={submitPreferences} sx={{ p: 2, mt: 3, border: '1px solid #ccc', borderRadius: 2 }}>
         <Typography variant="h6" gutterBottom>Параметры рекомендаций</Typography>
         <TextField

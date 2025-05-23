@@ -8,7 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// CorsMiddleware разрешает CORS-запросы согласно настройкам из конфигурации.
 func CorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		allowedOrigins := config.AppConfig.AllowedOrigins
@@ -33,7 +32,6 @@ func CorsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
-		// Обработка preflight-запросов.
 		if r.Method == "OPTIONS" {
 			logrus.Debug("CorsMiddleware: обработан preflight запрос")
 			w.WriteHeader(http.StatusNoContent)

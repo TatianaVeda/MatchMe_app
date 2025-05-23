@@ -6,25 +6,20 @@ import (
 	"m/backend/models"
 	"time"
 
-	//"m/backend/models"
-
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
-// ChatService инкапсулирует бизнес-логику для работы с чатами.
 type ChatService struct {
 	DB *gorm.DB
 }
 
-// NewChatService возвращает новый экземпляр ChatService.
 func NewChatService(db *gorm.DB) *ChatService {
 	logrus.Info("ChatService initialized")
 	return &ChatService{DB: db}
 }
 
-// CreateChat создает уникальный чат между двумя пользователями, если он не существует.
 func (cs *ChatService) CreateChat(user1ID, user2ID uuid.UUID) (*models.Chat, error) {
 	var chat models.Chat
 	if err := cs.DB.
@@ -51,7 +46,6 @@ func (cs *ChatService) CreateChat(user1ID, user2ID uuid.UUID) (*models.Chat, err
 	return &chat, nil
 }
 
-// GetChatMessages возвращает сообщения для указанного чата с пагинацией.
 func (cs *ChatService) GetChatMessages(chatID uint, page, limit int) ([]models.Message, error) {
 	offset := (page - 1) * limit
 	var messages []models.Message
@@ -68,7 +62,6 @@ func (cs *ChatService) GetChatMessages(chatID uint, page, limit int) ([]models.M
 	return messages, nil
 }
 
-// TypingNotification формирует уведомление о наборе текста для передачи через WebSocket.
 func TypingNotification(userID uuid.UUID, chatID uint, isTyping bool) ([]byte, error) {
 	notification := map[string]interface{}{
 		"type":      "typing",

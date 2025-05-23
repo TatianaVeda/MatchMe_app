@@ -9,7 +9,6 @@ const AdminPanel = () => {
   const { user } = useAuthState();
   const [num, setNum] = useState(100)
 
- // Показываем панель только если это админ
  if (user?.id !== ADMIN_ID) {
   return null;
 }

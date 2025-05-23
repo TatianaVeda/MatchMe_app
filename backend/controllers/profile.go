@@ -20,18 +20,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// profileDB используется для операций с профилем и биографией.
 var profileDB *gorm.DB
 
-// InitProfileController инициализирует контроллеры профиля, устанавливая подключение к базе данных.
 func InitProfileController(db *gorm.DB) {
 	profileDB = db
 	logrus.Info("Profile controller initialized")
 }
 
-// UpdateCurrentUserProfile обновляет информацию "Обо мне" (например, first name, last name, about).
-// PUT /me/profile
-// Доступ разрешён только для аутентифицированного пользователя.
 func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -51,7 +46,7 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		LastName  string  `json:"lastName"`
 		About     string  `json:"about"`
 		City      string  `json:"city"`
-		Latitude  float64 `json:"latitude"` // ← новые поля
+		Latitude  float64 `json:"latitude"`
 		Longitude float64 `json:"longitude"`
 	}
 
@@ -77,18 +72,11 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// var profile models.Profile
-	// if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
-	// 	logrus.Errorf("UpdateCurrentUserProfile: profile not found for user %s: %v", currentUserID, err)
-	// 	http.Error(w, "Profile not found", http.StatusNotFound)
-	// 	return
-	// }
-
 	var profile models.Profile
 	err = profileDB.First(&profile, "user_id = ?", currentUserID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Create new profile if not found
+
 			profile = models.Profile{
 				UserID:    currentUserID,
 				FirstName: reqBody.FirstName,
@@ -110,7 +98,6 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		// Update existing profile
 		profile.FirstName = reqBody.FirstName
 		profile.LastName = reqBody.LastName
 		profile.About = reqBody.About
@@ -128,24 +115,6 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		logrus.Infof("Profile for user %s updated successfully", currentUserID)
 	}
 
-	// profile.FirstName = reqBody.FirstName
-	// profile.LastName = reqBody.LastName
-	// profile.About = reqBody.About
-	// profile.City = reqBody.City
-
-	// // // Если пришли геокоординаты — сохраняем
-	// if reqBody.Latitude != 0 || reqBody.Longitude != 0 {
-	// 	profile.Latitude = reqBody.Latitude
-	// 	profile.Longitude = reqBody.Longitude
-	// }
-
-	// if err := profileDB.Save(&profile).Error; err != nil {
-	// 	logrus.Errorf("UpdateCurrentUserProfile: error updating profile for user %s: %v", currentUserID, err)
-	// 	http.Error(w, "Error updating profile", http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// Save earth_loc in PostgreSQL
 	if profile.Latitude != 0 && profile.Longitude != 0 {
 		if err := profileDB.Exec(`
 		UPDATE profiles
@@ -163,7 +132,6 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(profile)
 }
 
-// PUT /me/location
 func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -189,7 +157,6 @@ func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
 	err = profileDB.First(&profile, "user_id = ?", currentUserID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Create new profile with coordinates
 			profile = models.Profile{
 				UserID:    currentUserID,
 				Latitude:  reqBody.Latitude,
@@ -205,7 +172,6 @@ func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		// Update existing coordinates
 		profile.Latitude = reqBody.Latitude
 		profile.Longitude = reqBody.Longitude
 		if err := profileDB.Save(&profile).Error; err != nil {
@@ -215,7 +181,6 @@ func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
 		logrus.Infof("Coordinates for user %s updated successfully", currentUserID)
 	}
 
-	// 🌍 Update the earth_loc column using ll_to_earth
 	if reqBody.Latitude != 0 && reqBody.Longitude != 0 {
 		if err := profileDB.Exec(`
 			UPDATE profiles
@@ -233,64 +198,6 @@ func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(profile)
 }
 
-// func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
-// 	userIDStr, ok := r.Context().Value("userID").(string)
-// 	if !ok {
-// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-// 		return
-// 	}
-// 	currentUserID, err := uuid.Parse(userIDStr)
-// 	if err != nil {
-// 		http.Error(w, "Invalid userID", http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	var reqBody struct {
-// 		Latitude  float64 `json:"latitude"`
-// 		Longitude float64 `json:"longitude"`
-// 	}
-// 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-// 		http.Error(w, "Invalid request body", http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	var profile models.Profile
-// 	err = profileDB.First(&profile, "user_id = ?", currentUserID).Error
-// 	if err != nil {
-// 		if errors.Is(err, gorm.ErrRecordNotFound) {
-// 			// Create new profile with coordinates
-// 			profile = models.Profile{
-// 				UserID:    currentUserID,
-// 				Latitude:  reqBody.Latitude,
-// 				Longitude: reqBody.Longitude,
-// 			}
-// 			if err := profileDB.Create(&profile).Error; err != nil {
-// 				http.Error(w, "Error creating profile with location", http.StatusInternalServerError)
-// 				return
-// 			}
-// 			logrus.Infof("New profile created with coordinates for user %s", currentUserID)
-// 		} else {
-// 			http.Error(w, "Error retrieving profile", http.StatusInternalServerError)
-// 			return
-// 		}
-// 	} else {
-// 		// Update existing coordinates
-// 		profile.Latitude = reqBody.Latitude
-// 		profile.Longitude = reqBody.Longitude
-// 		if err := profileDB.Save(&profile).Error; err != nil {
-// 			http.Error(w, "Error updating location", http.StatusInternalServerError)
-// 			return
-// 		}
-// 		logrus.Infof("Coordinates for user %s updated successfully", currentUserID)
-// 	}
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(profile)
-// }
-
-// UpdateCurrentUserBio обновляет биографические данные пользователя.
-// PUT /me/bio
-// Доступ разрешён только для аутентифицированного пользователя.
 func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -347,12 +254,10 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Дополнительно: сохраняем приоритетные флаги в Preference
 	var pref models.Preference
 	if err := profileDB.
 		Where("user_id = ?", currentUserID).
 		First(&pref).Error; err != nil {
-		// Если записи нет — создаём новую
 		pref = models.Preference{
 			UserID:            currentUserID,
 			PriorityInterests: reqBody.PriorityInterests,
@@ -365,7 +270,6 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 			logrus.Errorf("UpdateCurrentUserBio: error creating preferences for user %s: %v", currentUserID, err)
 		}
 	} else {
-		// Обновляем существующие флаги
 		pref.PriorityInterests = reqBody.PriorityInterests
 		pref.PriorityHobbies = reqBody.PriorityHobbies
 		pref.PriorityMusic = reqBody.PriorityMusic
@@ -378,20 +282,12 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 
 	logrus.Infof("Bio for user %s updated successfully", currentUserID)
 	w.Header().Set("Content-Type", "application/json")
-	//json.NewEncoder(w).Encode(bio)
-	// Возвращаем обновлённую Bio + Preferences вместе в одном ответе
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"bio":         bio,
 		"preferences": pref,
 	})
 }
 
-// UploadUserPhoto обрабатывает загрузку/изменение фотографии профиля.
-// POST /me/photo
-// Ожидается multipart/form-data с файлом под именем "photo".
-// Проверяется формат файла (JPEG/PNG), файл сохраняется в MediaUploadDir,
-// и в поле PhotoURL профиля сохраняется относительный путь.
-// Доступ разрешён только для аутентифицированного пользователя.
 func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 
 	if err := r.ParseMultipartForm(5 << 20); err != nil {
@@ -421,7 +317,6 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Считываем первые 512 байт для определения типа контента.
 	fileBytes := make([]byte, 512)
 	if _, err := file.Read(fileBytes); err != nil {
 		logrus.Errorf("UploadUserPhoto: error reading file: %v", err)
@@ -434,7 +329,6 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only JPEG and PNG images are allowed", http.StatusBadRequest)
 		return
 	}
-	// Возвращаем указатель в начало файла.
 	file.Seek(0, 0)
 
 	ext := filepath.Ext(fileHeader.Filename)
@@ -481,9 +375,7 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(profile)
 }
 
-// DeleteUserPhoto – endpoint для удаления (сброса) фотографии профиля
 func DeleteUserPhoto(w http.ResponseWriter, r *http.Request) {
-	// Получаем ID текущего пользователя из контекста (установленный в AuthMiddleware)
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
 		logrus.Error("DeleteUserPhoto: userID не найден в контексте")
@@ -497,7 +389,6 @@ func DeleteUserPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Загружаем профиль пользователя
 	var profile models.Profile
 	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
 		logrus.Errorf("DeleteUserPhoto: профиль для пользователя %s не найден: %v", currentUserID, err)
@@ -505,24 +396,19 @@ func DeleteUserPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Значение по умолчанию для фото (установленное при инициализации профиля)
 	defaultPhotoURL := "/static/images/default.png"
 
-	// Если фото не является значением по умолчанию, попробуем удалить физический файл
 	if profile.PhotoURL != "" && profile.PhotoURL != defaultPhotoURL {
-		uploadDir := config.AppConfig.MediaUploadDir // например, "./static/images"
-		// Предполагаем, что profile.PhotoURL имеет вид "/static/images/имя_файла.ext"
+		uploadDir := config.AppConfig.MediaUploadDir
 		fileName := strings.TrimPrefix(profile.PhotoURL, "/static/images/")
 		filePath := filepath.Join(uploadDir, fileName)
 		if err := os.Remove(filePath); err != nil {
-			// Если файла нет или возникла другая ошибка, можно залогировать предупреждение, но не прерывать выполнение
 			logrus.Warnf("DeleteUserPhoto: ошибка удаления файла %s: %v", filePath, err)
 		} else {
 			logrus.Infof("DeleteUserPhoto: файл %s успешно удалён", filePath)
 		}
 	}
 
-	// Сброс значения photo_url до значения по умолчанию
 	profile.PhotoURL = defaultPhotoURL
 	if err := profileDB.Save(&profile).Error; err != nil {
 		logrus.Errorf("DeleteUserPhoto: ошибка обновления профиля для пользователя %s: %v", currentUserID, err)

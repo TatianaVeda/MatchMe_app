@@ -7,7 +7,6 @@ const useWebSocket = (onMessage) => {
   const { user } = useAuthState();
 
   useEffect(() => {
-      // Подключаемся и подписываемся ТОЛЬКО когда есть обработчик onMessage
       if (!user || !onMessage) return;
     
       WebSocketService.connect(user.id);
@@ -15,11 +14,9 @@ const useWebSocket = (onMessage) => {
     
       return () => {
         WebSocketService.removeListener(onMessage);
-       // WebSocketService.disconnect();
       };
   }, [user, onMessage]);
 
-  // Обёртки для методов отправки
   const sendMessage = useCallback((chatId, content) => {
     WebSocketService.sendMessage(chatId, content);
   }, []);

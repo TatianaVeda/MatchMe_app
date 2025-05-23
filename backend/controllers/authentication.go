@@ -107,13 +107,6 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 					services.AddToken(tokenString, expirationTime)
 				}
 			}
-			// if err == nil && token.Valid {
-			// 	if claims, ok := token.Claims.(*models.JWTClaims); ok &&
-			// 		claims.RegisteredClaims.ExpiresAt != nil {
-			// 		expirationTime := claims.RegisteredClaims.ExpiresAt.Time
-			// 		services.AddToken(tokenString, expirationTime)
-			// 	}
-			// }
 		}
 	}
 	logrus.Infof("Logout: user %s logged out", userID)

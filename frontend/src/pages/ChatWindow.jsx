@@ -23,11 +23,10 @@ const ChatWindow = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
-  const [totalCount, setTotalCount] = useState(0);    // ← общее число сообщений
-  const pageSize = 10;                                 // ← сообщений на страницу
-  const pageCount = Math.ceil(totalCount / pageSize);  // ← всего страниц
+  const [totalCount, setTotalCount] = useState(0);    
+  const pageSize = 10;                                 
+  const pageCount = Math.ceil(totalCount / pageSize);  
   const messages = allMessages[chatId] || [];
-  // const isTyping = typingStatuses[chatId];
   const chatIdNum = Number(chatId);
 const isTyping  = typingStatuses[chatIdNum];
   useEffect(() => {

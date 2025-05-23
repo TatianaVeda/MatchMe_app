@@ -16,7 +16,6 @@ import Signup from './pages/Auth/Signup';
 import MyProfile from './pages/Profile/MyProfile';
 import EditProfile from './pages/Profile/EditProfile';
 import UserProfile from './pages/Profile/UserProfile';
-//import UserProfilePage from './pages/Profile/ConnectedUserProfile';
 import AdminPanel from './pages/Profile/AdminPanel';
 import Recommendations from './pages/Recommendations';
 import Connections from './pages/Connections';
@@ -44,13 +43,11 @@ function App() {
   );
 }
 
-// Внутренний компонент с доступом к useAuthState внутри провайдера
 function AppRoutes() {
   const { user } = useAuthState();
 
   return (
     <Routes>
-      {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
       <Route
   path="/"
   element={
@@ -59,10 +56,7 @@ function AppRoutes() {
       : <Navigate to="/login" replace />
   }
 />
-      {/* Публичные маршруты */}
-      {/* <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} /> */}
-
+     
 <Route
         path="/login"
         element={user ? <Navigate to="/me" replace /> : <Login />}
@@ -72,7 +66,6 @@ function AppRoutes() {
         element={user ? <Navigate to="/me" replace /> : <Signup />}
       />
 
-      {/* Защищённые маршруты */}
       <Route path="/me" element={<PrivateRoute><MyProfile /></PrivateRoute>} />
       <Route path="/edit-profile" element={<PrivateRoute><EditProfile /></PrivateRoute>} />
       <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
@@ -82,8 +75,6 @@ function AppRoutes() {
       <Route path="/chat/:chatId" element={<PrivateRoute><ChatWindow /></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
       <Route path="/friends" element={<PrivateRoute><Friends /></PrivateRoute>} />
-      {/* <Route path="/users/:id" element={<UserProfilePage />} />
-      <Route path="/users/:id" element={<PrivateRoute><UserProfilePage /></PrivateRoute>} /> */}
       <Route
         path="/admin"
         element={
