@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Функция для вывода сообщения об ошибке и завершения скрипта
+# Function to output error message and exit script
 function error_exit {
   echo "$1" >&2
   exit 1
@@ -8,79 +8,78 @@ function error_exit {
 
 npm install concurrently --save-dev
 
-# Проверка наличия Docker Compose
+# Check for Docker Compose
 if ! command -v docker-compose &> /dev/null; then
-  echo "Docker Compose не найден. Пытаемся установить его..."
-  # Для Ubuntu/Debian:
+  echo "Docker Compose not found. Trying to install it..."
+  # For Ubuntu/Debian:
   sudo apt-get update
   sudo apt-get install -y docker-compose
-  # Проверяем снова, если не установилось, завершаем скрипт
+  # Check again, if not installed, exit script
   if ! command -v docker-compose &> /dev/null; then
-    error_exit "Не удалось установить Docker Compose. Установите его вручную и повторите попытку."
+    error_exit "Failed to install Docker Compose. Please install it manually and try again."
   fi
 fi
 
 
-echo "Запускаем PostgreSQL через Docker Compose..."
+echo "Starting PostgreSQL via Docker Compose..."
 docker-compose up -d
 
-# Проверка доступности PostgreSQL
-echo "Ждём 10 секунд, пока PostgreSQL полностью запустится..."
+# Checking if PostgreSQL is ready
+echo "Waiting 10 seconds for PostgreSQL to fully start..."
 sleep 10
 docker exec m_postgres pg_isready
 if [ $? -ne 0 ]; then
-  echo "PostgreSQL не готов! Проверьте логи контейнера:"
+  echo "PostgreSQL is not ready! Check container logs:"
   docker logs m_postgres
   error_exit
 fi
-echo "PostgreSQL запущен и готов к подключению."
+echo "PostgreSQL is running and ready for connection."
 
-# Установка зависимостей для backend
-echo "Переходим в папку backend и устанавливаем зависимости Go..."
-cd backend || { echo "Папка backend не найдена!"; error_exit; }
+# Moving to backend folder and installing Go dependencies...
+echo "Moving to backend folder and installing Go dependencies..."
+cd backend || { echo "Backend folder not found!"; error_exit; }
 
-# Если файл go.mod отсутствует, инициализируем модуль
+# If go.mod file is missing, initialize module
 if [ ! -f "go.mod" ]; then
-  echo "Файл go.mod не найден. Инициализируем модуль..."
+  echo "go.mod file not found. Initializing module..."
   go mod init m/backend
 fi
 
-# Обновление/создание файла go.sum через go mod tidy (подсчитываются и записываются контрольные суммы)
-echo "Обновляем зависимости (go.sum)..."
+# Updating/creating dependencies (go.sum) through go mod tidy...
+echo "Updating dependencies (go.sum)..."
 go mod sum
 
-# Запуск установки дополнительных зависимостей (если ваш код обрабатывает флаг -deps)
-echo "Запускаем установку зависимостей с помощью 'go run main.go -deps'..."
+# Running dependency installation with 'go run main.go -deps'...
+echo "Running dependency installation with 'go run main.go -deps'..."
 go run main.go -deps
 
-# Возвращаемся в корневую директорию проекта
+# Returning to project root directory
 cd ..
 
-# Установка зависимостей для frontend
-echo "Переходим в папку frontend и устанавливаем зависимости Node.js..."
-cd frontend || { echo "Папка frontend не найдена!"; error_exit; }
+# Moving to frontend folder and installing Node.js dependencies...
+echo "Moving to frontend folder and installing Node.js dependencies..."
+cd frontend || { echo "Frontend folder not found!"; error_exit; }
 
-# Проверка, установлен ли npx (Create React App)
+# Check if npx is installed (Create React App)
 if ! command -v npx &> /dev/null
 then
-    echo "Ошибка: npx не найден. Устанавливаем Node.js, чтобы продолжить."
+    echo "Error: npx not found. Installing Node.js to continue."
     npm install
 fi
 
-echo "Устанавливаем зависимые библиотеки..."
-# Установка react-router-dom для маршрутизации и axios для HTTP-запросов.
-npm install react-router-dom axios @mui/material @mui/icons-material @emotion/react @emotion/styled react-toastify
- || error_exit "Ошибка установки."
- npm install formik yup @hookform/resolvers
+echo "Installing dependent libraries..."
+# Installing react-router-dom for routing and axios for HTTP requests.
+npm install react-router-dom axios @mui/material @mui/icons-material @emotion/react @emotion/styled react-toastify || error_exit "Failed to install dependencies."
+npm install formik yup @hookform/resolvers || error_exit "Installation error."
 
 
-# Дополнительные библиотеки для валидации форм (при необходимости можно раскомментировать)
+# Additional libraries for form validation (can be uncommented if needed)
 # npm install formik yup
 
-# Возвращаемся в корневую директорию проекта
-cd .. || error_exit "Не удалось вернуться в корень проекта."
+# Returning to project root directory
+cd .. || error_exit "Failed to return to project root directory."
 
-echo "Окружение успешно настроено!"
+echo "Environment successfully configured!"
 echo "-------------------------------------------------"
-echo "Для запуска приложения используйте команду: npm run dev"
+echo "To run the application use command: npm run dev"
 echo "-------------------------------------------------"

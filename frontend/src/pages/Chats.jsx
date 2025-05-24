@@ -26,7 +26,7 @@ const Chats = () => {
         }));
         setChats(normalized);
       } catch (err) {
-        toast.error('Ошибка загрузки чатов');
+        toast.error('Error loading chats');
       } finally {
         setLoading(false);
       }
@@ -45,7 +45,7 @@ const Chats = () => {
   if (loading) {
     return (
       <Container sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom>Чаты</Typography>
+        <Typography variant="h4" gutterBottom>Chats</Typography>
         <Grid container spacing={2}>
           {[...Array(6)].map((_, i) => (
             <Grid item xs={12} sm={6} md={4} key={i}>
@@ -60,14 +60,14 @@ const Chats = () => {
   if (chats.length === 0) {
     return (
       <Container sx={{ mt: 4 }}>
-        <Typography variant="h6">Нет активных чатов</Typography>
+        <Typography variant="h6">No active chats</Typography>
       </Container>
     );
   }
 
   return (
     <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>Чаты</Typography>
+      <Typography variant="h4" gutterBottom>Chats</Typography>
       <Grid container spacing={2}>
         {chats.map(chat => (
           <Grid item xs={12} sm={6} md={4} key={chat.otherUserID}>

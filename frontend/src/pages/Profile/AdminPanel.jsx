@@ -16,17 +16,17 @@ const AdminPanel = () => {
   const handleReset = async () => {
     try {
       await axios.post(`/admin/reset-fixtures?num=${num}`)
-      toast.success('База Данных успешно сброшена')
+      toast.success('Database has been successfully reset')
     } catch (e) {
-      toast.error('Ошибка сброса БД')
+      toast.error('Database reset error')
     }
   }
   const handleGenerate = async () => {
     try {
         await axios.post(`/admin/generate-fixtures?num=${num}`)
-      toast.success('Фиктивные пользователи созданы')
+      toast.success('Test users have been created')
     } catch {
-      toast.error('Ошибка генерации')
+      toast.error('Generation error')
     }
   }
   return (
@@ -34,7 +34,7 @@ const AdminPanel = () => {
       <Typography variant="h4" gutterBottom>Admin Panel</Typography>
       <Box sx={{ my: 2 }}>
         <TextField
-          label="Количество фиктивных пользователей"
+          label="Number of test users"
           type="number"
           value={num}
           onChange={e => setNum(+e.target.value)}
@@ -42,10 +42,10 @@ const AdminPanel = () => {
       </Box>
       <Box sx={{ display: 'flex', gap: 2 }}>
         <Button variant="contained" color="error" onClick={handleReset}>
-          Сброс базы данных
+          Reset Database
         </Button>
         <Button variant="contained" onClick={handleGenerate}>
-          Генерация фиктивных пользователей
+          Generate Test Users
         </Button>
       </Box>
     </Container>

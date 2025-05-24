@@ -1,3 +1,4 @@
+// m/frontend/src/pages/ChatWindow.jsx
 
 import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -33,7 +34,7 @@ const isTyping  = typingStatuses[chatIdNum];
     if (chatId === 'new') {
       const otherUserID = new URLSearchParams(location.search).get('other_user_id');
       if (!otherUserID) {
-        toast.error('Не указан other_user_id');
+        toast.error('other_user_id is not specified');
         return;
       }
       api.post('/chats', { otherUserId: otherUserID })
@@ -41,7 +42,7 @@ const isTyping  = typingStatuses[chatIdNum];
           navigate(`/chat/${data.chatId}`, { replace: true });
         })
         .catch(() => {
-          toast.error('Не удалось открыть чат');
+          toast.error('Failed to open chat');
         })
         .finally(() => {
           setLoading(false);
@@ -59,7 +60,7 @@ const isTyping  = typingStatuses[chatIdNum];
       setTotalCount(data.totalCount);
       setMessages(chatId, data.messages);
     } catch {
-      toast.error('Ошибка загрузки сообщений');
+      toast.error('Error loading messages');
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,7 @@ const isTyping  = typingStatuses[chatIdNum];
       setMessages(chatId, [...messages, normalized]);
       setNewMessage('');
     } catch {
-      toast.error('Ошибка отправки сообщения');
+      toast.error('Error sending message');
     }
   };
   const handleChange = (e) => {
@@ -104,7 +105,7 @@ const isTyping  = typingStatuses[chatIdNum];
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
-        {chatId === 'new' ? 'Создание чата...' : `Чат ${chatId}`}
+        {chatId === 'new' ? 'Creating chat...' : `Chat ${chatId}`}
       </Typography>
       
       <Box sx={{
@@ -133,7 +134,7 @@ const isTyping  = typingStatuses[chatIdNum];
           ))}
          {isTyping && (
         <Typography variant="body2" color="textSecondary" sx={{ mb: 1, fontStyle: 'italic' }}>
-          Пользователь печатает...
+          User is typing...
         </Typography>
       )}
         </List>
@@ -164,7 +165,7 @@ const isTyping  = typingStatuses[chatIdNum];
           sx={{ display: 'flex', gap: 1 }}
         >
           <TextField
-            label="Новое сообщение"
+            label="New message"
             value={newMessage}
             onChange={handleChange}
             fullWidth
@@ -172,7 +173,7 @@ const isTyping  = typingStatuses[chatIdNum];
             rows={2}
           />
           <Button variant="contained" type="submit">
-            Отправить
+            Send
           </Button>
         </Box>
       )}

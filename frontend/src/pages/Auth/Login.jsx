@@ -11,11 +11,14 @@ export const ADMIN_EMAIL = "admin@first.av";
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string()
-    .email('Некорректный формат email')
-    .required('Введите email'),
+    .email('Invalid email format. Must be in : example@domain.com')
+    .required('Enter email'),
   password: Yup.string()
-    .min(8, 'Пароль должен быть минимум 8 символов')
-    .required('Введите пароль'),
+    .min(8, 'Password must be at least 8 characters, including letters, numbers, and special characters (@$!%*#?&)')
+    /* .matches(
+      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/,
+    ) */
+    .required('Enter password'),
 });
 
 const Login = () => {
@@ -30,11 +33,11 @@ const Login = () => {
       });
   
       if (!data || !data.accessToken) {
-        throw new Error('Ошибка: не удалось получить токен.');
+        throw new Error('Error: Failed to get token.');
       }
   
       dispatch({ type: 'LOGIN_SUCCESS', payload: data });
-      toast.success('Успешный вход в систему');
+      toast.success('Successfully logged in');
       if (values.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         navigate('/admin');
       } else {
@@ -44,7 +47,7 @@ const Login = () => {
     } catch (err) {
       const msg =
         err.response?.data?.message ||
-        'Ошибка входа. Проверьте введённые данные.';
+        'Login error. Please check your credentials.';
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -55,7 +58,7 @@ const Login = () => {
     <Container maxWidth="sm">
       <Box sx={{ mt: 4, p: 3, border: '1px solid #ccc', borderRadius: 2 }}>
         <Typography variant="h4" gutterBottom>
-          Вход
+          Login
         </Typography>
 
         <Formik
@@ -80,7 +83,7 @@ const Login = () => {
               <Field
                 name="password"
                 as={TextField}
-                label="Пароль"
+                label="Password"
                 type="password"
                 autoComplete="current-password"
                 fullWidth
@@ -97,11 +100,11 @@ const Login = () => {
                 sx={{ mt: 2 }}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Вход...' : 'Войти'}
+                {isSubmitting ? 'Signing in...' : 'Sign In'}
               </Button>
 
               <Typography variant="body2" sx={{ mt: 2 }}>
-                Нет аккаунта? <Link to="/signup">Зарегистрироваться</Link>
+                Don't have an account? <Link to="/signup">Sign Up</Link>
               </Typography>
             </Form>
           )}

@@ -23,28 +23,28 @@ import { toast } from 'react-toastify';
      { name: 'Jyväskylä',lat: 62.2426, lon: 25.7473 },
    ];
 
-const interestsOptions = ["кино","спорт","музыка","технологии","искусство"];
-const hobbiesOptions   = ["чтение","бег","рисование","игры","готовка"];
-const musicOptions     = ["рок","джаз","классика","поп","хип-хоп"];
-const foodOptions      = ["итальянская","азиатская","русская","французская","мексиканская"];
-const travelOptions    = ["пляж","горы","города","экспедиции","экотуризм"];
+const interestsOptions = ["movies", "sports", "music", "technology", "art"];
+const hobbiesOptions   = ["reading", "running", "drawing", "gaming", "cooking"];
+const musicOptions     = ["rock", "jazz", "classical", "pop", "hip-hop"];
+const foodOptions      = ["italian", "asian", "russian", "french", "mexican"];
+const travelOptions    = ["beach", "mountains", "cities", "expeditions", "ecotourism"];
 
 const EditProfileSchema = Yup.object().shape({
-  firstName: Yup.string().max(255, 'Имя слишком длинное').required('Укажите имя'),
-  lastName: Yup.string().max(255, 'Фамилия слишком длинная').required('Укажите фамилию'),
-  about: Yup.string().max(1000, 'Описание слишком длинное'),
+  firstName: Yup.string().max(255, 'First name is too long').required('Enter first name'),
+  lastName: Yup.string().max(255, 'Last name is too long').required('Enter last name'),
+  about: Yup.string().max(1000, 'Description is too long, max 1000 characters'),
 
   city: Yup.object({
     name: Yup.string().required(),
     lat: Yup.string().required(),
     lon: Yup.string().required()
-  }).required('Выберите город'),
-  interests: Yup.array().min(1, 'Укажите хотя бы один интерес'),
-  hobbies:   Yup.array().min(1, 'Укажите хотя бы одно хобби'),
-  music:     Yup.array().min(1, 'Укажите хотя бы один жанр музыки'),
-  food:      Yup.array().min(1, 'Укажите хотя бы одну кухню'),
-  travel:    Yup.array().min(1, 'Укажите хотя бы один тип путешествий'),
-  lookingFor: Yup.string().required('Укажите, кого вы ищете')  // новое обязательное поле
+  }).required('Select a city'),
+  interests: Yup.array().min(1, 'Select at least one interest'),
+  hobbies:   Yup.array().min(1, 'Select at least one hobby'),
+  music:     Yup.array().min(1, 'Select at least one music genre'),
+  food:      Yup.array().min(1, 'Select at least one cuisine'),
+  travel:    Yup.array().min(1, 'Select at least one travel type'),
+  lookingFor: Yup.string().required('Specify who you are looking for')
 });
 
 const EditProfile = () => {
@@ -89,7 +89,7 @@ const EditProfile = () => {
           priorityTravel:    prefs.priorityTravel    || false,
         });
       } catch {
-        toast.error('Ошибка загрузки данных профиля');
+        toast.error('Error loading profile data');
       }
     };
     
@@ -115,9 +115,9 @@ const EditProfile = () => {
       await api.post('/me/photo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      toast.success('Фото успешно загружено');
+      toast.success('Photo uploaded successfully');
     } catch {
-      toast.error('Ошибка при загрузке фото');
+      toast.error('Error uploading photo');
     } finally {
       setUploading(false);
     }
@@ -128,10 +128,10 @@ const EditProfile = () => {
     setUploading(true);
     try {
       await deleteMyPhoto();             
-      toast.success('Фото удалено');
+      toast.success('Photo deleted');
       navigate(0);                       
     } catch {
-      toast.error('Ошибка при удалении фото');
+      toast.error('Error deleting photo');
     } finally {
       setUploading(false);
     }
@@ -169,10 +169,10 @@ const EditProfile = () => {
         priorityFood:        values.priorityFood,
         priorityTravel:      values.priorityTravel,
       });
-      toast.success('Профиль успешно обновлён');
+      toast.success('Profile updated successfully');
       navigate('/me');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Ошибка при сохранении');
+      toast.error(err.response?.data?.message || 'Error saving changes');
     } finally {
       setSubmitting(false);
     }
@@ -182,11 +182,11 @@ const EditProfile = () => {
     <Container maxWidth="sm" sx={{ mt: 4 }}>
       <Box sx={{ p: 3, border: '1px solid #ccc', borderRadius: 2 }}>
         <Typography variant="h4" gutterBottom>
-          Редактировать профиль
+          Edit Profile
         </Typography>
 
         <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1">Загрузить фото</Typography>
+          <Typography variant="subtitle1">Upload Photo</Typography>
           <input
             type="file"
             accept="image/jpeg,image/png"
@@ -199,7 +199,7 @@ const EditProfile = () => {
             disabled={!photoFile || uploading}
             sx={{ ml: 1 }}
           >
-            Загрузить
+            Upload
           </Button>
           <Button
             variant="outlined"
@@ -208,20 +208,20 @@ const EditProfile = () => {
             disabled={uploading}
             sx={{ ml: 1 }}
           >
-            Удалить фото
+            Delete Photo
           </Button>
-          {uploading && <Typography variant="body2">Загрузка...</Typography>}
+          {uploading && <Typography variant="body2">Uploading...</Typography>}
         </Box>
 
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6">Местоположение</Typography>
+          <Typography variant="h6">Location</Typography>
           <Button
             variant="outlined"
             fullWidth
             sx={{ mt: 1 }}
             onClick={() => {
               if (!navigator.geolocation) {
-                toast.error('Геолокация не поддерживается');
+                toast.error('Geolocation is not supported');
                 return;
               }
               
@@ -231,14 +231,14 @@ const EditProfile = () => {
                     latitude: coords.latitude,
                     longitude: coords.longitude
                   })
-                  .then(() => toast.success('Локация сохранена'))
-                  .catch(() => toast.error('Не удалось сохранить координаты'));
+                  .then(() => toast.success('Location saved'))
+                  .catch(() => toast.error('Failed to save coordinates'));
                 },
-                () => toast.error('Не удалось получить местоположение')
+                () => toast.error('Failed to get location')
               );              
             }}
           >
-            Использовать моё местоположение
+            Use My Location
           </Button>
         </Box>
 
@@ -249,11 +249,11 @@ const EditProfile = () => {
         >
           {({ isSubmitting, touched, errors }) => (
             <Form>
-              <Typography variant="h6">Профиль</Typography>
+              <Typography variant="h6">Profile</Typography>
               <Field
                 name="firstName"
                 as={TextField}
-                label="Имя"
+                label="First Name"
                 fullWidth
                 margin="normal"
                 error={touched.firstName && Boolean(errors.firstName)}
@@ -262,7 +262,7 @@ const EditProfile = () => {
               <Field
                 name="lastName"
                 as={TextField}
-                label="Фамилия"
+                label="Last Name"
                 fullWidth
                 margin="normal"
                 error={touched.lastName && Boolean(errors.lastName)}
@@ -271,7 +271,7 @@ const EditProfile = () => {
               <Field
                 name="about"
                 as={TextField}
-                label="О себе"
+                label="About Me"
                 fullWidth
                 margin="normal"
                 multiline
@@ -281,13 +281,13 @@ const EditProfile = () => {
               />
 
      <FormControl fullWidth margin="normal" error={touched.city && Boolean(errors.city)}>
-       <InputLabel id="city-label">Город</InputLabel>
+       <InputLabel id="city-label">City</InputLabel>
        <Field name="city">
          {({ field, form }) => (
            <Select
              {...field}
              labelId="city-label"
-             label="Город"
+             label="City"
              value={field.value.name}
              onChange={e => {
                const sel = cityOptions.find(c => c.name === e.target.value);
@@ -306,18 +306,18 @@ const EditProfile = () => {
      </FormControl>
 
               <Typography variant="h6" sx={{ mt: 3 }}>
-                Биография
+                Biography
               </Typography>
 
      <FormControl fullWidth margin="normal" error={touched.interests && Boolean(errors.interests)}>
-       <InputLabel id="interests-label">Интересы</InputLabel>
+       <InputLabel id="interests-label">Interests</InputLabel>
        <Field name="interests">
     {({ field, form }) => (
       <Select
         {...field}
         multiple
         labelId="interests-label"
-        label="Интересы"
+        label="Interests"
         value={field.value}
         onChange={e => form.setFieldValue('interests', e.target.value)}
       >
@@ -329,20 +329,20 @@ const EditProfile = () => {
   </Field>
        <FormControlLabel
          control={<Field name="priorityInterests" as={Switch} />}
-         label="Приоритетные интересы"
+         label="Priority Interests"
        />
        <ErrorMessage name="interests" component="div" style={{ color: 'red' }} />
      </FormControl>
 
      <FormControl fullWidth margin="normal" error={touched.hobbies && Boolean(errors.hobbies)}>
-  <InputLabel id="hobbies-label">Хобби</InputLabel>
+  <InputLabel id="hobbies-label">Hobbies</InputLabel>
   <Field name="hobbies">
     {({ field, form }) => (
       <Select
         {...field}
         multiple
         labelId="hobbies-label"
-        label="Хобби"
+        label="Hobbies"
         value={field.value}
         onChange={e => form.setFieldValue('hobbies', e.target.value)}
       >
@@ -354,20 +354,20 @@ const EditProfile = () => {
   </Field>
   <FormControlLabel
     control={<Field name="priorityHobbies" as={Switch} />}
-    label="Приоритетное хобби"
+    label="Priority Hobby"
   />
   <ErrorMessage name="hobbies" component="div" style={{ color: 'red' }} />
 </FormControl>
 
      <FormControl fullWidth margin="normal" error={touched.music && Boolean(errors.music)}>
-  <InputLabel id="music-label">Музыка</InputLabel>
+  <InputLabel id="music-label">Music</InputLabel>
   <Field name="music">
     {({ field, form }) => (
       <Select
         {...field}
         multiple
         labelId="music-label"
-        label="Музыка"
+        label="Music"
         value={field.value}
         onChange={e => form.setFieldValue('music', e.target.value)}
       >
@@ -379,20 +379,20 @@ const EditProfile = () => {
   </Field>
   <FormControlLabel
     control={<Field name="priorityMusic" as={Switch} />}
-    label="Приоритетная музыка"
+    label="Priority Music"
   />
   <ErrorMessage name="music" component="div" style={{ color: 'red' }} />
 </FormControl>
 
      <FormControl fullWidth margin="normal" error={touched.food && Boolean(errors.food)}>
-  <InputLabel id="food-label">Еда</InputLabel>
+  <InputLabel id="food-label">Food</InputLabel>
   <Field name="food">
     {({ field, form }) => (
       <Select
         {...field}
         multiple
         labelId="food-label"
-        label="Еда"
+        label="Food"
         value={field.value}
         onChange={e => form.setFieldValue('food', e.target.value)}
       >
@@ -404,20 +404,20 @@ const EditProfile = () => {
   </Field>
   <FormControlLabel
     control={<Field name="priorityFood" as={Switch} />}
-    label="Приоритетная еда"
+    label="Priority Cuisine"
   />
   <ErrorMessage name="food" component="div" style={{ color: 'red' }} />
 </FormControl>
 
      <FormControl fullWidth margin="normal" error={touched.travel && Boolean(errors.travel)}>
-  <InputLabel id="travel-label">Путешествия</InputLabel>
+  <InputLabel id="travel-label">Travel</InputLabel>
   <Field name="travel">
     {({ field, form }) => (
       <Select
         {...field}
         multiple
         labelId="travel-label"
-        label="Путешествия"
+        label="Travel"
         value={field.value}
         onChange={e => form.setFieldValue('travel', e.target.value)}
       >
@@ -429,7 +429,7 @@ const EditProfile = () => {
   </Field>
   <FormControlLabel
     control={<Field name="priorityTravel" as={Switch} />}
-    label="Приоритетные путешествия"
+    label="Priority Travel"
   />
   <ErrorMessage name="travel" component="div" style={{ color: 'red' }} />
 </FormControl>
@@ -437,7 +437,7 @@ const EditProfile = () => {
               <Field
                 name="lookingFor"
                 as={TextField}
-                label="Кого вы ищете"
+                label="Who are you looking for"
                 fullWidth
                 margin="normal"
                 error={touched.lookingFor && Boolean(errors.lookingFor)}
@@ -452,7 +452,7 @@ const EditProfile = () => {
                 sx={{ mt: 2 }}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Сохранение...' : 'Сохранить изменения'}
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
               </Button>
             </Form>
           )}

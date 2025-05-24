@@ -16,11 +16,11 @@ import { toast } from 'react-toastify';
 import { ADMIN_ID } from '../config';
 
 const navItems = [
-  { label: 'Рекомендации', to: '/recommendations' },
-  { label: 'Чаты',        to: '/chats' },
-  { label: 'Профиль',     to: '/me' },
-  { label: 'Настройки',   to: '/settings' },
-  { label: 'Друзья',      to: '/friends' },
+  { label: 'Recommendations', to: '/recommendations' },
+  { label: 'Chats',        to: '/chats' },
+  { label: 'Profile',     to: '/me' },
+  { label: 'Settings',   to: '/settings' },
+  { label: 'Friends',      to: '/friends' },
 ];
 
 export default function Header() {
@@ -66,13 +66,13 @@ export default function Header() {
     if (!user) return;
     getPendingConnections()
       .then(list => setPendingFriends(list.length))
-      .catch(() => {/* тихий фоллбек */});
+      .catch(() => {/* silent fallback */});
   }, [user]);
 
   const handleLogout = async () => {
     try { await axios.post('/logout'); } catch {}
     dispatch({ type: 'LOGOUT' });
-    toast.info('Вы вышли из системы');
+    toast.info('You have logged out');
     navigate('/login');
   };
 
@@ -90,7 +90,7 @@ export default function Header() {
             </ListItem>
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
-                <ListItemText primary="Выход" />
+                <ListItemText primary="Logout" />
               </ListItemButton>
             </ListItem>
           </>
@@ -105,14 +105,14 @@ export default function Header() {
             ))}
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
-                <ListItemText primary="Выход" />
+                <ListItemText primary="Logout" />
               </ListItemButton>
             </ListItem>
           </>
         ) : (
           <ListItem disablePadding>
             <ListItemButton component={Link} to="/login">
-              <ListItemText primary="Вход" />
+              <ListItemText primary="Login" />
             </ListItemButton>
           </ListItem>
         )}
@@ -139,7 +139,7 @@ export default function Header() {
             to="/"
             sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}
           >
-            m – Рекомендации
+            Match Me – Recommendations
           </Typography>
 
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
@@ -150,7 +150,7 @@ export default function Header() {
                     Admin
                   </Button>
                   <Button color="inherit" onClick={handleLogout}>
-                    Выход
+                    Logout
                   </Button>
                 </>
               ) : (
@@ -211,13 +211,13 @@ export default function Header() {
                     onClick={handleLogout}
                     sx={{ ml: 1 }}
                   >
-                    Выход
+                    Logout
                   </Button>
                 </>
               )
             ) : (
               <Button color="inherit" component={Link} to="/login">
-                Вход
+                Login
               </Button>
             )}
           </Box>

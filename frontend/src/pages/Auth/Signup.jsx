@@ -9,14 +9,14 @@ import * as Yup from 'yup';
 
 const SignupSchema = Yup.object().shape({
   email: Yup.string()
-    .email('Некорректный формат email')
-    .required('Введите email'),
+    .email('Invalid email format')
+    .required('Enter email'),
   password: Yup.string()
-    .min(8, 'Пароль должен быть минимум 8 символов')
-    .required('Введите пароль'),
+    .min(8, 'Password must be at least 8 characters')
+    .required('Enter password'),
   confirmPassword: Yup.string()
-    .oneOf([Yup.ref('password'), null], 'Пароли не совпадают')
-    .required('Подтвердите пароль'),
+    .oneOf([Yup.ref('password'), null], 'Passwords do not match')
+    .required('Confirm password'),
 });
 
 const Signup = () => {
@@ -30,10 +30,10 @@ const Signup = () => {
         password: values.password,
       });
       dispatch({ type: 'LOGIN_SUCCESS', payload: data });
-      toast.success('Регистрация прошла успешно!');
+      toast.success('Registration successful!');
       navigate('/me');
     } catch (err) {
-      toast.error(err.response?.data || 'Ошибка регистрации');
+      toast.error(err.response?.data || 'Registration error');
     } finally {
       setSubmitting(false);
     }
@@ -43,7 +43,7 @@ const Signup = () => {
     <Container maxWidth="sm">
       <Box sx={{ mt: 4, p: 3, border: '1px solid #ccc', borderRadius: 2 }}>
         <Typography variant="h4" gutterBottom>
-          Регистрация
+          Registration
         </Typography>
 
         <Formik
@@ -67,7 +67,7 @@ const Signup = () => {
               <Field
                 name="password"
                 as={TextField}
-                label="Пароль"
+                label="Password"
                 type="password"
                 autoComplete="current-password"
                 fullWidth
@@ -79,7 +79,7 @@ const Signup = () => {
               <Field
                 name="confirmPassword"
                 as={TextField}
-                label="Подтвердите пароль"
+                label="Please confirm password"
                 type="password"
                 fullWidth
                 margin="normal"
@@ -95,11 +95,11 @@ const Signup = () => {
                 sx={{ mt: 2 }}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
+                {isSubmitting ? 'Registering...' : 'Sign Up'}
               </Button>
 
               <Typography variant="body2" sx={{ mt: 2 }}>
-                Уже есть аккаунт? <Link to="/login">Войти</Link>
+                Already have an account? <Link to="/login">Sign In</Link>
               </Typography>
             </Form>
           )}

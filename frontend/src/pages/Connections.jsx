@@ -36,8 +36,6 @@ const Connections = () => {
         }));
       };
 
-  
-
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -47,7 +45,7 @@ const Connections = () => {
       const connIds = await getConnections();
       setConnections(await loadUsers(connIds));
     } catch {
-      toast.error('Ошибка загрузки подключений');
+      toast.error('Error loading connections');
     } finally {
       setLoading(false);
     }
@@ -62,34 +60,34 @@ const Connections = () => {
   const handleAccept = async (id) => {
     try {
       await updateConnectionRequest(id, 'accept');
-      toast.success('Запрос принят');
+      toast.success('Request accepted');
       const user = pending.find(u => u.id === id);
       setPending(p => p.filter(u => u.id !== id));
       setConnections(c => [...c, user]);
     } catch {
-      toast.error('Ошибка при принятии');
+      toast.error('Error accepting request');
     }
   };
 
   const handleDecline = async (id) => {
     try {
       await updateConnectionRequest(id, 'decline');
-      toast.info('Запрос отклонён');
+      toast.info('Request declined');
       setPending(p => p.filter(u => u.id !== id));
     } catch {
-      toast.error('Ошибка при отклонении');
+      toast.error('Error declining request');
     }
   };
 
   const handleDisconnect = async (id) => {
     try {
       await deleteConnection(id);
-      toast.success('Подключение удалено');
+      toast.success('Connection removed');
       setConnections(c => c.filter(u => u.id !== id));
       setChats(chs => chs.filter(c => c.otherUserID !== id));
       if (window.location.pathname === `/chat/${id}`) navigate('/chats');
     } catch {
-      toast.error('Ошибка при отключении');
+      toast.error('Error disconnecting');
     }
   };
 
@@ -103,15 +101,15 @@ const Connections = () => {
 
   return (
     <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>Подключения</Typography>
+      <Typography variant="h4" gutterBottom>Connections</Typography>
       <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 3 }}>
-        <Tab label="Существующие" />
-        <Tab label="Запросы" />
+        <Tab label="Existing" />
+        <Tab label="Requests" />
       </Tabs>
 
       {tab === 0 && (
         connections.length === 0
-          ? <Typography>Нет подключённых профилей.</Typography>
+          ? <Typography>No connected profiles.</Typography>
           : (
             <Grid container spacing={2}>
               {connections.map(u => (
@@ -124,7 +122,7 @@ const Connections = () => {
                   />
                   <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
                     <Button variant="outlined" color="error" size="small" onClick={() => handleDisconnect(u.id)}>
-                      Отключить
+                      Block
                     </Button>
                   </Box>
                 </Grid>
@@ -135,7 +133,7 @@ const Connections = () => {
 
       {tab === 1 && (
         pending.length === 0
-          ? <Typography>Нет входящих запросов.</Typography>
+          ? <Typography>No incoming requests.</Typography>
           : (
             <Grid container spacing={2}>
               {pending.map(u => (
@@ -147,10 +145,10 @@ const Connections = () => {
                   />
                   <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
                     <Button size="small" variant="contained" sx={{ mr: 1 }} onClick={() => handleAccept(u.id)}>
-                      Принять
+                      Accept
                     </Button>
                     <Button size="small" variant="outlined" onClick={() => handleDecline(u.id)}>
-                      Отклонить
+                      Decline
                     </Button>
                   </Box>
                 </Grid>

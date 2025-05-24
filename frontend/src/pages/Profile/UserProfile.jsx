@@ -30,14 +30,14 @@ const UserProfile = () => {
   const handleRemoveFriend = async (friendId) => {
     try {
       await deleteConnection(friendId);
-      toast.success('Пользователь удалён из друзей');
+      toast.success('User removed from friends');
       setConnectedIds(prev => prev.filter(uid => uid !== friendId));
       setChats(chs => chs.filter(c => c.otherUserID !== friendId));
       if (window.location.pathname === `/chat/${friendId}`) {
         navigate('/chats');
       }
     } catch {
-      toast.error('Не удалось удалить друга');
+      toast.error('Failed to remove friend');
     }
   };
 
@@ -57,7 +57,7 @@ const UserProfile = () => {
         setUser(u);
         setConnectedIds(conns);
       } catch {
-        toast.error('Ошибка загрузки данных пользователя');
+        toast.error('Error loading user data');
         navigate('/recommendations');
         return;
       }
@@ -94,7 +94,7 @@ const UserProfile = () => {
   if (!user) {
     return (
       <Container sx={{ textAlign: 'center', mt: 4 }}>
-        <Typography variant="h5">Пользователь не найден</Typography>
+        <Typography variant="h5">User not found</Typography>
       </Container>
     );
   }
@@ -126,21 +126,21 @@ const UserProfile = () => {
       </Box>
 
       <Typography variant="body1" sx={{ mb: 2 }}>
-        {profile?.about || 'Информация недоступна'}
+        {profile?.about || 'Information not available'}
       </Typography>
 
-      <Typography variant="h6" gutterBottom>Биография</Typography>
+      <Typography variant="h6" gutterBottom>Biography</Typography>
       {bio ? (
         <>
-          <Typography>Интересы: {bio.interests}</Typography>
-          <Typography>Хобби: {bio.hobbies}</Typography>
-          <Typography>Музыка: {bio.music}</Typography>
-          <Typography>Еда: {bio.food}</Typography>
-          <Typography>Путешествия: {bio.travel}</Typography>
-          <Typography>Ищу: {bio.lookingFor}</Typography>
+          <Typography>Interests: {bio.interests}</Typography>
+          <Typography>Hobbies: {bio.hobbies}</Typography>
+          <Typography>Music: {bio.music}</Typography>
+          <Typography>Cuisine: {bio.food}</Typography>
+          <Typography>Travel: {bio.travel}</Typography>
+          <Typography>Looking for: {bio.lookingFor}</Typography>
         </>
       ) : (
-        <Typography>Биография недоступна</Typography>
+        <Typography>Biography not available</Typography>
       )}
 
       {connectedIds.includes(id) && (
@@ -151,14 +151,14 @@ const UserProfile = () => {
             sx={{ mr: 1 }}
             onClick={handleChat}
           >
-            Перейти в чат
+            Go to Chat
           </Button>
           <Button
             variant="outlined"
             color="error"
             onClick={() => handleRemoveFriend(id)}
           >
-            Удалить из друзей
+            Remove from Friends
           </Button>
         </Box>
       )}
