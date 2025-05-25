@@ -274,11 +274,11 @@ func GetCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logrus.Warnf("Login: profile not found for user %s", userID)
 
-			http.Error(w, "Ошибка входа. Проверьте введённые данные.", http.StatusNotFound)
+			http.Error(w, "Login error. Please check the entered data.", http.StatusNotFound)
 			return
 		}
 		logrus.Errorf("Login: DB error fetching profile for user %s: %v", userID, err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 

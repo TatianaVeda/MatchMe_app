@@ -56,7 +56,7 @@ func LoadConfig() {
 	AppConfig.IsProd = AppConfig.Environment == "production"
 
 	if err := AppConfig.Validate(); err != nil {
-		logrus.Fatalf("Ошибка конфигурации: %v", err)
+		logrus.Fatalf("Configuration error: %v", err)
 	}
 
 	level, err := logrus.ParseLevel(AppConfig.LogLevel)
@@ -67,36 +67,36 @@ func LoadConfig() {
 
 	if AppConfig.IsDev {
 		logrus.SetReportCaller(true)
-		logrus.Infof("Режим разработки: детальное логирование включено")
+		logrus.Infof("Development mode: detailed logging enabled")
 	}
 
-	logrus.Info("✅ Конфигурация загружена")
+	logrus.Info("✅ Configuration loaded")
 }
 
 func (c *Config) Validate() error {
 	if c.ServerPort == "" {
-		return errors.New("SERVER_PORT не может быть пустым")
+		return errors.New("SERVER_PORT cannot be empty")
 	}
 	if c.DatabaseURL == "" {
-		return errors.New("DATABASE_URL не может быть пустым")
+		return errors.New("DATABASE_URL cannot be empty")
 	}
 	if c.JWTSecret == "" {
-		return errors.New("JWT_SECRET не может быть пустым")
+		return errors.New("JWT_SECRET cannot be empty")
 	}
 	if c.JWTExpiresIn <= 0 {
-		return errors.New("JWT_EXPIRES_IN должен быть больше нуля")
+		return errors.New("JWT_EXPIRES_IN must be greater than zero")
 	}
 	if len(c.AllowedOrigins) == 0 {
-		return errors.New("ALLOWED_ORIGINS должны быть указаны")
+		return errors.New("ALLOWED_ORIGINS must be specified")
 	}
 	if c.SMTPServer == "" {
-		return errors.New("SMTP_SERVER не может быть пустым")
+		return errors.New("SMTP_SERVER cannot be empty")
 	}
 	if c.SMTPPort <= 0 {
-		return errors.New("SMTP_PORT должен быть больше нуля")
+		return errors.New("SMTP_PORT must be greater than zero")
 	}
 	if c.LogLevel == "" {
-		return errors.New("LOG_LEVEL не может быть пустым")
+		return errors.New("LOG_LEVEL cannot be empty")
 	}
 	return nil
 }
@@ -116,7 +116,7 @@ func getEnvAsInt(name string, defaultVal int) int {
 
 	val, err := strconv.Atoi(valStr)
 	if err != nil {
-		logrus.Warnf("Не удалось преобразовать %s в int: %v. Используется значение по умолчанию.", name, err)
+		logrus.Warnf("Failed to convert %s to int: %v. Using default value.", name, err)
 		return defaultVal
 	}
 

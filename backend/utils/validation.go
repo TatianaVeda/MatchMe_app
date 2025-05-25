@@ -12,16 +12,16 @@ var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-
 
 func ValidateEmail(email string) error {
 	if !emailRegex.MatchString(email) {
-		logrus.Debugf("ValidateEmail: неверный формат email %s", email)
-		return errors.New("некорректный формат email")
+		logrus.Debugf("ValidateEmail: invalid email format %s", email)
+		return errors.New("invalid email format")
 	}
 	return nil
 }
 
 func ValidatePassword(password string) error {
 	if len(password) < 8 {
-		logrus.Debug("ValidatePassword: пароль слишком короткий")
-		return errors.New("пароль должен содержать минимум 8 символов")
+		logrus.Debug("ValidatePassword: password is too short, must be at least 8 chars")
+		return errors.New("password must be at least 8 characters")
 	}
 	var hasLetter, hasDigit bool
 	for _, ch := range password {
@@ -33,16 +33,16 @@ func ValidatePassword(password string) error {
 		}
 	}
 	if !hasLetter || !hasDigit {
-		logrus.Debug("ValidatePassword: пароль не содержит необходимых символов")
-		return errors.New("пароль должен содержать как буквы, так и цифры")
+		logrus.Debug("ValidatePassword: password does not contain required characters like letters and numbers")
+		return errors.New("password must contain both letters and numbers")
 	}
 	return nil
 }
 
 func ValidateStringLength(str string, max int) error {
 	if len(str) > max {
-		logrus.Debugf("ValidateStringLength: строка превышает максимальную длину (%d > %d)", len(str), max)
-		return errors.New("слишком длинное значение")
+		logrus.Debugf("ValidateStringLength: string exceeds maximum length (%d > %d)", len(str), max)
+		return errors.New("value is too long")
 	}
 	return nil
 }

@@ -38,7 +38,7 @@ var presenceService *services.PresenceService
 
 func InitRecommendationControllerService(db *gorm.DB, ps *services.PresenceService) {
 	recommendationService = services.NewRecommendationService(db, nil)
-	presenceService = ps // ✅ добавили
+	presenceService = ps // ✅ added
 	logrus.Info("Recommendations controller initialized")
 }
 
@@ -151,8 +151,9 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		msg := err.Error()
-		if strings.Contains(msg, "пожалуйста, заполните вашу биографию") ||
-			strings.Contains(msg, "пожалуйста, укажите имя и фамилию") {
+		if strings.Contains(msg, "please fill in your profile and biography to get recommendations") ||
+			strings.Contains(msg, "please provide your first and last name") ||
+			strings.Contains(msg, "please complete your biography") {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("[]"))
@@ -179,7 +180,7 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	if withDist {
 		out := make([]RecommendationOutput, len(idsWithDist))
 		for i, rec := range idsWithDist {
-			online, _ := presenceService.IsOnline(rec.UserID.String()) // ✅ добавили
+			online, _ := presenceService.IsOnline(rec.UserID.String()) // ✅ added
 			out[i] = RecommendationOutput{
 				ID:       rec.UserID,
 				Distance: rec.Distance,

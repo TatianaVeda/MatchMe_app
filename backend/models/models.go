@@ -103,26 +103,26 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 			}
 		}
 		if err == nil {
-			logrus.Infof("InitDB: успешно подключились к базе данных (попытка %d)", i)
+			logrus.Infof("InitDB: successfully connected to database (attempt %d)", i)
 			break
 		}
-		logrus.Warnf("InitDB: попытка %d не удалась: %v", i, err)
+		logrus.Warnf("InitDB: attempt %d failed: %v", i, err)
 		time.Sleep(time.Second)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("InitDB: не удалось подключиться после нескольких попыток: %w", err)
+		return nil, fmt.Errorf("InitDB: failed to connect after multiple attempts: %w", err)
 	}
 	if execErr := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`).Error; execErr != nil {
-		logrus.Warnf("InitDB: не удалось создать extension uuid-ossp: %v", execErr)
+		logrus.Warnf("InitDB: failed to create extension uuid-ossp: %v", execErr)
 	}
 	if execErr := db.Exec(`CREATE EXTENSION IF NOT EXISTS cube`).Error; execErr != nil {
-		logrus.Warnf("InitDB: не удалось создать extension cube: %v", execErr)
+		logrus.Warnf("InitDB: failed to create extension cube: %v", execErr)
 	}
 	if execErr := db.Exec(`CREATE EXTENSION IF NOT EXISTS earthdistance`).Error; execErr != nil {
-		logrus.Warnf("InitDB: не удалось создать extension earthdistance: %v", execErr)
+		logrus.Warnf("InitDB: failed to create extension earthdistance: %v", execErr)
 	}
 	if migrateErr := Migrate(db); migrateErr != nil {
-		logrus.Errorf("InitDB: ошибка миграции: %v", migrateErr)
+		logrus.Errorf("InitDB: migration error: %v", migrateErr)
 		return nil, migrateErr
 	}
 	if err := db.Exec(`
@@ -130,15 +130,15 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 		ADD COLUMN IF NOT EXISTS earth_loc cube
 		GENERATED ALWAYS AS (ll_to_earth(latitude, longitude)) STORED
 	`).Error; err != nil {
-		logrus.Warnf("InitDB: не удалось добавить поле earth_loc: %v", err)
+		logrus.Warnf("InitDB: failed to add earth_loc column: %v", err)
 	}
 	if err := db.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_profiles_earth_loc
 		ON profiles USING GIST (earth_loc)
 	`).Error; err != nil {
-		logrus.Warnf("InitDB: не удалось создать индекс idx_profiles_earth_loc: %v", err)
+		logrus.Warnf("InitDB: failed to create index idx_profiles_earth_loc: %v", err)
 	}
-	logrus.Info("InitDB: база данных успешно инициализирована")
+	logrus.Info("InitDB: database initialized successfully")
 	return db, nil
 }
 func Migrate(db *gorm.DB) error {
@@ -154,9 +154,9 @@ func Migrate(db *gorm.DB) error {
 		&FakeUser{},
 	)
 	if err != nil {
-		logrus.Errorf("Migrate: ошибка миграции: %v", err)
+		logrus.Errorf("Migrate: migration error: %v", err)
 	} else {
-		logrus.Info("Migrate: миграция выполнена успешно")
+		logrus.Info("Migrate: migration completed successfully")
 	}
 	return err
 }

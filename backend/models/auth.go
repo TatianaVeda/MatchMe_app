@@ -22,17 +22,17 @@ var (
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		logrus.Errorf("HashPassword: ошибка генерации хэша: %v", err)
+		logrus.Errorf("HashPassword: hash generation error: %v", err)
 		return "", err
 	}
-	logrus.Debug("HashPassword: пароль успешно захэширован")
+	logrus.Debug("HashPassword: password hashed successfully")
 	return string(bytes), nil
 }
 
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if err != nil {
-		logrus.Debugf("CheckPasswordHash: не совпадает: %v", err)
+		logrus.Debugf("CheckPasswordHash: does not match: %v", err)
 		return false
 	}
 	return true
@@ -43,7 +43,7 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 	if email == config.AdminEmail {
 
 		if password != config.AdminPassword {
-			logrus.Warnf("CreateUser: неверный пароль администратора для email %s", email)
+			logrus.Warnf("CreateUser: invalid admin password for email %s", email)
 			return nil, errors.New("invalid admin credentials")
 		}
 
@@ -62,29 +62,29 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 			Preference:   Preference{},
 		}
 		if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Create(user).Error; err != nil {
-			logrus.Errorf("CreateUser (admin): ошибка создания администратора: %v", err)
+			logrus.Errorf("CreateUser (admin): admin creation error: %v", err)
 			return nil, err
 		}
-		logrus.Infof("CreateUser: администратор создан с ID=%s", user.ID)
+		logrus.Infof("CreateUser: admin created with ID=%s", user.ID)
 		return user, nil
 	}
 
 	if err := utils.ValidateEmail(email); err != nil {
-		logrus.Warnf("CreateUser: неверный формат email %s: %v", email, err)
+		logrus.Warnf("CreateUser: invalid email format %s: %v", email, err)
 		return nil, err
 	}
 	if err := utils.ValidatePassword(password); err != nil {
-		logrus.Warnf("CreateUser: пароль не соответствует требованиям: %v", err)
+		logrus.Warnf("CreateUser: password does not meet requirements: %v", err)
 		return nil, err
 	}
 
 	var count int64
 	if err := db.Model(&User{}).Where("email = ?", email).Count(&count).Error; err != nil {
-		logrus.Errorf("CreateUser: ошибка проверки существования email %s: %v", email, err)
+		logrus.Errorf("CreateUser: error checking email existence %s: %v", email, err)
 		return nil, err
 	}
 	if count > 0 {
-		logrus.Warn("CreateUser: пользователь с данным email уже зарегистрирован")
+		logrus.Warn("CreateUser: user with this email is already registered")
 		return nil, errors.New("email already registered")
 	}
 
@@ -103,16 +103,16 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 	}
 
 	if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Create(user).Error; err != nil {
-		logrus.Errorf("CreateUser: ошибка создания пользователя и ассоциаций: %v", err)
+		logrus.Errorf("CreateUser: error creating user and associations: %v", err)
 		return nil, err
 	}
 
 	defaultBio := Bio{UserID: user.ID}
 	if err := db.Create(&defaultBio).Error; err != nil {
-		logrus.Warnf("CreateUser: не удалось создать default Bio: %v", err)
+		logrus.Warnf("CreateUser: failed to create default Bio: %v", err)
 	}
 
-	logrus.Infof("CreateUser: пользователь и связанные записи успешно созданы (ID=%s)", user.ID)
+	logrus.Infof("CreateUser: user and related records created successfully (ID=%s)", user.ID)
 	return user, nil
 }
 
@@ -121,19 +121,19 @@ func AuthenticateUser(db *gorm.DB, email, password string) (*User, error) {
 	var user User
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logrus.Warnf("AuthenticateUser: пользователь с email %s не найден", email)
+			logrus.Warnf("AuthenticateUser: user with email %s not found", email)
 			return nil, ErrUserNotFound
 		}
-		logrus.Errorf("AuthenticateUser: ошибка поиска пользователя %s: %v", email, err)
+		logrus.Errorf("AuthenticateUser: error finding user %s: %v", email, err)
 		return nil, err
 	}
 
 	if !CheckPasswordHash(password, user.PasswordHash) {
-		logrus.Warnf("AuthenticateUser: неверный пароль для пользователя %s", email)
+		logrus.Warnf("AuthenticateUser: invalid password for user %s", email)
 		return nil, ErrInvalidCredentials
 	}
 
-	logrus.Infof("AuthenticateUser: пользователь %s успешно аутентифицирован", email)
+	logrus.Infof("AuthenticateUser: user %s authenticated successfully", email)
 	return &user, nil
 }
 
@@ -156,11 +156,11 @@ func GenerateJWT(userID uuid.UUID, secret string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
-		logrus.Errorf("GenerateJWT: ошибка создания токена для пользователя %s: %v", userID, err)
+		logrus.Errorf("GenerateJWT: error creating token for user %s: %v", userID, err)
 		return "", err
 	}
 
-	logrus.Infof("GenerateJWT: токен успешно создан для пользователя %s", userID)
+	logrus.Infof("GenerateJWT: token successfully created for user %s", userID)
 	return tokenString, nil
 }
 
@@ -169,17 +169,17 @@ func ParseJWT(tokenString, secret string) (*JWTClaims, error) {
 		return []byte(secret), nil
 	})
 	if err != nil {
-		logrus.Errorf("ParseJWT: ошибка при парсинге токена: %v", err)
+		logrus.Errorf("ParseJWT: error parsing token: %v", err)
 		return nil, err
 	}
 
 	claims, ok := token.Claims.(*JWTClaims)
 	if !ok || !token.Valid {
-		logrus.Warn("ParseJWT: неверные claims или токен не валиден")
+		logrus.Warn("ParseJWT: invalid claims or token is not valid")
 		return nil, errors.New("invalid token")
 	}
 
-	logrus.Debug("ParseJWT: токен успешно разобран")
+	logrus.Debug("ParseJWT: token parsed successfully")
 	return claims, nil
 }
 

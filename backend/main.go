@@ -57,11 +57,11 @@ func main() {
 	config.LoadConfig()
 
 	setupLogger()
-	log.Infof("Уровень логирования: %s", config.AppConfig.LogLevel)
+	log.Infof("Log level: %s", config.AppConfig.LogLevel)
 
 	db, err := models.InitDB(config.AppConfig.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Ошибка подключения к БД: %v", err)
+		log.Fatalf("Database connection error: %v", err)
 	}
 
 	rdb := redis.NewClient(&redis.Options{
@@ -85,7 +85,7 @@ func main() {
 	go func() {
 		wsAddr := ":" + config.AppConfig.WebSocketPort
 		if err := sockets.InitWebSocketServer(presenceService, wsAddr); err != nil {
-			log.Fatalf("Ошибка запуска WebSocket сервера: %v", err)
+			log.Fatalf("WebSocket server startup error: %v", err)
 		}
 	}()
 
@@ -98,24 +98,24 @@ func main() {
 	}
 
 	go func() {
-		log.Infof("Сервер запущен на порту %s", config.AppConfig.ServerPort)
+		log.Infof("Server started on port %s", config.AppConfig.ServerPort)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Ошибка при запуске сервера: %v", err)
+			log.Fatalf("Server startup error: %v", err)
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
-	log.Info("Сервер завершает работу...")
+	log.Info("Server is shutting down...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Ошибка при завершении работы сервера: %v", err)
+		log.Fatalf("Server shutdown error: %v", err)
 	}
 
-	log.Info("Сервер успешно завершил работу")
+	log.Info("Server shut down successfully")
 }
 
 func installDependencies() {

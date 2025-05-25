@@ -15,10 +15,10 @@ func Init() {
 	var err error
 	DB, err = sql.Open("postgres", config.AppConfig.DatabaseURL)
 	if err != nil {
-		logrus.Fatalf("Ошибка подключения к БД: %v", err)
+		logrus.Fatalf("Error connecting to DB: %v", err)
 	}
 	if err = DB.Ping(); err != nil {
-		logrus.Fatalf("Ошибка проверки подключения к БД: %v", err)
+		logrus.Fatalf("Error checking connection to DB: %v", err)
 	}
-	logrus.Info("✅ Подключено к БД")
+	logrus.Info("✅ Connected to DB")
 }

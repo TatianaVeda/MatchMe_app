@@ -136,7 +136,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
 		userID = uuid.New().String()
-		logrus.Debug("HandleWebSocket: сгенерирован userID")
+		logrus.Debug("HandleWebSocket: generated userID")
 	}
 
 	client := &Client{
@@ -160,7 +160,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hub.Register <- client
-	logrus.Infof("HandleWebSocket: клиент %s подключён", client.UserID)
+	logrus.Infof("HandleWebSocket: client %s connected", client.UserID)
 
 	go client.writePump()
 	client.readPump()

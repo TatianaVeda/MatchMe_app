@@ -153,7 +153,7 @@ const Friends = () => {
                       color="error"
                       onClick={() => handleRemove(u.id)}
                     >
-                      Block User
+                      Remove from Friends
                     </Button>
                   </Box>
                 </Grid>

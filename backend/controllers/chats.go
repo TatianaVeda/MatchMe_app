@@ -128,7 +128,7 @@ func GetChats(w http.ResponseWriter, r *http.Request) {
 			Select("first_name", "last_name", "photo_url").
 			Where("user_id = ?", otherUserID).
 			First(&otherProfile).Error; err != nil {
-			logrus.Warnf("GetChats: профиль пользователя %s не найден: %v", otherUserID, err)
+			logrus.Warnf("GetChats: profile of user %s not found: %v", otherUserID, err)
 		}
 		otherOnline := false
 		if presenceService != nil {
@@ -322,13 +322,13 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 func PostMessage(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		logrus.Error("PostMessage: userID не найден в контексте")
+		logrus.Error("PostMessage: userID not found in context")
 		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
 		return
 	}
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		logrus.Errorf("PostMessage: неверный userID: %v", err)
+		logrus.Errorf("PostMessage: invalid userID: %v", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
@@ -337,20 +337,20 @@ func PostMessage(w http.ResponseWriter, r *http.Request) {
 	chatIDStr := vars["chatId"]
 	chatID, err := strconv.ParseUint(chatIDStr, 10, 64)
 	if err != nil {
-		logrus.Errorf("PostMessage: неверный chat_id: %v", err)
+		logrus.Errorf("PostMessage: invalid chat_id: %v", err)
 		http.Error(w, "Invalid chat_id", http.StatusBadRequest)
 		return
 	}
 
 	var chat models.Chat
 	if err := chatsDB.First(&chat, "id = ?", chatID).Error; err != nil {
-		logrus.Errorf("PostMessage: чат %d не найден: %v", chatID, err)
+		logrus.Errorf("PostMessage: chat %d not found: %v", chatID, err)
 		http.Error(w, "Chat not found", http.StatusNotFound)
 		return
 	}
 	if chat.User1ID != currentUserID && chat.User2ID != currentUserID {
-		logrus.Warnf("PostMessage: пользователь %s не является участником чата %d", currentUserID, chatID)
-		http.Error(w, "Forbidden: you are not a participant in this chat", http.StatusForbidden)
+		logrus.Warnf("PostMessage: user %s is not a participant of chat %d", currentUserID, chatID)
+		http.Error(w, "You are not a participant of this chat", http.StatusForbidden)
 		return
 	}
 
@@ -358,7 +358,7 @@ func PostMessage(w http.ResponseWriter, r *http.Request) {
 		Content string `json:"content"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		logrus.Errorf("PostMessage: ошибка декодирования запроса: %v", err)
+		logrus.Errorf("PostMessage: error decoding request: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -375,7 +375,7 @@ func PostMessage(w http.ResponseWriter, r *http.Request) {
 		Read:      false,
 	}
 	if err := chatsDB.Create(&newMsg).Error; err != nil {
-		logrus.Errorf("PostMessage: ошибка создания сообщения: %v", err)
+		logrus.Errorf("PostMessage: error creating message: %v", err)
 		http.Error(w, "Error creating message", http.StatusInternalServerError)
 		return
 	}
@@ -385,17 +385,17 @@ func PostMessage(w http.ResponseWriter, r *http.Request) {
 		Preload("Sender.Profile").
 		First(&fullMsg, newMsg.ID).
 		Error; err != nil {
-		logrus.Errorf("PostMessage: не удалось Preload Sender.Profile: %v", err)
+		logrus.Errorf("PostMessage: failed to Preload Sender.Profile: %v", err)
 
 		fullMsg = newMsg
 	}
 	go func(msg models.Message) {
 		if err := sockets.BroadcastNewMessage(msg); err != nil {
-			logrus.Errorf("PostMessage: ошибка BroadcastNewMessage: %v", err)
+			logrus.Errorf("PostMessage: error BroadcastNewMessage: %v", err)
 		}
 	}(fullMsg)
 
-	logrus.Infof("PostMessage: новое сообщение создано в чате %d отправителем %s", chatID, currentUserID)
+	logrus.Infof("PostMessage: new message created in chat %d by sender %s", chatID, currentUserID)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 

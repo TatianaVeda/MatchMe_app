@@ -77,7 +77,7 @@ const fetchLinks = async () => {
     setPending(pend);
     setSent(sent);
     } catch {
-      toast.error('Не удалось загрузить связи');
+      toast.error('Failed to load connections');
     }
   };
   

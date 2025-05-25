@@ -56,19 +56,19 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := utils.ValidateStringLength(reqBody.FirstName, 255); err != nil {
-		http.Error(w, "Слишком длинное имя", http.StatusBadRequest)
+		http.Error(w, "First name is too long", http.StatusBadRequest)
 		return
 	}
 	if err := utils.ValidateStringLength(reqBody.LastName, 255); err != nil {
-		http.Error(w, "Слишком длинная фамилия", http.StatusBadRequest)
+		http.Error(w, "Last name is too long, max 255 chars", http.StatusBadRequest)
 		return
 	}
 	if err := utils.ValidateStringLength(reqBody.About, 1000); err != nil {
-		http.Error(w, "Описание слишком длинное", http.StatusBadRequest)
+		http.Error(w, "Description is too long, max 1000 chars", http.StatusBadRequest)
 		return
 	}
 	if reqBody.City == "" {
-		http.Error(w, "Город не может быть пустым", http.StatusBadRequest)
+		http.Error(w, "City cannot be empty", http.StatusBadRequest)
 		return
 	}
 
@@ -378,20 +378,20 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 func DeleteUserPhoto(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		logrus.Error("DeleteUserPhoto: userID не найден в контексте")
+		logrus.Error("DeleteUserPhoto: userID not found in context")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		logrus.Errorf("DeleteUserPhoto: неверный userID: %v", err)
+		logrus.Errorf("DeleteUserPhoto: invalid userID: %v", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
 
 	var profile models.Profile
 	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
-		logrus.Errorf("DeleteUserPhoto: профиль для пользователя %s не найден: %v", currentUserID, err)
+		logrus.Errorf("DeleteUserPhoto: profile not found for user %s: %v", currentUserID, err)
 		http.Error(w, "Profile not found", http.StatusNotFound)
 		return
 	}
@@ -403,20 +403,20 @@ func DeleteUserPhoto(w http.ResponseWriter, r *http.Request) {
 		fileName := strings.TrimPrefix(profile.PhotoURL, "/static/images/")
 		filePath := filepath.Join(uploadDir, fileName)
 		if err := os.Remove(filePath); err != nil {
-			logrus.Warnf("DeleteUserPhoto: ошибка удаления файла %s: %v", filePath, err)
+			logrus.Warnf("DeleteUserPhoto: error deleting file %s: %v", filePath, err)
 		} else {
-			logrus.Infof("DeleteUserPhoto: файл %s успешно удалён", filePath)
+			logrus.Infof("DeleteUserPhoto: file %s deleted successfully", filePath)
 		}
 	}
 
 	profile.PhotoURL = defaultPhotoURL
 	if err := profileDB.Save(&profile).Error; err != nil {
-		logrus.Errorf("DeleteUserPhoto: ошибка обновления профиля для пользователя %s: %v", currentUserID, err)
+		logrus.Errorf("DeleteUserPhoto: error updating profile for user %s: %v", currentUserID, err)
 		http.Error(w, "Error updating profile", http.StatusInternalServerError)
 		return
 	}
 
-	logrus.Infof("DeleteUserPhoto: фото профиля для пользователя %s сброшено на значение по умолчанию", currentUserID)
+	logrus.Infof("DeleteUserPhoto: profile photo for user %s reset to default", currentUserID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(profile)
 }

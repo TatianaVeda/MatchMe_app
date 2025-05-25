@@ -158,7 +158,7 @@ const UserProfile = () => {
             color="error"
             onClick={() => handleRemoveFriend(id)}
           >
-            Remove from Friends
+            Block User
           </Button>
         </Box>
       )}

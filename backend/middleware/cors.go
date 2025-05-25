@@ -22,9 +22,9 @@ func CorsMiddleware(next http.Handler) http.Handler {
 			}
 			if allowed {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
-				logrus.Debugf("CorsMiddleware: разрешен origin %s", origin)
+				logrus.Debugf("CorsMiddleware: allowed origin %s", origin)
 			} else {
-				logrus.Warnf("CorsMiddleware: origin %s не разрешен", origin)
+				logrus.Warnf("CorsMiddleware: origin %s not allowed", origin)
 			}
 		}
 
@@ -33,7 +33,7 @@ func CorsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		if r.Method == "OPTIONS" {
-			logrus.Debug("CorsMiddleware: обработан preflight запрос")
+			logrus.Debug("CorsMiddleware: preflight request processed")
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}

@@ -590,21 +590,21 @@ func anyTokenMatch(a, b string) bool {
 
 func validateUserData(u models.User) error {
 	if u.Profile.ID == 0 || u.Bio.ID == 0 {
-		return errors.New("заполните профиль и биографию для получения рекомендаций")
+		return errors.New("please fill in your profile and biography to get recommendations")
 	}
 	if strings.TrimSpace(u.Profile.FirstName) == "" || strings.TrimSpace(u.Profile.LastName) == "" {
-		return errors.New("пожалуйста, укажите имя и фамилию")
+		return errors.New("please provide your first and last name")
 	}
 	required := []struct {
 		val string
 		msg string
 	}{
-		{u.Bio.Interests, "интересы"},
-		{u.Bio.Hobbies, "хобби"},
-		{u.Bio.Music, "музыку"},
-		{u.Bio.Food, "еду"},
-		{u.Bio.Travel, "путешествия"},
-		{u.Bio.LookingFor, "кого вы ищете"},
+		{u.Bio.Interests, "interests"},
+		{u.Bio.Hobbies, "hobbies"},
+		{u.Bio.Music, "music"},
+		{u.Bio.Food, "food"},
+		{u.Bio.Travel, "travel"},
+		{u.Bio.LookingFor, "who you are looking for"},
 	}
 	var missing []string
 	for _, field := range required {
@@ -613,7 +613,7 @@ func validateUserData(u models.User) error {
 		}
 	}
 	if len(missing) > 0 {
-		return errors.New("пожалуйста, заполните вашу биографию: " + strings.Join(missing, ", "))
+		return errors.New("please complete your biography: " + strings.Join(missing, ", "))
 	}
 	return nil
 }

@@ -29,17 +29,17 @@ func ResetFixtures(w http.ResponseWriter, r *http.Request) {
 		&models.Message{}, &models.FakeUser{},
 	}
 	if err := fixturesDB.Migrator().DropTable(modelsToDrop...); err != nil {
-		logrus.Errorf("ResetFixtures: ошибка удаления таблиц: %v", err)
-		http.Error(w, fmt.Sprintf("Ошибка удаления таблиц: %v", err), http.StatusInternalServerError)
+		logrus.Errorf("ResetFixtures: error dropping tables: %v", err)
+		http.Error(w, fmt.Sprintf("Error dropping tables: %v", err), http.StatusInternalServerError)
 		return
 	}
-	logrus.Info("ResetFixtures: таблицы успешно удалены")
+	logrus.Info("ResetFixtures: tables dropped successfully")
 	if err := models.Migrate(fixturesDB); err != nil {
-		logrus.Errorf("ResetFixtures: ошибка миграции БД: %v", err)
-		http.Error(w, fmt.Sprintf("Ошибка миграции базы данных: %v", err), http.StatusInternalServerError)
+		logrus.Errorf("ResetFixtures: database migration error: %v", err)
+		http.Error(w, fmt.Sprintf("Database migration error: %v", err), http.StatusInternalServerError)
 		return
 	}
-	logrus.Info("ResetFixtures: миграция БД выполнена успешно")
+	logrus.Info("ResetFixtures: database migration completed successfully")
 	adminUUID, _ := uuid.Parse(config.AdminID)
 	var existing models.User
 	err := fixturesDB.First(&existing, "id = ?", adminUUID).Error
@@ -51,16 +51,16 @@ func ResetFixtures(w http.ResponseWriter, r *http.Request) {
 			PasswordHash: hash,
 		}
 		if err := fixturesDB.Create(&admin).Error; err != nil {
-			logrus.Errorf("ResetFixtures: не удалось создать админа: %v", err)
+			logrus.Errorf("ResetFixtures: failed to create admin: %v", err)
 		} else {
-			logrus.Infof("ResetFixtures: админ %s создан (ID=%s)", config.AdminEmail, config.AdminID)
+			logrus.Infof("ResetFixtures: admin %s created (ID=%s)", config.AdminEmail, config.AdminID)
 		}
 	} else {
-		logrus.Info("ResetFixtures: админ уже существует, создание пропущено")
+		logrus.Info("ResetFixtures: admin already exists, creation skipped")
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "База данных сброшена, администратор сохранён",
+		"message": "Database reset, administrator saved",
 	})
 }
 
@@ -70,7 +70,7 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 		if n, err := strconv.Atoi(param); err == nil && n > 0 {
 			numUsers = n
 		} else {
-			logrus.Warnf("GenerateFixtures: неверное значение параметра num (%s), используется %d", param, numUsers)
+			logrus.Warnf("GenerateFixtures: invalid value for num parameter (%s), using %d", param, numUsers)
 		}
 	}
 	rand.Seed(time.Now().UnixNano())
@@ -79,7 +79,7 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 		password := "password123"
 		user, err := models.CreateUser(fixturesDB, email, password)
 		if err != nil {
-			logrus.Warnf("GenerateFixtures: ошибка создания пользователя %s: %v", email, err)
+			logrus.Warnf("GenerateFixtures: error creating user %s: %v", email, err)
 			continue
 		}
 
@@ -96,7 +96,7 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 			City:      city,
 		}
 		if err := fixturesDB.Save(&profile).Error; err != nil {
-			logrus.Warnf("GenerateFixtures: ошибка сохранения профиля %s: %v", email, err)
+			logrus.Warnf("GenerateFixtures: error saving profile %s: %v", email, err)
 		}
 
 		bioUpdates := map[string]interface{}{
@@ -109,7 +109,7 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 		if err := fixturesDB.Model(&models.Bio{}).
 			Where("user_id = ?", user.ID).
 			Updates(bioUpdates).Error; err != nil {
-			logrus.Warnf("GenerateFixtures: ошибка обновления биографии %s: %v", email, err)
+			logrus.Warnf("GenerateFixtures: error updating bio %s: %v", email, err)
 		}
 
 		if err := fixturesDB.Exec(`
@@ -120,44 +120,44 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 			profile.Longitude,
 			profile.UserID,
 		).Error; err != nil {
-			logrus.Warnf("Ошибка обновления earth_loc для %s: %v", email, err)
+			logrus.Warnf("Error updating earth_loc for %s: %v", email, err)
 		}
 
-		logrus.Debugf("GenerateFixtures: создан пользователь %s", email)
+		logrus.Debugf("GenerateFixtures: user %s created", email)
 	}
-	logrus.Infof("GenerateFixtures: создано %d фейковых пользователей", numUsers)
+	logrus.Infof("GenerateFixtures: %d fake users created", numUsers)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": fmt.Sprintf("Сгенерировано %d фейковых пользователей", numUsers),
+		"message": fmt.Sprintf("%d fake users generated", numUsers),
 	})
 }
 
 func randomFirstName() string {
-	arr := []string{"Анна", "Иван", "Мария", "Алексей", "Ольга", "Дмитрий", "Елена", "Сергей", "Наталья", "Михаил"}
+	arr := []string{"Anna", "Jan", "Maria", "Alex", "Olga", "Danny", "Eelena", "Sergio", "Natalie", "Michael"}
 	return arr[rand.Intn(len(arr))]
 }
 func randomLastName() string {
-	arr := []string{"Иванова", "Петров", "Сидорова", "Кузнецов", "Смирнова", "Морозов", "Новикова", "Фёдоров", "Соколова", "Михайлов"}
+	arr := []string{"Agricola", "Petrov", "Sibelius", "Kuznets", "Saminen", "Gogol", "Novi", "Feducci", "Savolainen", "Gagarin"}
 	return arr[rand.Intn(len(arr))]
 }
 func randomInterests() string {
-	arr := []string{"кино", "спорт", "музыка", "технологии", "искусство", "путешествия", "литература", "фотография"}
+	arr := []string{"movies", "sports", "music", "technology", "art", "travel", "literature", "photography"}
 	return arr[rand.Intn(len(arr))]
 }
 func randomHobbies() string {
-	arr := []string{"чтение", "бег", "рисование", "игры", "готовка", "садоводство", "плавание", "путешествия"}
+	arr := []string{"reading", "running", "drawing", "games", "cooking", "gardening", "swimming", "travel"}
 	return arr[rand.Intn(len(arr))]
 }
 func randomMusic() string {
-	arr := []string{"рок", "джаз", "классика", "поп", "хип-хоп", "электронная", "блюз"}
+	arr := []string{"rock", "jazz", "classical", "pop", "hip-hop", "electronic", "blues"}
 	return arr[rand.Intn(len(arr))]
 }
 func randomFood() string {
-	arr := []string{"итальянская", "азиатская", "русская", "французская", "мексиканская", "японская"}
+	arr := []string{"italian", "asian", "russian", "french", "mexican", "japanese"}
 	return arr[rand.Intn(len(arr))]
 }
 func randomTravel() string {
-	arr := []string{"пляжный отдых", "горный туризм", "культурные туры", "экспедиции", "городские экскурсии"}
+	arr := []string{"beach vacation", "mountains", "cultural tours", "expeditions", "city trip"}
 	return arr[rand.Intn(len(arr))]
 }
 func randomLatitude() float64 {
