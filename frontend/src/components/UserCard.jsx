@@ -59,7 +59,7 @@ const UserCard = ({ user, onClick, onChatClick, showChat }) => {
       </CardActionArea>
 
       {showChat && connected && (
-        <Tooltip title="Перейти в чат">
+        <Tooltip title="Go to chat">
           <IconButton
             size="small"
             onClick={(e) => {

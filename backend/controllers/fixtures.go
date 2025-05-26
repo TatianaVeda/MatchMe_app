@@ -88,7 +88,7 @@ func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 			UserID:    user.ID,
 			FirstName: randomFirstName(),
 			LastName:  randomLastName(),
-			About:     "Фиктивный пользователь для тестирования.",
+			About:     "Test user for demonstration purposes.",
 			PhotoURL:  "/static/images/default.png",
 			Online:    false,
 			Latitude:  latitude,
