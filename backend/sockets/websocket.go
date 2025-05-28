@@ -18,6 +18,13 @@ import (
 
 var presenceSvc *services.PresenceService
 
+// This module implements real-time chat and notifications using WebSockets, that provide a persistent, full-duplex connection between client and server,
+// enabling instant message delivery, typing indicators, and presence updates.
+// The Hub manages all connected clients, chat subscriptions, and message broadcasting.
+// Each client maintains its own connection, send queue, and chat subscriptions.
+// The design ensures thread safety and efficient delivery of events to all relevant users.
+// This approach is essential for responsive, interactive chat and social features.
+
 type BroadcastMessage struct {
 	ChatID uint   `json:"chatId"`
 	Data   []byte `json:"data"`
@@ -32,6 +39,8 @@ type Client struct {
 	Mutex       sync.Mutex
 }
 
+// Hub manages all WebSocket clients and chat subscriptions.
+// It handles registration, unregistration, and broadcasting messages to the correct chat subscribers.
 type Hub struct {
 	Clients           map[*Client]bool
 	ChatSubscriptions map[uint]map[*Client]bool
@@ -70,18 +79,23 @@ func IsUserTypingInChat(chatID uint, userID string) bool {
 }
 
 func RunHub() {
+	// Main event loop for the WebSocket hub.
+	// Handles registration/unregistration of clients and broadcasting messages to chat subscribers.
 	for {
 		select {
 		case client := <-hub.Register:
+			// Register a new client connection
 			hub.Mutex.Lock()
 			hub.Clients[client] = true
 			hub.Mutex.Unlock()
 			logrus.Infof("Client registered: %s", client.UserID)
 
 		case client := <-hub.Unregister:
+			// Unregister a client and clean up all its subscriptions
 			hub.Mutex.Lock()
 			if _, ok := hub.Clients[client]; ok {
 				delete(hub.Clients, client)
+				// Remove client from all chat subscriptions
 				for chatID := range client.Chats {
 					if subs := hub.ChatSubscriptions[chatID]; subs != nil {
 						delete(subs, client)
@@ -96,6 +110,7 @@ func RunHub() {
 			hub.Mutex.Unlock()
 
 		case msg := <-hub.Broadcast:
+			// Broadcast a message to all clients subscribed to the chat
 			hub.Mutex.RLock()
 			if subs := hub.ChatSubscriptions[msg.ChatID]; subs != nil {
 				for client := range subs {
@@ -103,6 +118,7 @@ func RunHub() {
 					case client.Send <- msg.Data:
 						logrus.Debugf("Message sent to client %s in chat %d", client.UserID, msg.ChatID)
 					default:
+						// If the send buffer is full, close the connection to avoid blocking the hub
 						logrus.Warnf("Send channel full for client %s. Closing.", client.UserID)
 						close(client.Send)
 						delete(hub.Clients, client)
@@ -127,18 +143,21 @@ var upgrader = websocket.Upgrader{
 }
 
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	// Upgrade HTTP connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logrus.Errorf("WebSocket upgrade error: %v", err)
 		return
 	}
 
+	// Extract userID from query or generate a new one
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
 		userID = uuid.New().String()
 		logrus.Debug("HandleWebSocket: generated userID")
 	}
 
+	// Create a new client instance for this connection
 	client := &Client{
 		Conn:        conn,
 		Send:        make(chan []byte, 256),
@@ -147,6 +166,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		TypingChats: make(map[uint]bool),
 	}
 
+	// Mark user as online in presence service
 	if presenceSvc != nil {
 		if err := presenceSvc.Touch(userID); err != nil {
 			logrus.Warnf("presence.Touch failed for %s: %v", userID, err)
@@ -158,16 +178,21 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			logrus.Warnf("presence.Touch failed for %s: %v", userID, err)
 		}
 	}
-
+	// Register client in the hub and start pumps
 	hub.Register <- client
 	logrus.Infof("HandleWebSocket: client %s connected", client.UserID)
 
+	// Start writePump in a separate goroutine to send messages
 	go client.writePump()
+	// Start readPump in the current goroutine to receive messages
 	client.readPump()
 }
 
 func (c *Client) readPump() {
+	// Main loop for reading messages from the WebSocket connection.
+	// Handles subscription, typing, heartbeat, and other client events.
 	defer func() {
+		// On disconnect, mark user as offline and unregister client
 		if presenceSvc != nil {
 			if err := presenceSvc.SetOffline(c.UserID); err != nil {
 				logrus.Warnf("presence.SetOffline failed for %s: %v", c.UserID, err)
@@ -194,6 +219,7 @@ func (c *Client) readPump() {
 			break
 		}
 
+		// Parse incoming JSON message
 		var req struct {
 			Action   string `json:"action"`
 			ChatID   string `json:"chat_id"`
@@ -205,8 +231,10 @@ func (c *Client) readPump() {
 			continue
 		}
 
+		// Handle different types of client actions
 		switch req.Action {
 		case "subscribe", "unsubscribe":
+			// Subscribe/unsubscribe client to/from a chat room
 			chatID, err := strconv.ParseUint(req.ChatID, 10, 64)
 			if err != nil {
 				logrus.Warnf("readPump: bad chat_id '%s' from %s", req.ChatID, c.UserID)
@@ -237,6 +265,7 @@ func (c *Client) readPump() {
 			c.Mutex.Unlock()
 
 		case "heartbeat":
+			// Heartbeat to keep connection alive and update presence
 			logrus.Debugf("readPump heartbeat from %s", c.UserID)
 			if presenceSvc != nil {
 				if err := presenceSvc.Touch(c.UserID); err != nil {
@@ -245,6 +274,7 @@ func (c *Client) readPump() {
 			}
 
 		case "typing":
+			// Update typing status for this client in a chat
 			chatID, err := strconv.ParseUint(req.ChatID, 10, 64)
 			if err != nil {
 				logrus.Warnf("readPump: bad chat_id in typing from %s", c.UserID)
@@ -260,6 +290,7 @@ func (c *Client) readPump() {
 
 			uid, err := uuid.Parse(c.UserID)
 			if err == nil {
+				// Broadcast typing status to all chat participants
 				go BroadcastTypingNotification(uid, uint(chatID), *req.IsTyping)
 			}
 
@@ -270,6 +301,7 @@ func (c *Client) readPump() {
 }
 
 func (c *Client) writePump() {
+	// Main loop for sending messages from the server to the client over WebSocket.
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -282,6 +314,7 @@ func (c *Client) writePump() {
 		case message, ok := <-c.Send:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
+				// Channel closed, send close message to client
 				_ = c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -291,6 +324,7 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
+			// Send all queued messages in the channel
 			for i := 0; i < len(c.Send); i++ {
 				w.Write([]byte("\n"))
 				w.Write(<-c.Send)
@@ -298,6 +332,7 @@ func (c *Client) writePump() {
 			w.Close()
 
 		case <-ticker.C:
+			// Send periodic ping to keep connection alive
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
@@ -307,6 +342,7 @@ func (c *Client) writePump() {
 }
 
 func BroadcastNewMessage(msg models.Message) error {
+	// Broadcast a new chat message to all clients subscribed to the chat
 	senderName := "Unknown"
 	if msg.Sender.Profile.FirstName != "" || msg.Sender.Profile.LastName != "" {
 		senderName = strings.TrimSpace(
@@ -365,6 +401,7 @@ func BroadcastNotification(userID uuid.UUID, message string) {
 }
 
 func BroadcastTypingNotification(userID uuid.UUID, chatID uint, isTyping bool) {
+	// Broadcast typing status to all clients in the chat
 	data, err := json.Marshal(map[string]interface{}{
 		"type":      "typing",
 		"user_id":   userID.String(),

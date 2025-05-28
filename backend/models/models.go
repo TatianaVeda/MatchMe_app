@@ -39,7 +39,9 @@ type Profile struct {
 	City      string    `gorm:"size:100" json:"city"`
 	Latitude  float64   `json:"latitude"`
 	Longitude float64   `json:"longitude"`
-	EarthLoc  []byte    `gorm:"type:cube;->" json:"-"`
+	// EarthLoc is a generated column (PostgreSQL cube type) for fast geo-distance queries.
+	// It is automatically computed from latitude/longitude using ll_to_earth().
+	EarthLoc []byte `gorm:"type:cube;->" json:"-"`
 }
 
 // Bio contains user interests and search preferences for recommendations.
@@ -112,11 +114,15 @@ type FakeUser struct {
 
 // InitDB initializes the database connection using GORM (Go ORM library for SQL databases),
 // runs migrations, and ensures required PostgreSQL extensions.
-// Uses logrus for logging and retries connection up to 10 times.
+// Implements retry logic (up to 10 attempts) for robust startup in case of slow DB.
+// Also ensures geo extensions (cube, earthdistance) and creates a generated column
+// for geospatial queries (earth_loc), plus a GIST index for fast location search.
+// All errors and progress are logged via logrus.
 func InitDB(databaseURL string) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
 	for i := 1; i <= 10; i++ {
+		// Retry connection to handle cases when DB is not ready yet (e.g., in Docker Compose)
 		db, err = gorm.Open(postgres.Open(databaseURL), &gorm.Config{})
 		if err == nil {
 			sqlDB, pingErr := db.DB()
@@ -149,6 +155,7 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 		logrus.Errorf("InitDB: migration error: %v", migrateErr)
 		return nil, migrateErr
 	}
+	// Add generated column earth_loc for geospatial queries (ll_to_earth)
 	if err := db.Exec(`
 		ALTER TABLE profiles
 		ADD COLUMN IF NOT EXISTS earth_loc cube
@@ -156,6 +163,7 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 	`).Error; err != nil {
 		logrus.Warnf("InitDB: failed to add earth_loc column: %v", err)
 	}
+	// Create GIST index for fast geo-search by earth_loc
 	if err := db.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_profiles_earth_loc
 		ON profiles USING GIST (earth_loc)
@@ -167,6 +175,7 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 }
 
 // Migrate runs GORM automigrations for all main models and logs the result.
+// Ensures all tables and relations are up to date with Go structs.
 func Migrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&User{},

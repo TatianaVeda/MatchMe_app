@@ -13,6 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// AuthMiddleware is an HTTP middleware that authenticates requests using JWT tokens.
+// - Validates Authorization header format and parses JWT.
+// - Checks token expiration and blacklist (revoked tokens).
+// - On success, injects userID into request context for downstream handlers.
+// - On failure, responds with appropriate HTTP status and error message.
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

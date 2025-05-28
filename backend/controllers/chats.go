@@ -22,8 +22,13 @@ import (
 
 var chatsDB *gorm.DB
 
+// chats.go - Handles HTTP endpoints for chat and messaging functionality.
+// Provides chat list, message history, sending messages, and chat creation.
+// Integrates with presence service for real-time online status and with WebSocket for message delivery.
+
 // InitChatsController initializes the chats controller with database connection
 // and presence service for real-time user status updates.
+// Should be called once at startup.
 func InitChatsController(db *gorm.DB, ps *services.PresenceService) {
 	chatsDB = db
 	presenceService = ps

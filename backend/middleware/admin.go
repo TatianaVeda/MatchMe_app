@@ -18,6 +18,7 @@ func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+			// Extract userID from request context (must be authenticated)
 			userIDStr, ok := r.Context().Value("userID").(string)
 			if !ok {
 				logrus.Warn("AdminOnly: userID not found in context")
@@ -25,6 +26,7 @@ func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Parse userID as UUID
 			uid, err := uuid.Parse(userIDStr)
 			if err != nil {
 				logrus.Errorf("AdminOnly: invalid userID: %v", err)
@@ -32,6 +34,7 @@ func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Look up user in the database
 			var user models.User
 			if err := db.First(&user, "id = ?", uid).Error; err != nil {
 				logrus.Errorf("AdminOnly: user %s not found: %v", uid, err)
@@ -39,6 +42,7 @@ func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Check if user's email matches the admin email from config
 			if user.Email != config.AdminEmail {
 				logrus.Warnf("AdminOnly: user %s is not an administrator", uid)
 				w.WriteHeader(http.StatusForbidden)
@@ -47,6 +51,7 @@ func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 			}
 
 			logrus.Infof("AdminOnly: admin access granted for user %s", uid)
+			// Call the next handler if admin check passes
 			next.ServeHTTP(w, r)
 		})
 	}

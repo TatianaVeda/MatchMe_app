@@ -100,10 +100,13 @@ func (rs *RecommendationService) GetNearbyUsers(
 	limit int,
 	excludeID uuid.UUID,
 ) ([]Nearby, error) {
+	// Convert radius to meters for geospatial query
 	maxMeters := maxRadius * 1000.0
 	fmt.Printf("[DEBUG] Searching nearby users from lat=%.6f, lon=%.6f, radius=%.2f km\n", lat, lon, maxRadius)
 	fmt.Printf("[DEBUG] Excluding user ID: %s\n", excludeID)
 	var list []Nearby
+	// Use PostgreSQL earthdistance/cube extensions for efficient geospatial search
+	// Exclude users who have been declined in recommendations
 	err := rs.DB.
 		Raw(`
 			SELECT
@@ -164,6 +167,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 		return nil, err
 	}
 
+	// Find nearby users within the user's preferred radius
 	nearby, err := rs.GetNearbyUsers(
 		me.Profile.Latitude,
 		me.Profile.Longitude,
@@ -178,6 +182,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 		return nil, nil
 	}
 
+	// Map user IDs to distances for later scoring
 	ids := make([]uuid.UUID, len(nearby))
 	distMap := make(map[uuid.UUID]float64, len(nearby))
 	for i, n := range nearby {
@@ -187,6 +192,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 
 	var users []models.User
 
+	// Preload profiles and bios for all nearby users
 	if err := rs.DB.Preload("Profile").Preload("Bio").
 		Where("id IN ?", ids).Find(&users).Error; err != nil {
 		return nil, err
@@ -194,6 +200,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 
 	var cands []candidate
 	for _, u := range users {
+		// Skip users who have been declined
 		var rec models.Recommendation
 		if err := rs.DB.
 			Where("user_id = ? AND rec_user_id = ? AND status = ?", currentUserID, u.ID, "declined").
@@ -205,6 +212,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 		var score float64
 
 		if rs.Mode == "affinity" {
+			// Affinity mode: score by field similarity and user preferences
 			for _, fc := range rs.FieldConfigs {
 				w := fc.Weight
 				switch fc.Name {
@@ -230,6 +238,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 					}
 				}
 
+				// Tokenize and compare fields for overlap
 				setA := make(map[string]struct{})
 				for _, t := range splitTokens(fc.Extractor(me.Bio)) {
 					setA[t] = struct{}{}
@@ -243,6 +252,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 				score += float64(common) * w
 			}
 		} else {
+			// Desire mode: match by 'LookingFor' field
 			for _, tok := range splitTokens(me.Bio.LookingFor) {
 				if anyTokenMatch(tok, u.Bio.LookingFor) {
 					score += 0.005
@@ -250,6 +260,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 			}
 		}
 
+		// Cap score at 1
 		if score > 1 {
 			score = 1
 		}
@@ -258,6 +269,7 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 		}
 	}
 
+	// Sort by distance (asc), then by score (desc)
 	sort.Slice(cands, func(i, j int) bool {
 		if math.Abs(cands[i].Distance-cands[j].Distance) > 1e-9 {
 			return cands[i].Distance < cands[j].Distance

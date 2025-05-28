@@ -21,6 +21,7 @@ func NewChatService(db *gorm.DB) *ChatService {
 }
 
 func (cs *ChatService) CreateChat(user1ID, user2ID uuid.UUID) (*models.Chat, error) {
+	// Check if a chat already exists between these two users (in any order)
 	var chat models.Chat
 	if err := cs.DB.
 		Where("(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",
@@ -29,10 +30,12 @@ func (cs *ChatService) CreateChat(user1ID, user2ID uuid.UUID) (*models.Chat, err
 		logrus.Debugf("CreateChat: chat already exists between %s and %s", user1ID, user2ID)
 		return &chat, nil
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		// If error is not 'not found', return it
 		logrus.Errorf("CreateChat: error searching for chat: %v", err)
 		return nil, err
 	}
 
+	// If no chat exists, create a new one
 	chat = models.Chat{
 		User1ID:   user1ID,
 		User2ID:   user2ID,
@@ -47,6 +50,7 @@ func (cs *ChatService) CreateChat(user1ID, user2ID uuid.UUID) (*models.Chat, err
 }
 
 func (cs *ChatService) GetChatMessages(chatID uint, page, limit int) ([]models.Message, error) {
+	// Pagination: calculate offset for the requested page
 	offset := (page - 1) * limit
 	var messages []models.Message
 	if err := cs.DB.
@@ -63,6 +67,7 @@ func (cs *ChatService) GetChatMessages(chatID uint, page, limit int) ([]models.M
 }
 
 func TypingNotification(userID uuid.UUID, chatID uint, isTyping bool) ([]byte, error) {
+	// Create a typing notification payload for WebSocket broadcast
 	notification := map[string]interface{}{
 		"type":      "typing",
 		"userId":    userID.String(),

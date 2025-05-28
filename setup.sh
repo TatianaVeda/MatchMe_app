@@ -47,7 +47,7 @@ fi
 
 # Updating/creating dependencies (go.sum) through go mod tidy...
 echo "Updating dependencies (go.sum)..."
-go mod sum
+go mod tidy
 
 # Running dependency installation with 'go run main.go -deps'...
 echo "Running dependency installation with 'go run main.go -deps'..."
