@@ -22,12 +22,16 @@ import (
 
 var chatsDB *gorm.DB
 
+// InitChatsController initializes the chats controller with database connection
+// and presence service for real-time user status updates.
 func InitChatsController(db *gorm.DB, ps *services.PresenceService) {
 	chatsDB = db
 	presenceService = ps
 	logrus.Info("Chats controller initialized")
 }
 
+// ChatSummary represents a condensed view of a chat for the chat list.
+// Includes basic user info, last message, unread count, and online status.
 type ChatSummary struct {
 	ChatID      uint      `json:"chatId"`
 	OtherUserID uuid.UUID `json:"otherUserId"`
@@ -44,6 +48,7 @@ type ChatSummary struct {
 	ChatCreatedAt   time.Time      `json:"-"`
 }
 
+// for display in chat lists and message history.
 type MessageSummary struct {
 	ID        uint      `json:"id"`
 	SenderID  uuid.UUID `json:"senderId"`
@@ -52,6 +57,8 @@ type MessageSummary struct {
 	Read      bool      `json:"read"`
 }
 
+// ChatMessageResponse represents a message in the chat with additional
+// sender information for display purposes.
 type ChatMessageResponse struct {
 	ID         uint      `json:"id"`
 	Content    string    `json:"content"`
@@ -61,6 +68,10 @@ type ChatMessageResponse struct {
 	SenderName string    `json:"sender_name"`
 }
 
+// GetChats handles the HTTP request to retrieve the current user's chat list.
+// Returns a summary for each chat: last message, unread count, other user's online status, etc.
+// Requires authentication (userID is taken from request context).
+// Responds with appropriate HTTP status and error message on failure.
 func GetChats(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -179,6 +190,9 @@ func GetChats(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(summaries)
 }
 
+// GetChatHistory handles the HTTP request to retrieve the message history for a specific chat.
+// Supports pagination and returns messages in chronological order. If chatId is "new", creates a new chat.
+// Requires authentication and checks that the user is a participant of the chat.
 func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 
 	userIDStr, ok := r.Context().Value("userID").(string)
@@ -319,6 +333,9 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// PostMessage handles the HTTP request to send a new message in a chat.
+// Validates user participation, saves the message, and broadcasts it via WebSocket.
+// Returns the created message or an error status.
 func PostMessage(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -403,6 +420,8 @@ func PostMessage(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// CreateOrGetChat handles the HTTP request to get an existing chat between two users or create a new one.
+// Returns the chat ID. Requires authentication.
 func CreateOrGetChat(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.Context().Value("userID").(string)
 	userID, _ := uuid.Parse(userIDStr)

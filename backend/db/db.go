@@ -11,6 +11,8 @@ import (
 
 var DB *sql.DB
 
+// Init initializes the PostgreSQL database connection and checks connectivity.
+// Uses config parameters and logrus for error logging.
 func Init() {
 	var err error
 	DB, err = sql.Open("postgres", config.AppConfig.DatabaseURL)

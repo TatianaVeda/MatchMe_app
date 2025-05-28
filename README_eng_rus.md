@@ -68,7 +68,6 @@ Before running the application, ensure that the `config_local.env` file is prope
 - **ENVIRONMENT**: The environment mode (e.g., development, production).
 - **ALLOWED_ORIGINS**: Comma-separated list of allowed origins for CORS.
 - **LOG_LEVEL**: Logging level (e.g., debug, info, warn, error).
-- **REDIS_URL**: Connection string for the Redis database (default: localhost:6379). Used for caching and online status tracking.
 
 Ensure these variables are updated according to your local setup.
 
@@ -325,7 +324,6 @@ A: Please make sure your profile is fully filled out (name, city, bio, interests
 - **ENVIRONMENT**: Режим работы приложения (например, development, production).
 - **ALLOWED_ORIGINS**: Список разрешенных источников для CORS.
 - **LOG_LEVEL**: Уровень логирования (например, debug, info, warn, error).
-- **REDIS_URL**: Строка подключения к базе Redis (по умолчанию: localhost:6379). Используется для кеширования и отслеживания онлайн-статуса.
 
 	Убедитесь, что эти переменные обновлены в соответствии с вашей локальной конфигурацией.
 

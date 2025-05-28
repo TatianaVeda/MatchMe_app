@@ -32,6 +32,8 @@ type Config struct {
 
 var AppConfig *Config
 
+// LoadConfig loads application configuration from environment variables and sets the global AppConfig.
+// Validates parameters and sets the logging level.
 func LoadConfig() {
 	AppConfig = &Config{
 		ServerPort:          getEnv("SERVER_PORT", "8080"),
@@ -73,6 +75,7 @@ func LoadConfig() {
 	logrus.Info("✅ Configuration loaded")
 }
 
+// Validate checks the correctness and completeness of the configuration.
 func (c *Config) Validate() error {
 	if c.ServerPort == "" {
 		return errors.New("SERVER_PORT cannot be empty")
@@ -101,6 +104,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// getEnv returns the value of an environment variable or a default value.
 func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
@@ -108,6 +112,7 @@ func getEnv(key, defaultVal string) string {
 	return defaultVal
 }
 
+// getEnvAsInt returns the value of an environment variable as int or a default value.
 func getEnvAsInt(name string, defaultVal int) int {
 	valStr := os.Getenv(name)
 	if valStr == "" {

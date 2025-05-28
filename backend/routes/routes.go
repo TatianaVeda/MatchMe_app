@@ -11,6 +11,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// InitRoutes initializes all application routes, connects controllers, middleware, and services.
+// Uses mux.Router, GORM, and services for users, chats, recommendations, etc.
 func InitRoutes(router *mux.Router, db *gorm.DB, ps *services.PresenceService) {
 	logrus.Info("Initializing routes...")
 	controllers.InitUserController(db)

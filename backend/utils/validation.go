@@ -10,6 +10,7 @@ import (
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
+// ValidateEmail checks if the email address is valid using a regular expression.
 func ValidateEmail(email string) error {
 	if !emailRegex.MatchString(email) {
 		logrus.Debugf("ValidateEmail: invalid email format %s", email)
@@ -18,6 +19,7 @@ func ValidateEmail(email string) error {
 	return nil
 }
 
+// ValidatePassword checks password complexity (length, letters, and digits).
 func ValidatePassword(password string) error {
 	if len(password) < 8 {
 		logrus.Debug("ValidatePassword: password is too short, must be at least 8 chars")
@@ -39,6 +41,7 @@ func ValidatePassword(password string) error {
 	return nil
 }
 
+// ValidateStringLength checks that a string does not exceed the maximum length.
 func ValidateStringLength(str string, max int) error {
 	if len(str) > max {
 		logrus.Debugf("ValidateStringLength: string exceeds maximum length (%d > %d)", len(str), max)

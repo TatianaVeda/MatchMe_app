@@ -8,6 +8,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// CorsMiddleware adds CORS headers to HTTP responses and handles preflight requests.
+// Uses settings from the config.
 func CorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		allowedOrigins := config.AppConfig.AllowedOrigins

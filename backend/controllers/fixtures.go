@@ -18,10 +18,13 @@ import (
 
 var fixturesDB *gorm.DB
 
+// InitFixturesController initializes the fixtures controller with the database connection.
 func InitFixturesController(db *gorm.DB) {
 	fixturesDB = db
 	logrus.Info("Fixtures controller initialized")
 }
+
+// ResetFixtures drops and recreates all main tables, and creates the admin user.
 func ResetFixtures(w http.ResponseWriter, r *http.Request) {
 	modelsToDrop := []interface{}{
 		&models.User{}, &models.Profile{}, &models.Bio{}, &models.Preference{},
@@ -64,6 +67,7 @@ func ResetFixtures(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GenerateFixtures generates a number of fake users and fills the database with test data.
 func GenerateFixtures(w http.ResponseWriter, r *http.Request) {
 	numUsers := 100
 	if param := r.URL.Query().Get("num"); param != "" {

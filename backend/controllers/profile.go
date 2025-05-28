@@ -22,11 +22,13 @@ import (
 
 var profileDB *gorm.DB
 
+// InitProfileController initializes the profile controller with the database connection.
 func InitProfileController(db *gorm.DB) {
 	profileDB = db
 	logrus.Info("Profile controller initialized")
 }
 
+// UpdateCurrentUserProfile updates the current user's profile information.
 func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -198,6 +200,7 @@ func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(profile)
 }
 
+// UpdateCurrentUserBio updates the current user's bio information.
 func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -288,6 +291,7 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// UploadUserPhoto handles uploading a new profile photo for the current user.
 func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 
 	if err := r.ParseMultipartForm(5 << 20); err != nil {
@@ -375,6 +379,7 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(profile)
 }
 
+// DeleteUserPhoto deletes the current user's profile photo and resets it to default.
 func DeleteUserPhoto(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {

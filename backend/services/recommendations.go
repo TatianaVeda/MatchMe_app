@@ -14,35 +14,50 @@ import (
 	"gorm.io/gorm"
 )
 
+// Used internally for sorting and filtering nearby users.
 type Nearby struct {
 	ID       uuid.UUID
 	Distance float64
 }
 
+// FieldConfig defines a field and its weight for recommendation scoring.
+// Each field has a name, weight (importance in scoring), and an extractor function
+// that retrieves the relevant data from a user's Bio.
 type FieldConfig struct {
 	Name      string
 	Weight    float64
 	Extractor func(b models.Bio) string
 }
 
+// RecommendationWithDistance contains a recommended user with their distance
+// and match score. Used for API responses and client-side display.
 type RecommendationWithDistance struct {
 	UserID   uuid.UUID `json:"id"`
 	Distance float64   `json:"distance"`
 	Score    float64   `json:"score"`
 }
 
+// candidate is an internal struct for scoring and sorting candidates.
+// Contains the full user model along with calculated score and distance.
 type candidate struct {
 	User     models.User
 	Score    float64
 	Distance float64
 }
 
+// RecommendationService provides methods for generating user recommendations
+// based on profile data, preferences, and geolocation.
+// Supports different recommendation modes (affinity/desire) and customizable
+// field weights for scoring.
 type RecommendationService struct {
 	DB           *gorm.DB
 	FieldConfigs []FieldConfig
 	Mode         string
 }
 
+// NewRecommendationService creates a new RecommendationService with optional
+// custom field configurations. If no configs are provided, uses default weights
+// for interests, hobbies, music, food, and travel preferences.
 func NewRecommendationService(db *gorm.DB, fieldConfigs []FieldConfig) *RecommendationService {
 	rs := &RecommendationService{DB: db, Mode: "affinity"}
 	if len(fieldConfigs) == 0 {
@@ -79,6 +94,7 @@ func countCommon(a, b []string) int {
 	return cnt
 }
 
+// GetNearbyUsers returns a list of users within maxRadius km from the given coordinates, excluding the specified user.
 func (rs *RecommendationService) GetNearbyUsers(
 	lat, lon, maxRadius float64,
 	limit int,
@@ -126,6 +142,8 @@ func (rs *RecommendationService) GetNearbyUsers(
 	return list, nil
 }
 
+// GetRecommendationsForUser returns a list of recommended user IDs for the given user, using either affinity or desire mode.
+// Recommendations are sorted by distance and match score.
 func (rs *RecommendationService) GetRecommendationsForUser(
 	currentUserID uuid.UUID,
 	mode string,
@@ -258,6 +276,8 @@ func (rs *RecommendationService) GetRecommendationsForUser(
 	return out, nil
 }
 
+// GetRecommendationsWithDistance returns recommendations with distance and score for the given user.
+// Used for displaying recommendations with additional info.
 func (rs *RecommendationService) GetRecommendationsWithDistance(
 	currentUserID uuid.UUID, mode string,
 ) ([]RecommendationWithDistance, error) {
@@ -407,6 +427,8 @@ func (rs *RecommendationService) GetRecommendationsWithDistance(
 	return out, nil
 }
 
+// GetRecommendationsWithFiltersWithDistance returns recommendations using custom filters (interests, hobbies, etc.) and location.
+// Used for advanced search and filtering in recommendations.
 func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 	currentUserID uuid.UUID,
 	mode string,
@@ -559,6 +581,7 @@ func (rs *RecommendationService) GetRecommendationsWithFiltersWithDistance(
 	return out, nil
 }
 
+// DeclineRecommendation marks a recommendation as declined for the current user.
 func (rs *RecommendationService) DeclineRecommendation(
 	currentUserID, recUserID uuid.UUID,
 ) error {
@@ -577,6 +600,7 @@ func (rs *RecommendationService) DeclineRecommendation(
 	return rs.DB.Create(&rec).Error
 }
 
+// anyTokenMatch checks if any token from a matches b (case-insensitive substring).
 func anyTokenMatch(a, b string) bool {
 	for _, t := range splitTokens(a) {
 		for _, u := range splitTokens(b) {
@@ -588,6 +612,7 @@ func anyTokenMatch(a, b string) bool {
 	return false
 }
 
+// validateUserData checks if the user profile and bio are sufficiently filled for recommendations.
 func validateUserData(u models.User) error {
 	if u.Profile.ID == 0 || u.Bio.ID == 0 {
 		return errors.New("please fill in your profile and biography to get recommendations")

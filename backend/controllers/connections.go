@@ -15,11 +15,13 @@ import (
 
 var connectionsDB *gorm.DB
 
+// InitConnectionsController initializes the connections controller with the database connection.
 func InitConnectionsController(db *gorm.DB) {
 	connectionsDB = db
 	logrus.Info("Connections controller initialized")
 }
 
+// GetConnections returns a list of accepted connections for the current user.
 func GetConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -56,6 +58,7 @@ func GetConnections(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(connectedIDs)
 }
 
+// PostConnection handles sending a connection request to another user.
 func PostConnection(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -134,6 +137,7 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Connection request sent"})
 }
 
+// PutConnection handles accepting a connection request.
 func PutConnection(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -211,6 +215,7 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteConnection handles deleting or declining a connection.
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -259,6 +264,7 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Disconnected successfully"})
 }
 
+// GetPendingConnections returns a list of pending connection requests for the current user.
 func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -292,6 +298,7 @@ func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(incomingIDs)
 }
 
+// GetSentConnections returns a list of sent connection requests by the current user.
 func GetSentConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {

@@ -10,6 +10,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// User represents an application user with authentication and profile data.
+// It includes associations with Profile, Bio, and Preference models.
+// All associations are configured with CASCADE delete for data consistency.
 type User struct {
 	ID           uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
 	Email        string    `gorm:"unique;not null" json:"-"`
@@ -21,6 +24,10 @@ type User struct {
 	Bio        Bio        `gorm:"constraint:OnDelete:CASCADE;" json:"bio"`
 	Preference Preference `gorm:"constraint:OnDelete:CASCADE;" json:"preference"`
 }
+
+// Profile contains public user information and geolocation data.
+// EarthLoc is a generated field using PostgreSQL's cube/earthdistance extensions
+// for efficient geospatial queries and distance calculations.
 type Profile struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
@@ -34,6 +41,8 @@ type Profile struct {
 	Longitude float64   `json:"longitude"`
 	EarthLoc  []byte    `gorm:"type:cube;->" json:"-"`
 }
+
+// Bio contains user interests and search preferences for recommendations.
 type Bio struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
 	UserID     uuid.UUID `gorm:"type:uuid;not null;uniqueIndex" json:"userId"`
@@ -44,6 +53,8 @@ type Bio struct {
 	Travel     string    `gorm:"type:varchar(50)" json:"travel"`
 	LookingFor string    `gorm:"type:text" json:"lookingFor"`
 }
+
+// Preference stores user search settings and field priorities for recommendations.
 type Preference struct {
 	ID                uint      `gorm:"primaryKey" json:"id"`
 	UserID            uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
@@ -54,6 +65,8 @@ type Preference struct {
 	PriorityFood      bool      `gorm:"default:false" json:"priorityFood"`
 	PriorityTravel    bool      `gorm:"default:false" json:"priorityTravel"`
 }
+
+// Recommendation links a user to a recommended user and tracks status (pending/declined).
 type Recommendation struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
@@ -61,6 +74,8 @@ type Recommendation struct {
 	Status    string    `gorm:"size:50;default:'pending'" json:"status"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }
+
+// Connection represents a friendship or pending friend request between users.
 type Connection struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
 	UserID       uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
@@ -68,6 +83,8 @@ type Connection struct {
 	Status       string    `gorm:"size:50;not null" json:"status"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }
+
+// Chat represents a chat between two users, with all messages as a slice.
 type Chat struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	User1ID   uuid.UUID `gorm:"type:uuid;not null;index" json:"user1Id"`
@@ -75,6 +92,8 @@ type Chat struct {
 	Messages  []Message `gorm:"foreignKey:ChatID;constraint:OnDelete:CASCADE;" json:"messages"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }
+
+// Message is a single message in a chat, with sender and timestamp.
 type Message struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	ChatID    uint      `gorm:"not null;index" json:"chatId"`
@@ -84,11 +103,16 @@ type Message struct {
 	Read      bool      `gorm:"default:false" json:"read"`
 	Sender    User      `json:"sender" gorm:"foreignKey:SenderID"`
 }
+
+// FakeUser is used for marking test/dummy users in the database.
 type FakeUser struct {
 	ID     uint      `gorm:"primaryKey" json:"id"`
 	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"userId"`
 }
 
+// InitDB initializes the database connection using GORM (Go ORM library for SQL databases),
+// runs migrations, and ensures required PostgreSQL extensions.
+// Uses logrus for logging and retries connection up to 10 times.
 func InitDB(databaseURL string) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
@@ -141,6 +165,8 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 	logrus.Info("InitDB: database initialized successfully")
 	return db, nil
 }
+
+// Migrate runs GORM automigrations for all main models and logs the result.
 func Migrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&User{},

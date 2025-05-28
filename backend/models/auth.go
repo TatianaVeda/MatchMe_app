@@ -19,6 +19,9 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
+// HashPassword hashes a plain password using bcrypt with the default cost.
+// This ensures passwords are securely stored and resistant to brute-force attacks.
+// Uses logrus for error logging.
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -29,6 +32,7 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
+// CheckPasswordHash compares a plain password with a hashed password.
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if err != nil {
@@ -38,6 +42,10 @@ func CheckPasswordHash(password, hash string) bool {
 	return true
 }
 
+// CreateUser creates a new user with all required associations (profile, bio, preference).
+// Handles special case for admin user creation with fixed UUID.
+// Validates email format and password requirements, checks for duplicate emails.
+// Uses GORM transactions for data consistency and logrus for operation logging.
 func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 
 	if email == config.AdminEmail {
@@ -116,6 +124,9 @@ func CreateUser(db *gorm.DB, email, password string) (*User, error) {
 	return user, nil
 }
 
+// AuthenticateUser verifies user credentials and returns the user if successful.
+// Checks email existence and password hash match.
+// Uses logrus for security event logging and debugging.
 func AuthenticateUser(db *gorm.DB, email, password string) (*User, error) {
 
 	var user User
@@ -137,12 +148,18 @@ func AuthenticateUser(db *gorm.DB, email, password string) (*User, error) {
 	return &user, nil
 }
 
+// JWTClaims represents the JWT token claims structure.
+// Includes user ID and standard JWT claims (expiration, etc.).
+// Used for both access and refresh tokens with different expiration times.
 type JWTClaims struct {
 	UserID uuid.UUID `json:"userId"`
 	jwt.RegisteredClaims
 	ExpiresAt int64 `json:"exp"`
 }
 
+// GenerateJWT creates a new JWT token for the given user ID.
+// Sets token expiration to 72 hours by default.
+// Uses logrus for token generation logging and error tracking.
 func GenerateJWT(userID uuid.UUID, secret string) (string, error) {
 	claims := JWTClaims{
 		UserID:    userID,
@@ -164,6 +181,8 @@ func GenerateJWT(userID uuid.UUID, secret string) (string, error) {
 	return tokenString, nil
 }
 
+// ParseJWT parses and validates a JWT token string using the provided secret.
+// Returns JWTClaims if valid, logs errors and warnings using logrus.
 func ParseJWT(tokenString, secret string) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
@@ -183,6 +202,8 @@ func ParseJWT(tokenString, secret string) (*JWTClaims, error) {
 	return claims, nil
 }
 
+// GenerateAccessToken generates a short-lived (15 min) access token for the user.
+// Used for API authentication. Uses logrus for logging.
 func GenerateAccessToken(userID uuid.UUID, secret string) (string, error) {
 	claims := JWTClaims{
 		UserID:    userID,
@@ -197,6 +218,8 @@ func GenerateAccessToken(userID uuid.UUID, secret string) (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
+// GenerateRefreshToken generates a refresh token for the user with a custom expiration (in minutes).
+// Used for session renewal. Uses logrus for logging.
 func GenerateRefreshToken(userID uuid.UUID, secret string, expiresInMinutes int) (string, error) {
 	claims := JWTClaims{
 		UserID: userID,

@@ -12,6 +12,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// AdminOnly is a middleware that allows access only to administrators (email from config).
+// Checks userID in context, looks up the user in the database, and compares the email.
 func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

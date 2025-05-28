@@ -23,6 +23,8 @@ func InitAuthenticationController(db *gorm.DB) {
 	authDB = db
 	logrus.Info("Authentication controller initialized")
 }
+
+// Signup handles user registration requests. Validates input and creates a new user.
 func Signup(w http.ResponseWriter, r *http.Request) {
 	var reqBody struct {
 		Email    string `json:"email"`
@@ -47,6 +49,8 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
+
+// Login handles user login requests. Validates credentials and returns JWT tokens.
 func Login(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Email    string `json:"email"`
@@ -90,6 +94,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
+
+// Logout handles user logout requests. Adds the token to the blacklist.
 func Logout(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value("userID").(string)
 	authHeader := r.Header.Get("Authorization")
@@ -113,6 +119,8 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully"})
 }
+
+// RefreshToken handles requests to refresh JWT tokens.
 func RefreshToken(w http.ResponseWriter, r *http.Request) {
 	var reqBody struct {
 		RefreshToken string `json:"refreshToken"`
@@ -160,6 +168,8 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
+
+// UpdateEmail handles requests to update the user's email address.
 func UpdateEmail(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -202,6 +212,8 @@ func UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		"email": body.Email,
 	})
 }
+
+// UpdatePassword handles requests to update the user's password.
 func UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
