@@ -12,6 +12,13 @@ import {
 import axios from '../api/index';
 import { toast } from 'react-toastify';
 
+/**
+ * Settings.jsx
+ *
+ * User settings page. Allows changing email, password, and recommendation preferences.
+ * Integrates with backend API, handles batch loading and error reporting.
+ */
+
 const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [savingPrefs, setSavingPrefs] = useState(false);
@@ -62,6 +69,10 @@ const Settings = () => {
     setPreferences({ maxRadius: e.target.value });
   };
   const submitPreferences = async e => {
+    /**
+     * Saves recommendation preferences (maxRadius) to backend.
+     * Handles API errors and loading state.
+     */
     e.preventDefault();
     setSavingPrefs(true);
     try {
@@ -80,6 +91,10 @@ const Settings = () => {
     setEmail({ ...email, newEmail: e.target.value });
   };
   const submitEmail = async e => {
+    /**
+     * Updates user email in backend.
+     * Handles validation, API errors, and loading state.
+     */
     e.preventDefault();
     if (!email.newEmail) {
       toast.error('Please enter new email');
@@ -103,6 +118,10 @@ const Settings = () => {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
   const submitPassword = async e => {
+    /**
+     * Updates user password in backend.
+     * Handles validation, API errors, and loading state.
+     */
     e.preventDefault();
     const { current, next, confirm } = passwords;
     if (!current || !next || next !== confirm) {

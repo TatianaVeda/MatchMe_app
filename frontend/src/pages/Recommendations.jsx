@@ -27,6 +27,14 @@ const hobbiesOptions   = ["reading", "running", "drawing", "gaming", "cooking"];
 const musicOptions     = ["rock", "jazz", "classical", "pop", "hip-hop"];
 const foodOptions      = ["italian", "asian", "russian", "french", "mexican"];
 const travelOptions    = ["beach", "mountains", "cities", "expeditions", "ecotourism"];
+/**
+ * Recommendations.jsx
+ * 
+ * Main recommendations page. Handles user matching logic, filtering, and connection requests.
+ * Integrates with backend API for recommendations, user info, and connections.
+ * Supports two modes: affinity (profile-based) and desire (custom search).
+ * Handles batch loading, filtering, and error-driven navigation.
+ */
 const Recommendations = () => {
   const navigate = useNavigate();
   const [mode, setMode] = useState('affinity');
@@ -47,6 +55,7 @@ const Recommendations = () => {
   const [decliningId, setDecliningId] = useState(null);
 
 useEffect(() => {
+  // Batch-load connections and pending requests on mount
   Promise.all([getConnections(), getPendingConnections()])
     .then(([conns, pend]) => {
       setConnections(conns);
@@ -57,6 +66,7 @@ useEffect(() => {
 const [sent, setSent] = useState([]);
 
 useEffect(() => {
+  // Batch-load pending and sent requests for up-to-date state
   Promise.all([
     getPendingConnections(),
     getSentConnections()
@@ -67,6 +77,7 @@ useEffect(() => {
 }, []);
 
 const fetchLinks = async () => {
+  // Loads all connection-related lists in parallel, updates state, handles errors
   try {
     const [conns, pend, sent] = await Promise.all([
       getConnections(),
@@ -86,6 +97,12 @@ const fetchLinks = async () => {
   }, []);
 
 
+  /**
+   * handleSearch
+   * Submits the recommendation search form. Builds query params based on mode and filters.
+   * Handles API errors, including profile validation errors (redirects to edit profile).
+   * Updates recommendations state with filtered results.
+   */
   const handleSearch = async e => {
     e.preventDefault();
     await fetchLinks();
@@ -140,6 +157,10 @@ const fetchLinks = async () => {
       setLoading(false);
     }
   };
+  /**
+   * handleDecline
+   * Declines a recommendation, updates UI optimistically, handles errors.
+   */
   const handleDecline = async id => {
     setDecliningId(id);
     try {
@@ -152,6 +173,10 @@ const fetchLinks = async () => {
       setDecliningId(null);
     }
   };
+  /**
+   * handleConnect
+   * Sends a connection request, updates pending state, handles errors.
+   */
   const handleConnect = async id => {
     try {
       await sendConnectionRequest(id);
@@ -162,6 +187,10 @@ const fetchLinks = async () => {
     }
   };
   
+  /**
+   * switchMode
+   * Switches between affinity and desire modes, resets recommendations.
+   */
   const switchMode = (newMode) => {
     if (newMode !== mode) {
       setMode(newMode);

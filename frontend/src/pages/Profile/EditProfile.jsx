@@ -29,7 +29,15 @@ const musicOptions     = ["rock", "jazz", "classical", "pop", "hip-hop"];
 const foodOptions      = ["italian", "asian", "russian", "french", "mexican"];
 const travelOptions    = ["beach", "mountains", "cities", "expeditions", "ecotourism"];
 
+/**
+ * EditProfile.jsx
+ *
+ * User profile editing page.
+ * Implements forms for profile, bio, preferences, photo upload/delete.
+ * Uses Formik, Yup, batch data loading, API integration, and validation.
+ */
 const EditProfileSchema = Yup.object().shape({
+  // Yup validation schema for profile editing form
   firstName: Yup.string().max(255, 'First name is too long').required('Enter first name'),
   lastName: Yup.string().max(255, 'Last name is too long').required('Enter last name'),
   about: Yup.string().max(1000, 'Description is too long, max 1000 characters'),
@@ -54,7 +62,10 @@ const EditProfile = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-  
+  /**
+   * Batch loads profile, bio, and preferences on mount.
+   * Handles loading errors and sets initial form values.
+   */
     const loadData = async () => {
       try {
         const [profileRaw, bioRaw, prefsRaw] = await Promise.all([
@@ -107,6 +118,10 @@ const EditProfile = () => {
   const handlePhotoChange = e => setPhotoFile(e.target.files[0]);
 
   const handlePhotoUpload = async () => {
+    /**
+     * Uploads a new user photo using multipart/form-data.
+     * Handles errors and updates uploading state.
+     */
     if (!photoFile) return;
     setUploading(true);
     try {
@@ -125,6 +140,10 @@ const EditProfile = () => {
 
   
   const handlePhotoDelete = async () => {
+    /**
+     * Deletes the user photo via API, updates state and reloads the page.
+     * Handles errors and uploading state.
+     */
     setUploading(true);
     try {
       await deleteMyPhoto();             
@@ -138,6 +157,10 @@ const EditProfile = () => {
   };
 
   const handleSubmit = async (values, { setSubmitting }) => {
+    /**
+     * Saves changes to profile, bio, and preferences.
+     * Integrates with API, handles errors, updates state.
+     */
     try {
       let latitude = values.city.lat;
       let longitude = values.city.lon;

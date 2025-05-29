@@ -1,6 +1,13 @@
 // /m/frontend/src/api/recommendations.js
 import api from './index';
 
+/**
+ * recommendations.js
+ *
+ * API functions for fetching and declining user recommendations.
+ * Wraps HTTP requests to backend endpoints, handles errors.
+ */
+
 export const getRecommendations = async ({
   mode = 'affinity',
   withDistance = false,

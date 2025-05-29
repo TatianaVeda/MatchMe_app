@@ -2,6 +2,13 @@
 
 import api from './index';
 
+/**
+ * chat.js
+ *
+ * API functions for chat operations (fetching, sending messages).
+ * Wraps HTTP requests to backend endpoints, handles errors.
+ */
+
 export const getChats = async () => {
   const response = await api.get('/chats');
   return response.data;

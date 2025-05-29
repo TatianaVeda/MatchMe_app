@@ -14,6 +14,32 @@ import (
 	"gorm.io/gorm"
 )
 
+/*
+RecommendationService — Core Recommendation Algorithm Overview
+--------------------------------------------------------------
+This service provides user-to-user recommendations based on profile similarity, preferences, and geolocation.
+
+Key Principles:
+- Two modes: "affinity" (profile similarity, weighted fields) and "desire" (matching by 'LookingFor').
+- Geospatial filtering: Only users within a preferred radius (using PostgreSQL earthdistance/cube).
+- Score calculation: Weighted overlap of interests, hobbies, music, food, travel (weights can be doubled by user priorities).
+- Filtering: Excludes declined users and those with incomplete profiles.
+- Sorting: Recommendations are sorted by distance (ascending), then by score (descending).
+- Extensible: Field weights and extractors are configurable for future algorithm tuning.
+
+Typical Flow:
+1. Load current user with profile, bio, and preferences.
+2. Find nearby users within radius, excluding declined.
+3. For each candidate, calculate score based on field overlap and priorities.
+4. Filter out candidates with zero score.
+5. Sort by distance, then score. Limit output.
+
+See also:
+- GetRecommendationsForUser: Main entry for recommendations.
+- GetRecommendationsWithFiltersWithDistance: Advanced search with custom filters.
+- validateUserData: Ensures profile completeness.
+*/
+
 // Used internally for sorting and filtering nearby users.
 type Nearby struct {
 	ID       uuid.UUID

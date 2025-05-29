@@ -10,7 +10,18 @@ const initialState = {
   typingStatuses: {},
   presence: {},
 };
+/**
+ * ChatContext.jsx
+ *
+ * Provides chat state and dispatch for the app.
+ * Handles chat list, active chat, messages, typing statuses, and presence.
+ * Integrates with WebSocket for real-time updates and exposes hooks for state and actions.
+ */
 function chatReducer(state, action) {
+  /**
+   * Reducer for chat state. Handles chat list, messages, typing, and presence updates.
+   * Action types: SET_CHATS, SET_ACTIVE_CHAT, SET_MESSAGES, RECEIVE_MESSAGE, SET_TYPING_STATUS, SET_PRESENCE.
+   */
   switch (action.type) {
     case 'SET_CHATS':
       return { ...state, chats: action.payload };
@@ -59,6 +70,10 @@ export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const handleIncoming = useCallback(
     (data) => {
+      /**
+       * Handles incoming WebSocket events: message, typing, presence.
+       * Dispatches to reducer based on event type.
+       */
       if (!user || !user.id) return;
       switch (data.type) {
         case 'message':
@@ -116,5 +131,13 @@ export const ChatProvider = ({ children }) => {
     </ChatStateContext.Provider>
   );
 };
+/**
+ * useChatState
+ * Returns current chat state (chats, messages, typing, presence).
+ */
 export const useChatState = () => useContext(ChatStateContext);
+/**
+ * useChatDispatch
+ * Returns dispatch/actions for updating chat state and sending events.
+ */
 export const useChatDispatch = () => useContext(ChatDispatchContext);

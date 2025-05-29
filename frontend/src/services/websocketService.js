@@ -1,3 +1,10 @@
+/**
+ * websocketService.js
+ *
+ * Singleton service for managing WebSocket connection, message dispatch,
+ * reconnect logic, heartbeat, and subscriptions for real-time chat and presence.
+ * Handles auto-reconnect, listener management, and message serialization.
+ */
 class WebSocketService {
   constructor() {
     this.socket = null;
@@ -9,6 +16,10 @@ class WebSocketService {
     this.reconnectDelay = 5000;
   }
   connect(userID) {
+    /**
+     * Establishes WebSocket connection for the given user.
+     * Handles reconnect logic, heartbeat, and sets up event listeners.
+     */
     if (this.isConnected || this.socket) return;
     const wsURL = process.env.REACT_APP_WS_URL || 'ws://localhost:8081/ws';
     this.userID = userID;
@@ -19,6 +30,9 @@ class WebSocketService {
       this.heartbeatInterval = setInterval(() => this.sendHeartbeat(true), 30000);
     };
     this.socket.onmessage = ({ data }) => {
+      /**
+       * Handles incoming WebSocket messages, parses JSON, dispatches to listeners.
+       */
       try {
         const parsed = JSON.parse(data);
         this.listeners.forEach(cb => cb(parsed));
@@ -27,6 +41,9 @@ class WebSocketService {
       }
     };
     this.socket.onclose = () => {
+      /**
+       * Handles socket close: sends offline heartbeat, cleans up, schedules reconnect.
+       */
       console.warn('WebSocket closed');
       this.sendHeartbeat(false);
       this.cleanupSocket();
@@ -45,6 +62,9 @@ class WebSocketService {
     this.isConnected = false;
   }
   scheduleReconnect() {
+    /**
+     * Schedules a reconnect attempt after a delay if not already scheduled.
+     */
     if (this.reconnectTimeout || !this.userID) return;
     console.log(`Attempting reconnect in ${this.reconnectDelay / 1000}s...`);
     this.reconnectTimeout = setTimeout(() => {
@@ -53,6 +73,10 @@ class WebSocketService {
     }, this.reconnectDelay);
   }
   send(payload) {
+    /**
+     * Sends a JSON-serialized payload over the WebSocket if open.
+     * Logs and warns if socket is not open.
+     */
     if (this.socket?.readyState === WebSocket.OPEN) {
      console.debug('WS SEND ➔', payload);
       this.socket.send(JSON.stringify(payload));
@@ -84,6 +108,9 @@ class WebSocketService {
     this.listeners.delete(cb);
   }
   disconnect() {
+    /**
+     * Closes the WebSocket connection and cancels any scheduled reconnects.
+     */
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;

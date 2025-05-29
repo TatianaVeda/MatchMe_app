@@ -10,6 +10,13 @@ import { getConnections, getPendingConnections, updateConnectionRequest, deleteC
 import { getUser, getBatchOnlineStatus } from '../api/user';
 import { useChatState, useChatDispatch } from '../contexts/ChatContext';
 
+/**
+ * Connections.jsx
+ *
+ * User connections page. Shows friends and pending requests, allows accepting, declining, and blocking users.
+ * Integrates with backend API, presence, and chat context. Handles batch loading and polling.
+ */
+
 const Connections = () => {
   const navigate = useNavigate();
   const { setChats } = useChatDispatch();
@@ -26,22 +33,27 @@ const Connections = () => {
   };
 
   const loadUsers = async (ids) => {
-        const rawUsers = await Promise.all(ids.map(id => getUser(id)));
-
-        const presenceMap = await getBatchOnlineStatus(ids);
-
-        return rawUsers.map(u => ({
-          ...u,
-          online: Boolean(presenceMap[u.id])
-        }));
-      };
+    /**
+     * Batch loads user data and online status for a list of user IDs.
+     * Integrates with presence API.
+     */
+    const rawUsers = await Promise.all(ids.map(id => getUser(id)));
+    const presenceMap = await getBatchOnlineStatus(ids);
+    return rawUsers.map(u => ({
+      ...u,
+      online: Boolean(presenceMap[u.id])
+    }));
+  };
 
   const fetchData = async () => {
+    /**
+     * Loads pending and connected users, updates state.
+     * Handles API errors and loading state.
+     */
     setLoading(true);
     try {
       const pendingIds = await getPendingConnections();
       setPending(await loadUsers(pendingIds));
-
       const connIds = await getConnections();
       setConnections(await loadUsers(connIds));
     } catch {
@@ -52,12 +64,19 @@ const Connections = () => {
   };
 
   useEffect(() => {
+    /**
+     * Loads connections and pending requests on mount, sets up polling every 2 minutes.
+     */
     fetchData();
     const interval = setInterval(fetchData, 120000);
     return () => clearInterval(interval);
   }, []);
 
   const handleAccept = async (id) => {
+    /**
+     * Accepts a pending connection request, updates state and shows notification.
+     * Handles API errors.
+     */
     try {
       await updateConnectionRequest(id, 'accept');
       toast.success('Request accepted');
@@ -70,6 +89,10 @@ const Connections = () => {
   };
 
   const handleDecline = async (id) => {
+    /**
+     * Declines a pending connection request, updates state and shows notification.
+     * Handles API errors.
+     */
     try {
       await updateConnectionRequest(id, 'decline');
       toast.info('Request declined');
@@ -80,6 +103,10 @@ const Connections = () => {
   };
 
   const handleDisconnect = async (id) => {
+    /**
+     * Removes a connection (blocks user), updates state and chat list.
+     * Handles API errors.
+     */
     try {
       await deleteConnection(id);
       toast.success('Connection removed');

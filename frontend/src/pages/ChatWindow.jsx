@@ -12,6 +12,15 @@ import { useChatState, useChatDispatch } from '../contexts/ChatContext';
 import ChatBubble from '../components/ChatBubble';
 import { useAuthState } from '../contexts/AuthContext';
 import useWebSocket from '../hooks/useWebSocket';
+
+/**
+ * ChatWindow.jsx
+ *
+ * Main chat window page. Handles chat creation, message history, sending messages,
+ * typing notifications, pagination, and real-time updates via WebSocket.
+ * Integrates with backend API and chat context for state management.
+ */
+
 const ChatWindow = () => {
   const { user } = useAuthState();
   const { chatId } = useParams();
@@ -66,14 +75,25 @@ const isTyping  = typingStatuses[chatIdNum];
     }
   };
   useEffect(() => {
+    /**
+     * Subscribes to WebSocket updates for this chat on mount, unsubscribes on unmount.
+     */
     if (chatId && chatId !== 'new') {
       subscribe(chatId);
       return () => unsubscribe(chatId);
     }
   }, [chatId, subscribe, unsubscribe]);
   useEffect(() => {
+    /**
+     * Scrolls to the bottom of the message list when messages change.
+     */
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  /**
+   * handleSend
+   * Sends a new message to the backend and via WebSocket, updates state.
+   * Handles optimistic UI update and error reporting.
+   */
   const handleSend = async (e) => {
     e.preventDefault();
     const content = newMessage.trim();
@@ -94,6 +114,10 @@ const isTyping  = typingStatuses[chatIdNum];
       toast.error('Error sending message');
     }
   };
+  /**
+   * handleChange
+   * Handles input change for new message, sends typing notifications with debounce.
+   */
   const handleChange = (e) => {
     setNewMessage(e.target.value);
     sendTyping(chatId, true);

@@ -45,6 +45,10 @@ export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
     useEffect(() => {
+      /**
+       * On mount or when accessToken changes: restores user session if token exists.
+       * Fetches user info from backend, handles token expiration and logout.
+       */
           if (!state.accessToken) {
             return;
           }
@@ -68,5 +72,13 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+/**
+ * useAuthState
+ * Returns current authentication state (user, tokens).
+ */
 export const useAuthState = () => useContext(AuthStateContext);
+/**
+ * useAuthDispatch
+ * Returns dispatch function for updating authentication state.
+ */
 export const useAuthDispatch = () => useContext(AuthDispatchContext);
