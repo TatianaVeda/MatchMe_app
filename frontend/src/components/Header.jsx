@@ -60,15 +60,8 @@ export default function Header() {
 
   useEffect(() => {
     if (!user) return;
-
     setUnreadMessages(chats.reduce((sum, c) => sum + (c.unreadCount || 0), 0));
-
-    chats.forEach(c => subscribe(c.id));
-
-    return () => {
-      chats.forEach(c => unsubscribe(c.id));
-    };
-  }, [user, chats, subscribe, unsubscribe]);
+  }, [user, chats]);
 
   useEffect(() => {
     if (!user) return;
