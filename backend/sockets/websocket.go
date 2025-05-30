@@ -294,6 +294,32 @@ func (c *Client) readPump() {
 				go BroadcastTypingNotification(uid, uint(chatID), *req.IsTyping)
 			}
 
+		/* case "read":
+		chatID, err := strconv.ParseUint(req.ChatID, 10, 64)
+		if err != nil {
+			logrus.Warnf("readPump: bad chat_id in read from %s", c.UserID)
+			continue
+		}
+		// 1. Mark messages as read in the database (implement this function in your service layer)
+		unreadMsgs, err := services.MarkMessagesAsRead(uint(chatID), c.UserID)
+		if err != nil {
+			logrus.Errorf("readPump: failed to mark messages as read for chat %d: %v", chatID, err)
+			continue
+		}
+		// 2. Broadcast "read" event for each message to all chat participants
+		for _, msgID := range unreadMsgs {
+			payload := map[string]interface{}{
+				"type":       "read",
+				"chat_id":    chatID,
+				"message_id": msgID,
+			}
+			data, _ := json.Marshal(payload)
+			hub.Broadcast <- BroadcastMessage{
+				ChatID: uint(chatID),
+				Data:   data,
+			}
+		} */
+
 		default:
 			logrus.Warnf("readPump: unknown action '%s' from %s", req.Action, c.UserID)
 		}

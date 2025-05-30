@@ -14,6 +14,7 @@ class WebSocketService {
     this.isConnected = false;
     this.userID = null;
     this.reconnectDelay = 5000;
+    this.eventQueue = [];
   }
   connect(userID) {
     /**
@@ -28,6 +29,11 @@ class WebSocketService {
       this.isConnected = true;
       if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = setInterval(() => this.sendHeartbeat(true), 30000);
+      // Send all events from queque
+      while (this.eventQueue.length > 0) {
+        const payload = this.eventQueue.shift();
+        this.send(payload);
+      }
     };
     this.socket.onmessage = ({ data }) => {
       /**
@@ -81,7 +87,8 @@ class WebSocketService {
      console.debug('WS SEND ➔', payload);
       this.socket.send(JSON.stringify(payload));
     } else {
-      console.warn('WebSocket is not open. Failed to send:', payload);
+      console.warn('WebSocket is not open. Queuing event:', payload);
+      this.eventQueue.push(payload);
     }
   }
   sendMessage(chatId, content) {
@@ -119,6 +126,9 @@ class WebSocketService {
       this.socket.close();
       this.cleanupSocket();
     }
+  }
+  sendRead(chatId) {
+    this.send({ action: 'read', chat_id: String(chatId) });
   }
 }
 export default new WebSocketService();

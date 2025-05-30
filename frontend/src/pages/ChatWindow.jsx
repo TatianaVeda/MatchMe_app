@@ -28,7 +28,7 @@ const ChatWindow = () => {
   const location = useLocation();
   const { messages: allMessages, typingStatuses } = useChatState();
   const { setMessages, sendMessage, sendTyping } = useChatDispatch();
-  const { subscribe, unsubscribe } = useWebSocket();
+  const { subscribe, unsubscribe, sendRead } = useWebSocket();
   const messagesEndRef = useRef(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -89,6 +89,15 @@ const isTyping  = typingStatuses[chatIdNum];
      */
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  useEffect(() => {
+    if (!user || !chatId || chatId === 'new' || messages.length === 0) return;
+    const hasUnread = messages.some(
+      m => m.sender_id !== user.id && !m.read
+    );
+    if (hasUnread) {
+      sendRead(chatId);
+    }
+  }, [chatId, user, messages, sendRead]);
   /**
    * handleSend
    * Sends a new message to the backend and via WebSocket, updates state.
@@ -126,6 +135,16 @@ const isTyping  = typingStatuses[chatIdNum];
       sendTyping(chatId, false);
     }, 1500);
   };
+  if (!user) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Loading...
+        </Typography>
+        <CircularProgress />
+      </Container>
+    );
+  }
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
@@ -148,13 +167,15 @@ const isTyping  = typingStatuses[chatIdNum];
           <>
              <List>
           {messages.map(msg => (
-            <Fragment key={msg.id}>
-              <ChatBubble
-                message={msg}
-                isOwn={msg.sender_id === user.id}
-              />
-              <Divider component="li" />
-            </Fragment>
+            msg && msg.id ? (
+              <Fragment key={msg.id}>
+                <ChatBubble
+                  message={msg}
+                  isOwn={msg.sender_id === user.id}
+                />
+                <Divider component="li" />
+              </Fragment>
+            ) : null
           ))}
          {isTyping && (
         <Typography variant="body2" color="textSecondary" sx={{ mb: 1, fontStyle: 'italic' }}>

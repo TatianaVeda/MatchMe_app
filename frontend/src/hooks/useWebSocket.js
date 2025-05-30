@@ -62,7 +62,11 @@ const useWebSocket = (onMessage) => {
         WebSocketService.unsubscribe(chatId);
       }, []);
 
-  return { sendMessage, sendTyping, sendHeartbeat, subscribe, unsubscribe };
+  const sendRead = useCallback((chatId) => {
+    WebSocketService.sendRead(chatId);
+  }, []);
+
+  return { sendMessage, sendTyping, sendHeartbeat, subscribe, unsubscribe, sendRead };
 };
 
 export default useWebSocket;

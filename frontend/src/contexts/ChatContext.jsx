@@ -61,6 +61,16 @@ function chatReducer(state, action) {
          [action.userId]: action.isOnline
        }
      };
+    case 'MARK_READ':
+      return {
+        ...state,
+        messages: {
+          ...state.messages,
+          [action.chatId]: state.messages[action.chatId].map(message =>
+            message.id === action.messageId ? { ...message, read: true } : message
+          ),
+        },
+      };
     default:
       return state;
   }
@@ -99,6 +109,9 @@ export const ChatProvider = ({ children }) => {
          isOnline: data.is_online
        });
        break;
+        case 'read':
+          dispatch({ type: 'MARK_READ', chatId: data.chat_id, messageId: data.message_id });
+          break;
         default:
           break;
       }
