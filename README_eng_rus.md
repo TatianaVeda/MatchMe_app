@@ -7,6 +7,16 @@
   <a href="#russian">Русский</a>
 </p>
 
+## Main Features
+
+- Real-time chat and notifications (WebSocket)
+- Online presence tracking (Redis)
+- Instant user notifications (React Toastify)
+- JWT authentication
+- Dockerized setup
+
+> Real-time chat and presence are implemented using WebSocket for instant message delivery and Redis for fast online status tracking.
+
 <a id="english"></a>
 ## Table of Contents
 
@@ -400,6 +410,16 @@ flowchart LR
 # Match Me - Приложение для знакомств
 
 > Современное приложение для знакомств с бэкендом на Go, фронтендом на React и поддержкой общения в реальном времени через WebSockets и Redis.
+
+## Основные возможности
+
+- Чат и уведомления в реальном времени (WebSocket)
+- Отслеживание онлайн-статуса (Redis)
+- Мгновенные уведомления пользователю (React Toastify)
+- JWT-аутентификация
+- Docker-окружение
+
+> Чат и presence в реальном времени реализованы через WebSocket для мгновенной доставки сообщений и Redis для быстрого отслеживания онлайн-статуса.
 
 ## Содержание
 

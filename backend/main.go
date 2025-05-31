@@ -76,6 +76,7 @@ func main() {
 
 	// Pass DB and presence to controllers and sockets
 	sockets.SetDB(db)
+	sockets.SetChatsDB(db)
 	controllers.InitChatsController(db, presenceService)
 	controllers.InitRecommendationControllerService(db, presenceService)
 

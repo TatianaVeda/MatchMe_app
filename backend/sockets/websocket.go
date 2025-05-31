@@ -14,9 +14,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 var presenceSvc *services.PresenceService
+var chatsDB *gorm.DB
 
 // This module implements real-time chat and notifications using WebSockets, that provide a persistent, full-duplex connection between client and server,
 // enabling instant message delivery, typing indicators, and presence updates.
@@ -188,6 +190,15 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	client.readPump()
 }
 
+// Вспомогательная функция для получения id сообщений
+func getMessageIDs(msgs []models.Message) []uint {
+	ids := make([]uint, len(msgs))
+	for i, m := range msgs {
+		ids[i] = m.ID
+	}
+	return ids
+}
+
 func (c *Client) readPump() {
 	// Main loop for reading messages from the WebSocket connection.
 	// Handles subscription, typing, heartbeat, and other client events.
@@ -294,31 +305,47 @@ func (c *Client) readPump() {
 				go BroadcastTypingNotification(uid, uint(chatID), *req.IsTyping)
 			}
 
-		/* case "read":
-		chatID, err := strconv.ParseUint(req.ChatID, 10, 64)
-		if err != nil {
-			logrus.Warnf("readPump: bad chat_id in read from %s", c.UserID)
-			continue
-		}
-		// 1. Mark messages as read in the database (implement this function in your service layer)
-		unreadMsgs, err := services.MarkMessagesAsRead(uint(chatID), c.UserID)
-		if err != nil {
-			logrus.Errorf("readPump: failed to mark messages as read for chat %d: %v", chatID, err)
-			continue
-		}
-		// 2. Broadcast "read" event for each message to all chat participants
-		for _, msgID := range unreadMsgs {
-			payload := map[string]interface{}{
-				"type":       "read",
-				"chat_id":    chatID,
-				"message_id": msgID,
+		case "read":
+			chatID, err := strconv.ParseUint(req.ChatID, 10, 64)
+			if err != nil {
+				logrus.Warnf("readPump: bad chat_id in read from %s", c.UserID)
+				continue
 			}
-			data, _ := json.Marshal(payload)
-			hub.Broadcast <- BroadcastMessage{
-				ChatID: uint(chatID),
-				Data:   data,
+			uid, err := uuid.Parse(c.UserID)
+			if err != nil {
+				logrus.Warnf("readPump: invalid userID in read from %s", c.UserID)
+				continue
 			}
-		} */
+			var unreadMsgs []models.Message
+			if err := chatsDB.
+				Model(&models.Message{}).
+				Where("chat_id = ? AND sender_id <> ? AND read = ?", chatID, uid, false).
+				Find(&unreadMsgs).Error; err != nil {
+				logrus.Errorf("readPump: failed to find unread messages for chat %d: %v", chatID, err)
+				continue
+			}
+			if len(unreadMsgs) == 0 {
+				continue // Защита от лишних событий!
+			}
+			if err := chatsDB.
+				Model(&models.Message{}).
+				Where("id IN ?", getMessageIDs(unreadMsgs)).
+				Update("read", true).Error; err != nil {
+				logrus.Errorf("readPump: failed to mark messages as read for chat %d: %v", chatID, err)
+				continue
+			}
+			for _, msg := range unreadMsgs {
+				payload := map[string]interface{}{
+					"type":       "read",
+					"chat_id":    chatID,
+					"message_id": msg.ID,
+				}
+				data, _ := json.Marshal(payload)
+				hub.Broadcast <- BroadcastMessage{
+					ChatID: uint(chatID),
+					Data:   data,
+				}
+			}
 
 		default:
 			logrus.Warnf("readPump: unknown action '%s' from %s", req.Action, c.UserID)
@@ -485,4 +512,8 @@ func InitWebSocketServer(ps *services.PresenceService, addr string) error {
 	http.HandleFunc("/ws", HandleWebSocket)
 	logrus.Infof("WebSocket server started on %s", addr)
 	return http.ListenAndServe(addr, nil)
+}
+
+func SetChatsDB(db *gorm.DB) {
+	chatsDB = db
 }

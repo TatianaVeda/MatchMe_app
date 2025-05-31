@@ -110,7 +110,11 @@ export const ChatProvider = ({ children }) => {
        });
        break;
         case 'read':
-          dispatch({ type: 'MARK_READ', chatId: data.chat_id, messageId: data.message_id });
+          dispatch({ 
+            type: 'MARK_READ',
+            chatId: data.chat_id,
+            messageId: data.message_id
+           });
           break;
         default:
           break;

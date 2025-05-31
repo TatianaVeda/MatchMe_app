@@ -60,7 +60,8 @@ export default function Header() {
 
   useEffect(() => {
     if (!user) return;
-    setUnreadMessages(chats.reduce((sum, c) => sum + (c.unreadCount || 0), 0));
+    const chatsArray = Array.isArray(chats) ? chats : [];
+    setUnreadMessages(chatsArray.reduce((sum, c) => sum + (c.unreadCount || 0), 0));
   }, [user, chats]);
 
   useEffect(() => {
