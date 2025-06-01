@@ -190,7 +190,8 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	client.readPump()
 }
 
-// Вспомогательная функция для получения id сообщений
+//Helper function for retrieving message IDs
+
 func getMessageIDs(msgs []models.Message) []uint {
 	ids := make([]uint, len(msgs))
 	for i, m := range msgs {
