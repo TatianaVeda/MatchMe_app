@@ -97,13 +97,17 @@ class WebSocketService {
   sendTyping(chatId, isTyping) {
     this.send({ action: 'typing', chat_id: String(chatId), is_typing: isTyping });
   }
+   
+  sendRead(chatId) {
+    this.send({ action: 'read', chat_id: String(chatId) });
+  }
   sendHeartbeat(isOnline) {
     this.send({ action: 'heartbeat', is_online: isOnline });
   }
   subscribe(chatId) {
       this.send({ action: 'subscribe', chat_id: String(chatId) });
     }
-    unsubscribe(chatId) {
+  unsubscribe(chatId) {
       this.send({ action: 'unsubscribe', chat_id: String(chatId) });
     }
   addListener(cb) {
@@ -126,9 +130,6 @@ class WebSocketService {
       this.socket.close();
       this.cleanupSocket();
     }
-  }
-  sendRead(chatId) {
-    this.send({ action: 'read', chat_id: String(chatId) });
   }
 }
 export default new WebSocketService();

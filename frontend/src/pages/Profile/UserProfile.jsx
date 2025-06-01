@@ -14,17 +14,20 @@ import { getUser, getUserProfile, getUserBio } from '../../api/user';
 import { getConnections, deleteConnection } from '../../api/connections';
 import { toast } from 'react-toastify';
 import { useChatState, useChatDispatch } from '../../contexts/ChatContext';
+//import useWebSocket from '../../hooks/useWebSocket';
 
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { chats, presence } = useChatState();
   const { setChats } = useChatDispatch();
-
+  //const { subscribe, unsubscribe } = useWebSocket();
+  
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [bio, setBio] = useState(null);
   const [connectedIds, setConnectedIds] = useState([]);
+  
   const [loading, setLoading] = useState(true);
 
   const handleRemoveFriend = async (friendId) => {
@@ -40,7 +43,7 @@ const UserProfile = () => {
       toast.error('Failed to remove friend');
     }
   };
-
+  
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -77,7 +80,11 @@ const UserProfile = () => {
     };
     load();
   }, [id, navigate]);
-
+  const chatWithUser = chats.find(c => c.otherUserID === id);
+  const isOnline =
+    (typeof chatWithUser?.otherUserOnline === 'boolean' && chatWithUser.otherUserOnline) ||
+    (typeof user?.online === 'boolean' && user.online) ||
+    Boolean(presence?.[user?.id]);
   const handleChat = () => {
     const existing = chats.find(c => c.otherUserID === id);
     navigate(existing ? `/chat/${existing.id}` : `/chat/new?other_user_id=${id}`);
@@ -98,10 +105,6 @@ const UserProfile = () => {
       </Container>
     );
   }
-
-  const isOnline = typeof user.online === 'boolean'
-    ? user.online
-    : Boolean(presence[user.id]);
 
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>

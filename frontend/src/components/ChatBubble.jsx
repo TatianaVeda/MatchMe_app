@@ -64,7 +64,7 @@ const time = dt.toLocaleTimeString('default', {
 ChatBubble.propTypes = {
   message: PropTypes.shape({
     content: PropTypes.string,
-    timestamp: PropTypes.string,
+    timestamp: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     read: PropTypes.bool,
     sender_name: PropTypes.string, 
   }).isRequired,

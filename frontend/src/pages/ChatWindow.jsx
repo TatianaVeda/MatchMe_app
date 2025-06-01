@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container, Box, Typography, TextField, Button,
-  CircularProgress, List, Divider, Pagination
+  CircularProgress, List, Divider, Pagination, Avatar, Badge
 } from '@mui/material';
 import api from '../api/index';
 import { toast } from 'react-toastify';
@@ -26,7 +26,7 @@ const ChatWindow = () => {
   const { chatId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { messages: allMessages, typingStatuses } = useChatState();
+  const { messages: allMessages, typingStatuses, chats, presence } = useChatState();
   const { setMessages, sendMessage, sendTyping } = useChatDispatch();
   const { subscribe, unsubscribe, sendRead } = useWebSocket();
   const messagesEndRef = useRef(null);
@@ -38,7 +38,12 @@ const ChatWindow = () => {
   const pageCount = Math.ceil(totalCount / pageSize);  
   const messages = allMessages[chatId] || [];
   const chatIdNum = Number(chatId);
-const isTyping  = typingStatuses[chatIdNum];
+  const isTyping  = typingStatuses[chatIdNum];
+  const chat = chats.find(c => c.id === Number(chatId));
+  const otherUserId = chat?.otherUserID;
+  const otherUserName = chat?.otherUser?.firstName + ' ' + chat?.otherUser?.lastName;
+  const isOnline = Boolean(chat?.otherUserOnline);
+
   useEffect(() => {
     if (chatId === 'new') {
       const otherUserID = new URLSearchParams(location.search).get('other_user_id');
@@ -148,7 +153,23 @@ const isTyping  = typingStatuses[chatIdNum];
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
-        {chatId === 'new' ? 'Creating chat...' : `Chat ${chatId}`}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Badge
+            color={isOnline ? 'success' : 'error'}
+            variant="dot"
+            overlap="circular"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          >
+            <Avatar
+              src={chat?.otherUser?.photoUrl}
+              alt={otherUserName}
+              sx={{ width: 40, height: 40 }}
+            >
+              {!chat?.otherUser?.photoUrl && '👤'}
+            </Avatar>
+          </Badge>
+          {otherUserName || `Chat ${chatId}`}
+        </Box>
       </Typography>
       
       <Box sx={{

@@ -37,7 +37,7 @@ export default function Header() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { chats } = useChatState();
+  const { chats, messages } = useChatState();
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   const [pendingFriends, setPendingFriends] = useState(0);
