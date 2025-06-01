@@ -83,25 +83,3 @@ func TypingNotification(userID uuid.UUID, chatID uint, isTyping bool) ([]byte, e
 	logrus.Debugf("TypingNotification: typing notification created for user %s in chat %d", userID, chatID)
 	return data, nil
 }
-
-/* func (cs *ChatService) MarkMessagesAsRead(chatID uint, currentUserID uuid.UUID) ([]uint, error) {
-	var updatedMessages []uint
-	if err := cs.DB.
-		Model(&models.Message{}).
-		Where("chat_id = ? AND sender_id <> ? AND read = ?", chatID, currentUserID, false).
-		Update("read", true).Error; err != nil {
-		logrus.Errorf("MarkMessagesAsRead: error marking messages as read: %v", err)
-		return nil, err
-	}
-
-	if err := cs.DB.
-		Model(&models.Message{}).
-		Where("chat_id = ? AND sender_id <> ? AND read = ?", chatID, currentUserID, false).
-		Pluck("id", &updatedMessages).Error; err != nil {
-		logrus.Errorf("MarkMessagesAsRead: error fetching updated message IDs: %v", err)
-		return nil, err
-	}
-
-	logrus.Infof("MarkMessagesAsRead: %d messages marked as read in chat %d", len(updatedMessages), chatID)
-	return updatedMessages, nil
-} */
