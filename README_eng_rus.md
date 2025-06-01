@@ -332,6 +332,6 @@ Before running the application, ensure that the following environment variables 
   - Endpoints return 404 for both non-existent and forbidden resources, preventing information leaks.
   - No private data is leaked via API or logs.
 
-If you have any questions or need extra help running the app, feel free to contact us on **Discord**: ".....".
+If you have any questions or need extra help running the app, feel free to contact us on **Discord**: igor_shaposhnik, jekkubattery, vetta_blotter.
 
 ---
