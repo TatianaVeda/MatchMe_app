@@ -87,24 +87,6 @@ flowchart LR
 
 ## Installation and Setup
 
-### Environment Configuration
-
-Before running the application, ensure that the `config_local.env` file is properly configured. This file contains essential environment variables such as:
-
-- **SERVER_PORT**: The port on which the backend server will run.
-- **WEBSOCKET_PORT**: The port for WebSocket connections.
-- **DATABASE_URL**: Connection string for the PostgreSQL database.
-- **JWT_SECRET**: Secret key for signing JWT tokens.
-- **JWT_EXPIRES_IN**: Expiration time for JWT tokens.
-- **MEDIA_UPLOAD_DIR**: Directory for storing uploaded media files.
-- **ENVIRONMENT**: The environment mode (e.g., development, production).
-- **ALLOWED_ORIGINS**: Comma-separated list of allowed origins for CORS.
-- **LOG_LEVEL**: Logging level (e.g., debug, info, warn, error).
-- **REDIS_URL**: Redis connection string (default: `localhost:6379`).
-- **REDIS_TIMEOUT**: Redis connection timeout (seconds).
-
-Ensure these variables are updated according to your local setup.
-
 ### Automatic Installation (Recommended)
 
 1. Clone the repository:
@@ -300,6 +282,8 @@ _For developers: see the architectural comment in `backend/services/recommendati
 - For database reset or test user generation, use the admin panel (see instructions above).
 
 ## Environment Variables
+
+Before running the application, ensure that the following environment variables are properly configured. These variables control ports, database connections, JWT secrets, Redis, and other essential settings. Update these variables in your `config_local.env` file according to your local setup.
 
 | Name                | Default           | Description                                      |
 |---------------------|-------------------|--------------------------------------------------|
