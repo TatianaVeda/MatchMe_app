@@ -2,11 +2,7 @@
 
 > A modern meeting application with Go backend, React frontend and real-time communication via WebSockets and Redis.
 
-<p align="center">
-  <a href="#english">English</a>
-</p>
-
-## Main Features
+## Features
 
 - Real-time chat and notifications (WebSocket)
 - Online presence tracking (Redis)
@@ -14,29 +10,11 @@
 - JWT authentication
 - Dockerized setup
 - An offline/online indicator is shown on profile and chat views.
-
-> Real-time chat and presence are implemented using WebSocket for instant message delivery and Redis for fast online status tracking.
-
-<a id="english"></a>
-## Table of Contents
-
-- [Technologies](#technologies)
-- [Requirements](#requirements)
-- [Installation and Setup](#installation-and-setup)
-- [Project Structure](#project-structure)
-- [API and Ports](#api-and-ports)
-- [Development](#development)
-- [Features](#features)
-- [Setting Recommendation Radius](#setting-recommendation-radius)
-- [Database Reset and Dummy User Generation](#database-reset-and-dummy-user-generation)
-- [Registration and Authentication](#registration-and-authentication)
-- [Recommendation Algorithm](#recommendation-algorithm)
-- [FAQ](#faq)
-- [Troubleshooting](#troubleshooting)
-- [Architecture Overview](#architecture-overview)
-- [Example Usage Scenarios](#example-usage-scenarios)
-- [Environment Variables](#environment-variables)
-- [Security](#security)
+- Batch Presence API: Efficiently check online status for multiple users
+- Real-time Notifications: Instant updates for chat and social features via WebSocket and Redis
+- Image Upload: Support for avatars and media content
+- Data Validation: Strict validation of input data
+- CORS: Configured security for cross-domain requests
 
 ## Technologies
 
@@ -62,13 +40,50 @@
 - **Redis** (v7+) - required for presence and real-time features (auto-started via Docker Compose)
 - **Concurrently** - parallel service execution
 
+## Architecture Overview
+
+```mermaid
+flowchart LR
+    subgraph Frontend
+        A[React App]
+    end
+    subgraph Backend
+        B[Go HTTP API]
+        C[WebSocket Server]
+        D[Presence Service]
+    end
+    E[(PostgreSQL)]
+    F[(Redis)]
+
+    A <--> B
+    A <--> C
+    B <--> E
+    C <--> D
+    D <--> F
+```
+*System architecture: React frontend, Go backend, WebSocket server, Redis, PostgreSQL.*
+
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Installation and Setup](#installation-and-setup)
+- [Project Structure](#project-structure)
+- [API and Ports](#api-and-ports)
+- [Development](#development)
+- [Setting Recommendation Radius](#setting-recommendation-radius)
+- [Database Reset and Dummy User Generation](#database-reset-and-dummy-user-generation)
+- [Registration and Authentication](#registration-and-authentication)
+- [Recommendation Algorithm](#recommendation-algorithm)
+- [FAQ & Troubleshooting](#faq--troubleshooting)
+- [Environment Variables](#environment-variables)
+- [Security](#security)
+
 ## Requirements
 
 - **Node.js** (v16+)
-- **Go** (v1.19+)
 - **Docker** and **Docker Compose**
-- **Redis** (v7+) — required for presence and real-time features (auto-started via Docker Compose)
-- **WSL2** (for Windows) with Docker Desktop integration enabled
+- **PostgreSQL**
+- **Redis** (v7+)
 
 ## Installation and Setup
 
@@ -239,19 +254,6 @@ To access Redis CLI:
 docker exec -it m_redis redis-cli
 ```
 
-## Features
-
-- **JWT Authentication**: Secure user authentication
-- **WebSockets**: Real-time communication (chat, notifications)
-- **Online Presence Tracking**: Real-time user online/offline status via Redis
-- **Batch Presence API**: Efficiently check online status for multiple users
-- **Real-time Notifications**: Instant updates for chat and social features via WebSocket and Redis
-- **Image Upload**: Support for avatars and media content
-- **Data Validation**: Strict validation of input data
-- **Docker**: Easy deployment in any environment
-- **CORS**: Configured security for cross-domain requests
-- **An offline/online indicator is shown on profile and chat views.**
-
 ## Setting Recommendation Radius
 
 To search for recommendations within a specific geographical radius, navigate to the "Settings" page of the application. At the bottom of the settings page, you will find an option to set the maximum radius for recommendations. Adjusting this value enables proximity-based filtering for recommendations.
@@ -290,74 +292,16 @@ The recommendation system supports two independent modes:
 
 _For developers: see the architectural comment in `backend/services/recommendations.go` for implementation details and extension points._
 
-## FAQ
+## FAQ & Troubleshooting
 
-**Q: Why am I not getting any recommendations?**  
-A: Please make sure your profile is fully filled out (name, city, bio, interests, etc.) and that you have set a search radius in your settings (recommended: 500–1000 km). If your radius is too small or your profile is incomplete, you may not receive any matches.
-
-## Troubleshooting
-
-- If you do not see any recommendations, check that your profile is complete and your search radius is set.
+- If you do not see any recommendations, check that your profile is complete (name, city, bio, interests, etc.) and your search radius is set (recommended: 500–1000 km). 
+- If your radius is too small or your profile is incomplete, you may not receive any matches.
 - If you encounter errors during registration or login, make sure your email and password meet the requirements.
-- If you see errors related to Redis (e.g., presence not working, real-time features unavailable), ensure Redis is running and accessible at the address specified in `REDIS_URL`.
 - For database reset or test user generation, use the admin panel (see instructions above).
-
-## Architecture Overview
-
-**System Components and Data Flow:**
-
-```mermaid
-flowchart LR
-    subgraph Frontend
-        A[React App]
-    end
-    subgraph Backend
-        B[Go HTTP API]
-        C[WebSocket Server]
-        D[Presence Service]
-    end
-    E[(PostgreSQL)]
-    F[(Redis)]
-
-    A <--> B
-    A <--> C
-    B <--> E
-    C <--> D
-    D <--> F
-```
-
-*Legend:*
-- **React App**: User interface, interacts with API and WebSocket.
-- **Go HTTP API**: Handles REST endpoints, business logic, authentication.
-- **WebSocket Server**: Real-time chat, notifications, presence updates.
-- **Presence Service**: Tracks online status, uses Redis for fast access.
-- **PostgreSQL**: Main data storage (users, profiles, messages, etc).
-- **Redis**: In-memory store for online presence and real-time features.
-
-*You can add a PNG/SVG diagram here if desired.*
-
-## Example Usage Scenarios
-
-### EN
-- **User logs in and opens chat:**
-  - The frontend establishes a WebSocket connection.
-  - The backend marks the user as online in Redis.
-  - Other users see this user as online in real time.
-- **User sends a message:**
-  - The message is sent via WebSocket to the backend.
-  - The backend broadcasts the message to all chat participants.
-  - All online users in the chat receive the message instantly.
-- **User receives a real-time notification:**
-  - When a new message or event occurs, the backend pushes a notification via WebSocket.
-  - The frontend displays a toast or badge update immediately.
-- **User goes offline:**
-  - The WebSocket disconnects or the user logs out.
-  - The backend removes the user's presence key from Redis.
-  - Other users see the user as offline within seconds.
 
 ## Environment Variables
 
-| Name                | Default           | Description (EN)                                 |
+| Name                | Default           | Description                                      |
 |---------------------|-------------------|--------------------------------------------------|
 | SERVER_PORT         | 8080              | Backend server port                              |
 | WEBSOCKET_PORT      | 8081              | WebSocket server port                            |
@@ -379,7 +323,6 @@ flowchart LR
 
 ## Security
 
-### EN
 - **Authentication:**
   - JWT tokens are used for stateless authentication.
   - Passwords are securely hashed with bcrypt and a unique salt per user.
