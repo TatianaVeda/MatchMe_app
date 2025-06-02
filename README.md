@@ -6,43 +6,9 @@ To start a real-time chat, you first need to send a connection request to a reco
 
 > *(See below for technical details and setup instructions.)*
 
-## Features
+## Final review branch
 
-- Real-time chat and notifications (WebSocket)
-- Online presence tracking (Redis)
-- Instant user notifications (React Toastify)
-- JWT authentication
-- Dockerized setup
-- An offline/online indicator is shown on profile and chat views.
-- Batch Presence API: Efficiently check online status for multiple users
-- Real-time Notifications: Instant updates for chat and social features via WebSocket and Redis
-- Image Upload: Support for avatars and media content
-- Data Validation: Strict validation of input data
-- CORS: Configured security for cross-domain requests
-
-## Technologies
-
-### Backend:
-- **Go** - main development language
-- **Gorilla Mux** - HTTP router
-- **Gorilla WebSocket** - WebSocket support
-- **GORM** - ORM for database operations
-- **JWT** - user authentication
-- **PostgreSQL** - data storage
-- **Redis** - in-memory store for online presence and real-time features
-
-### Frontend:
-- **React** - UI library
-- **React Router** - routing
-- **Material UI** - interface components
-- **Formik** and **Yup** - form management and validation
-- **Axios** - HTTP client
-- **React Toastify** - notifications
-
-### Infrastructure:
-- **Docker** and **Docker Compose** - containerization
-- **Redis** (v7+) - required for presence and real-time features (auto-started via Docker Compose)
-- **Concurrently** - parallel service execution
+The final version for review is in the branch **final**.
 
 ## Architecture Overview
 
@@ -82,6 +48,7 @@ flowchart LR
 - [Environment Variables](#environment-variables)
 - [Security](#security)
 
+
 ## Requirements
 
 - **Node.js** (v16+)
@@ -91,13 +58,24 @@ flowchart LR
 
 ## Installation and Setup
 
+**Project location:**  
+[https://gitea.koodsisu.fi/ihorshaposhnik/m](https://gitea.koodsisu.fi/ihorshaposhnik/m)
+
+Please review the branch `final` for the latest version.
+
 ### Automatic Installation (Recommended)
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/ihorshaposhnik/m.git
-   cd m
+   git clone -b final https://github.com/ihorshaposhnik/m.git
+   
    ```
+   Or, if you already have the repo:
+   ```bash
+   git fetch origin final
+   git checkout final
+   ```
+
 
 2. Make the setup script executable:
    ```bash
@@ -165,6 +143,44 @@ For setting up Docker on different operating systems, follow these steps:
    - Install Docker using your distribution's package manager (e.g., `apt` for Ubuntu).
    - Ensure Docker is running as a daemon.
    - Use Docker commands in the terminal as usual.
+
+## Features
+
+- Real-time chat and notifications (WebSocket)
+- Online presence tracking (Redis)
+- Instant user notifications (React Toastify)
+- JWT authentication
+- Dockerized setup
+- An offline/online indicator is shown on profile and chat views.
+- Batch Presence API: Efficiently check online status for multiple users
+- Real-time Notifications: Instant updates for chat and social features via WebSocket and Redis
+- Image Upload: Support for avatars and media content
+- Data Validation: Strict validation of input data
+- CORS: Configured security for cross-domain requests
+
+## Technologies
+
+### Backend:
+- **Go** - main development language
+- **Gorilla Mux** - HTTP router
+- **Gorilla WebSocket** - WebSocket support
+- **GORM** - ORM for database operations
+- **JWT** - user authentication
+- **PostgreSQL** - data storage
+- **Redis** - in-memory store for online presence and real-time features
+
+### Frontend:
+- **React** - UI library
+- **React Router** - routing
+- **Material UI** - interface components
+- **Formik** and **Yup** - form management and validation
+- **Axios** - HTTP client
+- **React Toastify** - notifications
+
+### Infrastructure:
+- **Docker** and **Docker Compose** - containerization
+- **Redis** (v7+) - required for presence and real-time features (auto-started via Docker Compose)
+- **Concurrently** - parallel service execution
 
 ## Project Structure
 
