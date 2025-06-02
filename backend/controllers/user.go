@@ -79,17 +79,23 @@ func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
 	if err != nil {
 		logrus.Errorf("userHasAccess: error fetching recommendations for user %s: %v", currentUserID, err)
 	} else {
+		found := false
 		for _, id := range recIDs {
 			if id == requestedUserID {
-				logrus.Infof("userHasAccess: access granted — user %s is in recommendations for %s", requestedUserID, currentUserID)
-				return true, nil
+				found = true
+				break
 			}
 		}
-		logrus.Debugf("userHasAccess: user %s not found in recommendations for %s", requestedUserID, currentUserID)
+		if found {
+			logrus.Infof("userHasAccess: access granted — user %s is in recommendations for %s", requestedUserID, currentUserID)
+			return true, nil
+		} else {
+			logrus.Debugf("userHasAccess: user %s not found in recommendations for %s", requestedUserID, currentUserID)
+		}
 	}
 
 	// If none of the above, deny access
-	logrus.Warnf("userHasAccess: access denied — user %s cannot access data for user %s", currentUserID, requestedUserID)
+	logrus.Warnf("userHasAccess: access denied — user %s cannot access data for user %s (no connection, no recommendation)", currentUserID, requestedUserID)
 	return false, nil
 }
 
@@ -132,8 +138,9 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if !allowed {
 		// Access denied: do not reveal if user exists
-		logrus.Errorf("NOT ALLOWERD TO SEE USER %s: %v", requestedUserID, err)
-		http.Error(w, "User not found", http.StatusForbidden)
+		//logrus.Errorf("NOT ALLOWED TO SEE USER %s: %v", requestedUserID, err)
+		http.Error(w, "User not found", http.StatusNotFound) //404, The users endpoints return HTTP404 when the id is not found
+		logrus.Warnf("GetUser: access denied for user %s to user %s (see userHasAccess logs)", currentUserID, requestedUserID)
 		return
 	}
 
@@ -191,8 +198,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !allowed {
-		// No content if not allowed
-		http.Error(w, "", http.StatusNoContent)
+		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
 
@@ -247,8 +253,7 @@ func GetUserBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !allowed {
-		// No content if not allowed
-		http.Error(w, "", http.StatusNoContent)
+		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
 

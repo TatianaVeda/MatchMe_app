@@ -27,7 +27,7 @@ const Settings = () => {
   const [preferences, setPreferences] = useState({
     maxRadius: ''    
   });
-  const [saving, setSaving] = useState(false);
+ // const [saving, setSaving] = useState(false);
 
    const [email, setEmail] = useState({
     currentEmail: '',

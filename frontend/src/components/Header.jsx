@@ -1,5 +1,5 @@
 // m/frontend/src/components/Header.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, /* useCallback */ } from 'react';
 import {
   AppBar, Toolbar, Typography, IconButton,
   Button, Drawer, List, ListItem, ListItemButton,
@@ -37,12 +37,12 @@ export default function Header() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { chats, messages } = useChatState();
+  const { chats } = useChatState();
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   const [pendingFriends, setPendingFriends] = useState(0);
 
-  const { subscribe, unsubscribe } = useWebSocket((data) => {
+  const { /* subscribe, unsubscribe */ } = useWebSocket((data) => {
     if (!user) return;
     switch (data.type) {
       case 'message':

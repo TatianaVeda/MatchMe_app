@@ -45,8 +45,10 @@ const UserProfile = () => {
   };
   
   useEffect(() => {
+   let ignore = false;
     const load = async () => {
       setLoading(true);
+      let lastUser = user;
       try {
         const [u, conns] = await Promise.all([
           getUser(id),
@@ -58,33 +60,47 @@ const UserProfile = () => {
           return;
         }
         setUser(u);
+        lastUser = u;
         setConnectedIds(conns);
-      } catch {
+      } catch (err) {
         toast.error('Error loading user data');
-        navigate('/recommendations');
+        setLoading(false);
         return;
       }
       try {
         const p = await getUserProfile(id);
         setProfile(p);
-      } catch {
-        setProfile(null);
+      } catch (err) {
+      // if network error, do not reset profile
       }
       try {
         const b = await getUserBio(id);
         setBio(b);
-      } catch {
-        setBio(null);
+      } catch (err) {
+        // if network error, do not reset bio)
       }
       setLoading(false);
     };
     load();
-  }, [id, navigate]);
+    return () => { ignore = true; };
+  }, [id]);
+
+  // reload profie if online
+  useEffect(() => {
+    if (!user || !presence?.[user.id]) return;
+    //reload profile if onlaine again
+    getUser(id).then(u => u && setUser(u));
+    getUserProfile(id).then(p => p && setProfile(p));
+    getUserBio(id).then(b => b && setBio(b));
+  }, [presence?.[user?.id]]);
+
   const chatWithUser = chats.find(c => c.otherUserID === id);
   const isOnline =
     (typeof chatWithUser?.otherUserOnline === 'boolean' && chatWithUser.otherUserOnline) ||
-    (typeof user?.online === 'boolean' && user.online) ||
-    Boolean(presence?.[user?.id]);
+    //(typeof user?.online === 'boolean' && user.online) ||
+    Boolean(presence?.[user?.id]); 
+    //!!presence[user?.id];
+ 
   const handleChat = () => {
     const existing = chats.find(c => c.otherUserID === id);
     navigate(existing ? `/chat/${existing.id}` : `/chat/new?other_user_id=${id}`);
