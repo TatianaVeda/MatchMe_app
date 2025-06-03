@@ -61,30 +61,18 @@ flowchart LR
 **Project location:**  
 [https://gitea.koodsisu.fi/ihorshaposhnik/m](https://gitea.koodsisu.fi/ihorshaposhnik/m)
 
-Please review the branch `final` for the latest version.
 
 ### Automatic Installation (Recommended)
 
 1. Clone the repository:
    ```bash
-   git clone -b final https://gitea.koodsisu.fi/ihorshaposhnik/m
+   git clone https://gitea.koodsisu.fi/ihorshaposhnik/m
    
    ```
-   Or, if you already have the repo:
-   ```bash
-   git fetch origin final
-   git checkout final
-   ```
 
-
-2. Make the setup script executable:
+2. Run the setup script:
    ```bash
-   chmod +x setup.sh
-   ```
-
-3. Run the setup script:
-   ```bash
-   ./setup.sh
+   npm run all
    ```
    The script will automatically configure everything needed: install Docker (if missing), create PostgreSQL and Redis containers, install dependencies for both backend and frontend.
 
