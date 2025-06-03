@@ -67,7 +67,7 @@ Please review the branch `final` for the latest version.
 
 1. Clone the repository:
    ```bash
-   git clone -b final https://github.com/ihorshaposhnik/m.git
+   git clone -b final https://gitea.koodsisu.fi/ihorshaposhnik/m
    
    ```
    Or, if you already have the repo:
@@ -109,6 +109,7 @@ If automatic installation doesn't suit your needs, perform these steps manually:
 3. Install backend dependencies:
    ```bash
    cd backend
+   
    go mod tidy
    go run main.go -deps
    cd ..
@@ -117,6 +118,7 @@ If automatic installation doesn't suit your needs, perform these steps manually:
    ```bash
    cd frontend
    npm install
+   npm run build
    cd ..
    ```
 5. Start the application:
