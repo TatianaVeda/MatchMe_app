@@ -269,7 +269,7 @@ To search for recommendations within a specific geographical radius, navigate to
 
 These features are available only to the administrator via the admin panel in the frontend.
 
-- To access the admin panel, log in with AdminEmail and the AdminPassword (specified in `config/constants.go`).
+- To access the admin panel, register first and then log in with AdminEmail and the AdminPassword (specified in `config/constants.go`).
 - The admin panel provides buttons for database reset (`/admin/reset-fixtures`) and dummy user generation (`/admin/generate-fixtures?num=N`).
 - When resetting the database, the admin user is created automatically using the config data.
 
