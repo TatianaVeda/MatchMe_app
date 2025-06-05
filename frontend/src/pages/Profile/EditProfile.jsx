@@ -332,9 +332,9 @@ const EditProfile = () => {
                 Biography
               </Typography>
 
-     <FormControl fullWidth margin="normal" error={touched.interests && Boolean(errors.interests)}>
-       <InputLabel id="interests-label">Interests</InputLabel>
-       <Field name="interests">
+<FormControl fullWidth margin="normal" error={touched.interests && Boolean(errors.interests)}>
+  <InputLabel id="interests-label">Interests</InputLabel>
+  <Field name="interests">
     {({ field, form }) => (
       <Select
         {...field}
@@ -350,14 +350,25 @@ const EditProfile = () => {
       </Select>
     )}
   </Field>
-       <FormControlLabel
-         control={<Field name="priorityInterests" as={Switch} />}
-         label="Priority Interests"
-       />
-       <ErrorMessage name="interests" component="div" style={{ color: 'red' }} />
-     </FormControl>
+  <ErrorMessage name="interests" component="div" style={{ color: 'red' }} />
 
-     <FormControl fullWidth margin="normal" error={touched.hobbies && Boolean(errors.hobbies)}>
+  <Field name="priorityInterests">
+    {({ field, form }) => (
+      <FormControlLabel
+        control={
+          <Switch
+            checked={field.value} 
+            onChange={e => form.setFieldValue('priorityInterests', e.target.checked)}
+          />
+        }
+        label="Priority Interests"
+      />
+    )}
+  </Field>
+</FormControl>
+
+
+<FormControl fullWidth margin="normal" error={touched.hobbies && Boolean(errors.hobbies)}>
   <InputLabel id="hobbies-label">Hobbies</InputLabel>
   <Field name="hobbies">
     {({ field, form }) => (
@@ -375,14 +386,26 @@ const EditProfile = () => {
       </Select>
     )}
   </Field>
-  <FormControlLabel
-    control={<Field name="priorityHobbies" as={Switch} />}
-    label="Priority Hobby"
-  />
+
+  <Field name="priorityHobbies">
+    {({ field, form }) => (
+      <FormControlLabel
+        control={
+          <Switch
+            checked={field.value} 
+            onChange={e => form.setFieldValue('priorityHobbies', e.target.checked)}
+          />
+        }
+        label="Priority Hobby"
+      />
+    )}
+  </Field>
+
   <ErrorMessage name="hobbies" component="div" style={{ color: 'red' }} />
 </FormControl>
 
-     <FormControl fullWidth margin="normal" error={touched.music && Boolean(errors.music)}>
+
+<FormControl fullWidth margin="normal" error={touched.music && Boolean(errors.music)}>
   <InputLabel id="music-label">Music</InputLabel>
   <Field name="music">
     {({ field, form }) => (
@@ -400,14 +423,25 @@ const EditProfile = () => {
       </Select>
     )}
   </Field>
-  <FormControlLabel
-    control={<Field name="priorityMusic" as={Switch} />}
-    label="Priority Music"
-  />
+
+  <Field name="priorityMusic">
+    {({ field, form }) => (
+      <FormControlLabel
+        control={
+          <Switch
+            checked={field.value}
+            onChange={e => form.setFieldValue('priorityMusic', e.target.checked)}
+          />
+        }
+        label="Priority Music"
+      />
+    )}
+  </Field>
+
   <ErrorMessage name="music" component="div" style={{ color: 'red' }} />
 </FormControl>
 
-     <FormControl fullWidth margin="normal" error={touched.food && Boolean(errors.food)}>
+<FormControl fullWidth margin="normal" error={touched.food && Boolean(errors.food)}>
   <InputLabel id="food-label">Food</InputLabel>
   <Field name="food">
     {({ field, form }) => (
@@ -425,14 +459,25 @@ const EditProfile = () => {
       </Select>
     )}
   </Field>
-  <FormControlLabel
-    control={<Field name="priorityFood" as={Switch} />}
-    label="Priority Cuisine"
-  />
+
+  <Field name="priorityFood">
+    {({ field, form }) => (
+      <FormControlLabel
+        control={
+          <Switch
+            checked={field.value}
+            onChange={e => form.setFieldValue('priorityFood', e.target.checked)}
+          />
+        }
+        label="Priority Cuisine"
+      />
+    )}
+  </Field>
+
   <ErrorMessage name="food" component="div" style={{ color: 'red' }} />
 </FormControl>
-
-     <FormControl fullWidth margin="normal" error={touched.travel && Boolean(errors.travel)}>
+              
+              <FormControl fullWidth margin="normal" error={touched.travel && Boolean(errors.travel)}>
   <InputLabel id="travel-label">Travel</InputLabel>
   <Field name="travel">
     {({ field, form }) => (
@@ -450,13 +495,25 @@ const EditProfile = () => {
       </Select>
     )}
   </Field>
-  <FormControlLabel
-    control={<Field name="priorityTravel" as={Switch} />}
-    label="Priority Travel"
-  />
+
+  <Field name="priorityTravel">
+    {({ field, form }) => (
+      <FormControlLabel
+        control={
+          <Switch
+            checked={field.value}
+            onChange={e => form.setFieldValue('priorityTravel', e.target.checked)}
+          />
+        }
+        label="Priority Travel"
+      />
+    )}
+  </Field>
+
   <ErrorMessage name="travel" component="div" style={{ color: 'red' }} />
 </FormControl>
-              
+
+
               <Field
                 name="lookingFor"
                 as={TextField}
