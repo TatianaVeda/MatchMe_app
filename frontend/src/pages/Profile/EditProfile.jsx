@@ -132,7 +132,7 @@ const EditProfile = () => {
       });
       toast.success('Photo uploaded successfully');
     } catch {
-      toast.error('Error uploading photo');
+      toast.error('Fill in your profile first to upload a photo');
     } finally {
       setUploading(false);
     }
