@@ -10,6 +10,7 @@ import { getUser, getUserBio } from '../api/user';
 import { sendConnectionRequest } from '../api/connections';
 import { getConnections, getPendingConnections } from '../api/connections';
 import { getSentConnections } from '../api/connections';
+import axios from 'axios';
 const cityOptions = [
   { name: 'Helsinki', lat: 60.1699, lon: 24.9384 },
   { name: 'Espoo', lat: 60.2055, lon: 24.6559 },
@@ -53,6 +54,7 @@ const Recommendations = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [decliningId, setDecliningId] = useState(null);
+  const [radius, setRadius] = useState(null);
 
 useEffect(() => {
   // Batch-load connections and pending requests on mount
@@ -96,6 +98,12 @@ const fetchLinks = async () => {
     fetchLinks();
   }, []);
 
+useEffect(() => {
+  // Get maxRadius from user settings
+  axios.get('/me/preferences')
+    .then(res => setRadius(res.data.maxRadius))
+    .catch(() => setRadius(null));
+}, []);
 
   /**
    * handleSearch
@@ -199,6 +207,11 @@ const fetchLinks = async () => {
   };
   return (
     <Container sx={{ mt: 4 }}>
+      <Box sx={{ mb: 2, p: 2, background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 2 }}>
+        <Typography variant="body1">
+          Let's help you find great matches! ;) Just set your search radius in <Button size="small" onClick={() => navigate('/settings')}>Settings</Button> to get started.
+        </Typography>
+      </Box>
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Button
           variant={mode === 'affinity' ? 'contained' : 'outlined'}
@@ -293,7 +306,7 @@ const fetchLinks = async () => {
           sx={{ mt: 2 }}
           disabled={loading}
         >
-          Match
+          Match Me
         </Button>
       </Box>
       {loading ? (

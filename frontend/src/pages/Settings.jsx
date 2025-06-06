@@ -147,6 +147,32 @@ const Settings = () => {
     <Container maxWidth="sm" sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>Settings</Typography>
 
+      
+      <Box component="form" onSubmit={submitPreferences} sx={{ p: 2, mt: 3, border: '1px solid #ccc', borderRadius: 2 }}>
+        <Typography variant="h6" gutterBottom>Recommendation Settings</Typography>
+        <TextField
+          label="Maximum Radius (km)"
+          name="maxRadius"
+          type="number"
+          value={preferences.maxRadius}
+          onChange={handlePrefChange}
+          fullWidth
+          margin="normal"
+          required
+        />
+        <Button
+          variant="contained"
+          type="submit"
+          disabled={savingPrefs}
+          sx={{ mt: 1 }}
+        >
+          {savingPrefs ? 'Saving...' : 'Save Settings'}
+        </Button>
+      </Box>
+      
+      <Divider />
+
+
       <Box component="form" onSubmit={submitEmail} sx={{ p: 2, mb: 3, border: '1px solid #ccc', borderRadius: 2 }}>
         <Typography variant="h6" gutterBottom>Change Email</Typography>
         <TextField
@@ -219,29 +245,6 @@ const Settings = () => {
         </Button>
       </Box>
 
-      <Divider />
-
-      <Box component="form" onSubmit={submitPreferences} sx={{ p: 2, mt: 3, border: '1px solid #ccc', borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom>Recommendation Settings</Typography>
-        <TextField
-          label="Maximum Radius (km)"
-          name="maxRadius"
-          type="number"
-          value={preferences.maxRadius}
-          onChange={handlePrefChange}
-          fullWidth
-          margin="normal"
-          required
-        />
-        <Button
-          variant="contained"
-          type="submit"
-          disabled={savingPrefs}
-          sx={{ mt: 1 }}
-        >
-          {savingPrefs ? 'Saving...' : 'Save Settings'}
-        </Button>
-      </Box>
     </Container>
   );
 };
