@@ -115,7 +115,7 @@ const EditProfile = () => {
     );
   }
 
-  //const handlePhotoChange = e => setPhotoFile(e.target.files[0]);
+  const handlePhotoChange = e => setPhotoFile(e.target.files[0]);
 
   const handlePhotoUpload = async () => {
     /**
