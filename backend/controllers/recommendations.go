@@ -27,10 +27,10 @@ func containsUUID(arr []uuid.UUID, x uuid.UUID) bool {
 }
 
 type RecommendationOutput struct {
-	ID       uuid.UUID `json:"id"`
-	Distance float64   `json:"distance"`
-	Score    float64   `json:"score"`
-	Online   bool      `json:"online"`
+	ID uuid.UUID `json:"id"`
+	//Distance float64   `json:"distance"`
+	//Score    float64   `json:"score"`
+	//Online   bool      `json:"online"`
 }
 
 var recommendationService *services.RecommendationService
@@ -189,12 +189,12 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	if withDist {
 		out := make([]RecommendationOutput, len(idsWithDist))
 		for i, rec := range idsWithDist {
-			online, _ := presenceService.IsOnline(rec.UserID.String()) // ✅ added
+			//online, _ := presenceService.IsOnline(rec.UserID.String()) // ✅ added
 			out[i] = RecommendationOutput{
-				ID:       rec.UserID,
-				Distance: rec.Distance,
-				Score:    rec.Score,
-				Online:   online,
+				ID: rec.UserID,
+				//Distance: rec.Distance,
+				//Score:    rec.Score,
+				//Online:   online,
 			}
 		}
 		json.NewEncoder(w).Encode(out)

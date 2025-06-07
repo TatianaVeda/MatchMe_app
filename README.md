@@ -1,6 +1,10 @@
 # Match Me - Meeting Application
 
-> A modern meeting application with Go backend, React frontend and real-time communication via WebSockets and Redis.
+**Match Me** is a social app for finding new friends with similar interests. The recommendation system suggests users based on shared hobbies, music, food, travel preferences, and the "Looking For" field. The top 10 recommendations are selected by profile similarity and proximity, prioritizing users who match your interests and are geographically closer.
+
+To start a real-time chat, you first need to send a connection request to a recommended user. Once the user accepts your request, a real-time chat becomes available and messages are delivered instantly.
+
+> *(See below for technical details and setup instructions.)*
 
 ## Final review branch
 
@@ -55,14 +59,14 @@ flowchart LR
 ## Installation and Setup
 
 **Project location:**  
-[https://gitea.koodsisu.fi/ihorshaposhnik/m](https://gitea.koodsisu.fi/ihorshaposhnik/m)
+[https://gitea.kood.tech/ihorshaposhnik/m](https://gitea.kood.tech/ihorshaposhnik/m)
 
 
 ### Automatic Installation (Recommended)
 
 1. Clone the repository:
    ```bash
-   git clone https://gitea.koodsisu.fi/ihorshaposhnik/m
+   git clone https://gitea.kood.tech/ihorshaposhnik/m
    
    ```
 
@@ -102,7 +106,7 @@ If automatic installation doesn't suit your needs, perform these steps manually:
    ```bash
    cd frontend
    npm install
-   npm run build
+   npm start
    cd ..
    ```
 5. Start the application:

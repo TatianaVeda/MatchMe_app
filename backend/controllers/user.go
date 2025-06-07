@@ -127,13 +127,13 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Internal error during access check
 		logrus.Errorf("GetUser: error checking access for user %s: %v", requestedUserID, err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusNotFound)
 		return
 	}
 	if !allowed {
 		// Access denied: do not reveal if user exists
 		logrus.Errorf("NOT ALLOWERD TO SEE USER %s: %v", requestedUserID, err)
-		http.Error(w, "User not found", http.StatusForbidden)
+		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
 
@@ -187,12 +187,12 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	allowed, err := userHasAccess(currentUserID, requestedUserID)
 	if err != nil {
 		logrus.Errorf("GetUserProfile: error checking access: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusNotFound)
 		return
 	}
 	if !allowed {
 		// No content if not allowed
-		http.Error(w, "", http.StatusNoContent)
+		http.Error(w, "", http.StatusNotFound)
 		return
 	}
 
@@ -243,12 +243,12 @@ func GetUserBio(w http.ResponseWriter, r *http.Request) {
 	allowed, err := userHasAccess(currentUserID, requestedUserID)
 	if err != nil {
 		logrus.Errorf("GetUserBio: error checking access: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusNotFound)
 		return
 	}
 	if !allowed {
 		// No content if not allowed
-		http.Error(w, "", http.StatusNoContent)
+		http.Error(w, "", http.StatusNotFound)
 		return
 	}
 

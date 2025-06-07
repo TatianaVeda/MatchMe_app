@@ -137,11 +137,11 @@ useEffect(() => {
     try {
       const recs = await getRecommendations({ params: { ...params, limit: 20 } });
       const recData = await Promise.all(
-        recs.map(async ({ id, distance, score }) => {
+        recs.map(async ({ id,  distance, score  }) => {
           try {
             const user = await getUser(id);
             const bio  = await getUserBio(id);
-            return { id, distance, score, ...user, bio };
+            return { id,  distance, score , ...user, bio };
           } catch (err) {
             console.error(`[ERROR] Failed to load user ${id}:`, err);
             return null;
@@ -209,7 +209,7 @@ useEffect(() => {
     <Container sx={{ mt: 4 }}>
       <Box sx={{ mb: 2, p: 2, background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 2 }}>
         <Typography variant="body1">
-          Let's help you find great matches! ;) Just set your search radius in <Button size="small" onClick={() => navigate('/settings')}>Settings</Button> to get started.
+          Let's help you find great matches! ) Just set your search radius in <Button size="small" onClick={() => navigate('/settings')}>Settings</Button> to get started.
         </Typography>
       </Box>
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>

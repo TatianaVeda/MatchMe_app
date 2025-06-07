@@ -79,6 +79,9 @@ npm install formik yup @hookform/resolvers || error_exit "Installation error."
 # Returning to project root directory
 cd .. || error_exit "Failed to return to project root directory."
 
+# After installing frontend dependencies
+npm audit fix --force
+
 echo "Environment successfully configured!"
 echo "-------------------------------------------------"
 echo "To run the application use command: npm run dev"
