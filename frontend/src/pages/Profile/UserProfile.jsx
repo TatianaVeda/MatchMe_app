@@ -1,6 +1,6 @@
 // /m/frontend/src/pages/Profile/UserProfile.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -19,6 +19,11 @@ import { useChatState, useChatDispatch } from '../../contexts/ChatContext';
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+ const { distance, score } = location.state || {};
+ 
+  console.log('UserProfile location.state →', location.state);
+  
   const { chats, presence } = useChatState();
   const { setChats } = useChatDispatch();
   //const { subscribe, unsubscribe } = useWebSocket();
@@ -127,6 +132,17 @@ const UserProfile = () => {
           {user.firstName} {user.lastName}
         </Typography>
       </Box>
+
+{(distance !== undefined && score !== undefined) && (
+  <Box sx={{ mb: 2 }}>
+    <Typography variant="body2" color="text.secondary">
+    Distance: {distance.toFixed(1)} км
+    </Typography>
+    <Typography variant="body2" color="text.secondary">
+    Score: {(score * 100).toFixed(0)} %
+    </Typography>
+  </Box>
+)}
 
       <Typography variant="body1" sx={{ mb: 2 }}>
         {profile?.about || 'Information not available'}

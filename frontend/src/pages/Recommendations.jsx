@@ -115,7 +115,7 @@ useEffect(() => {
     e.preventDefault();
     await fetchLinks();
     setLoading(true);
-    const params = { mode, withDistance: true, useProfile: useProfileFilters };
+     const params = { mode, withDistance: true, useProfile: useProfileFilters };
     if (!useProfileFilters) {
       params.cityLat = form.city.lat;
       params.cityLon = form.city.lon;
@@ -320,7 +320,13 @@ useEffect(() => {
           {recommendations.map(rec => (
             <Grid item xs={12} sm={6} md={4} key={rec.id}>
               <Card>
-              <CardActionArea onClick={() => navigate(`/users/${rec.id}`)}>
+              {/* <CardActionArea onClick={() => navigate(`/users/${rec.id}`)}> */}
+              <CardActionArea
+   onClick={() =>
+     navigate(`/users/${rec.id}`, {
+       state: { distance: rec.distance, score: rec.score }
+     })
+   }>
                 <CardMedia
                   component="img"
                   height="140"
@@ -331,7 +337,7 @@ useEffect(() => {
                   <Typography variant="h5">
                     {rec.firstName} {rec.lastName}
                   </Typography>
-                  {typeof rec.distance === 'number' && (
+                  {/* {typeof rec.distance === 'number' && (
                     <Typography variant="body2" color="text.secondary">
                       Distance: {rec.distance.toFixed(1)} km
                     </Typography>
@@ -340,7 +346,7 @@ useEffect(() => {
                     <Typography variant="body2" color="text.secondary">
                       Match: {(rec.score * 100).toFixed(0)} %
                     </Typography>
-                  )}
+                  )} */}
                   <Typography variant="body2" color="text.secondary">
                     {rec.bio.interests
                       ? `Interests: ${rec.bio.interests}`

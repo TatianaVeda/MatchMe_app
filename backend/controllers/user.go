@@ -145,6 +145,18 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// recsWithDist, err := recommendationService.GetRecommendationsWithDistance(currentUserID, "affinity")
+	// var distance, score float64
+	// if err == nil {
+	// 	for _, rec := range recsWithDist {
+	// 		if rec.UserID == requestedUserID {
+	// 			distance = rec.Distance
+	// 			score = rec.Score
+	// 			break
+	// 		}
+	// 	}
+	// }
+
 	// Respond with basic public info (id, firstName, lastName, photoUrl)
 	logrus.Infof("User %s data retrieved by user %s", requestedUserID, currentUserID)
 	response := map[string]interface{}{
@@ -152,6 +164,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		"firstName": user.Profile.FirstName,
 		"lastName":  user.Profile.LastName,
 		"photoUrl":  user.Profile.PhotoURL,
+		// "distance":  distance,
+		// "score":     score,
 	}
 	json.NewEncoder(w).Encode(response)
 }

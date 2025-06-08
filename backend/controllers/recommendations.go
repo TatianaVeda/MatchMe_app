@@ -27,9 +27,9 @@ func containsUUID(arr []uuid.UUID, x uuid.UUID) bool {
 }
 
 type RecommendationOutput struct {
-	ID uuid.UUID `json:"id"`
-	//Distance float64   `json:"distance"`
-	//Score    float64   `json:"score"`
+	ID       uuid.UUID `json:"id"`
+	Distance float64   `json:"distance"`
+	Score    float64   `json:"score"`
 	//Online   bool      `json:"online"`
 }
 
@@ -191,9 +191,9 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 		for i, rec := range idsWithDist {
 			//online, _ := presenceService.IsOnline(rec.UserID.String()) // ✅ added
 			out[i] = RecommendationOutput{
-				ID: rec.UserID,
-				//Distance: rec.Distance,
-				//Score:    rec.Score,
+				ID:       rec.UserID,
+				Distance: rec.Distance,
+				Score:    rec.Score,
 				//Online:   online,
 			}
 		}
