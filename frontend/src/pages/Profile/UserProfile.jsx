@@ -85,9 +85,8 @@ const UserProfile = () => {
     };
     load();
   }, [id, navigate]);
-  const chatWithUser = chats.find(c => c.otherUserID === id);
+ 
   const isOnline =
-    (typeof chatWithUser?.otherUserOnline === 'boolean' && chatWithUser.otherUserOnline) ||
     (typeof user?.online === 'boolean' && user.online) ||
     Boolean(presence?.[user?.id]);
   const handleChat = () => {
