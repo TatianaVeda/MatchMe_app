@@ -36,12 +36,16 @@ type RecommendationOutput struct {
 var recommendationService *services.RecommendationService
 var presenceService *services.PresenceService
 
+// InitRecommendationControllerService initializes the recommendation and presence services for this controller.
+// Should be called once at startup.
 func InitRecommendationControllerService(db *gorm.DB, ps *services.PresenceService) {
 	recommendationService = services.NewRecommendationService(db, nil)
-	presenceService = ps // ✅ добавили
+	presenceService = ps // ✅ added
 	logrus.Info("Recommendations controller initialized")
 }
 
+// parseMode parses the recommendation mode from query string.
+// Returns "affinity" (default) or "desire". Returns error for invalid values.
 func parseMode(q string) (string, error) {
 	switch q {
 	case "", "affinity":
@@ -53,6 +57,11 @@ func parseMode(q string) (string, error) {
 	}
 }
 
+// GetRecommendations handles GET /recommendations endpoint.
+// Returns a list of recommended users for the current user, with optional distance and score.
+// Supports two modes: profile-based (uses saved user preferences) and custom-filtered (uses query params).
+// Filters out users with pending/declined connections. Adds online status via presenceService.
+// Handles errors and incomplete profiles gracefully (returns empty array for known validation errors).
 func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 
 	userIDStr, ok := r.Context().Value("userID").(string)
@@ -151,8 +160,9 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		msg := err.Error()
-		if strings.Contains(msg, "пожалуйста, заполните вашу биографию") ||
-			strings.Contains(msg, "пожалуйста, укажите имя и фамилию") {
+		if strings.Contains(msg, "please fill in your profile and biography to get recommendations") ||
+			strings.Contains(msg, "please provide your first and last name") ||
+			strings.Contains(msg, "please complete your biography") {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("[]"))
@@ -179,7 +189,7 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	if withDist {
 		out := make([]RecommendationOutput, len(idsWithDist))
 		for i, rec := range idsWithDist {
-			online, _ := presenceService.IsOnline(rec.UserID.String()) // ✅ добавили
+			online, _ := presenceService.IsOnline(rec.UserID.String()) // ✅ added
 			out[i] = RecommendationOutput{
 				ID:       rec.UserID,
 				Distance: rec.Distance,
@@ -193,6 +203,9 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeclineRecommendation handles POST /recommendations/{id}/decline endpoint.
+// Marks a recommendation as declined for the current user.
+// Returns 204 No Content on success, or error status on failure.
 func DeclineRecommendation(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {

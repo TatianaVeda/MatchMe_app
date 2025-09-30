@@ -1,9 +1,10 @@
+// m/frontend/src/pages/ChatWindow.jsx
 
-import React, { useState, useEffect, useRef, Fragment } from 'react';
+import React, { useState, useEffect, useRef, Fragment, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container, Box, Typography, TextField, Button,
-  CircularProgress, List, Divider, Pagination
+  CircularProgress, List, Divider, Pagination, Avatar, Badge
 } from '@mui/material';
 import api from '../api/index';
 import { toast } from 'react-toastify';
@@ -11,14 +12,23 @@ import { useChatState, useChatDispatch } from '../contexts/ChatContext';
 import ChatBubble from '../components/ChatBubble';
 import { useAuthState } from '../contexts/AuthContext';
 import useWebSocket from '../hooks/useWebSocket';
+
+/**
+ * ChatWindow.jsx
+ *
+ * Main chat window page. Handles chat creation, message history, sending messages,
+ * typing notifications, pagination, and real-time updates via WebSocket.
+ * Integrates with backend API and chat context for state management.
+ */
+
 const ChatWindow = () => {
   const { user } = useAuthState();
   const { chatId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { messages: allMessages, typingStatuses } = useChatState();
+  const { messages: allMessages, typingStatuses, chats, presence } = useChatState();
   const { setMessages, sendMessage, sendTyping } = useChatDispatch();
-  const { subscribe, unsubscribe } = useWebSocket();
+  const { subscribe, unsubscribe, sendRead } = useWebSocket();
   const messagesEndRef = useRef(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -26,14 +36,34 @@ const ChatWindow = () => {
   const [totalCount, setTotalCount] = useState(0);    
   const pageSize = 10;                                 
   const pageCount = Math.ceil(totalCount / pageSize);  
-  const messages = allMessages[chatId] || [];
+  // Memoize messages array to avoid unnecessary re-renders and effects.
+// This ensures that 'messages' only changes when 'allMessages' or 'chatId'
+  const messages = useMemo(() => allMessages[chatId] || [], [allMessages, chatId]);
   const chatIdNum = Number(chatId);
-const isTyping  = typingStatuses[chatIdNum];
+  const isTyping  = typingStatuses[chatIdNum];
+  const chat = chats.find(c => c.id === Number(chatId));
+  const otherUserId = chat?.otherUserID;
+ 
+  const [otherUser, setOtherUser] = useState(chat?.otherUser || null);
+  const [otherUserError, setOtherUserError] = useState(null); // Store error state for otherUser
+ /*  const displayUser = otherUser || chat?.otherUser;
+  const otherUserName =
+    displayUser && (displayUser.firstName || displayUser.lastName)
+      ? `${displayUser.firstName || ''} ${displayUser.lastName || ''}`.trim()
+      : displayUser && `User ${otherUserId || ''}`; */
+   //const isOnline = Boolean(chat?.otherUserOnline);
+  //const isOnline = !!presence[otherUserId];
+  
+  const otherUserName = otherUser
+   ? `${otherUser.firstName} ${otherUser.lastName}`
+   : chat?.otherUser?.firstName + ' ' + chat?.otherUser?.lastName; 
+  const isOnline = Boolean(chat?.otherUserOnline);
+
   useEffect(() => {
     if (chatId === 'new') {
       const otherUserID = new URLSearchParams(location.search).get('other_user_id');
       if (!otherUserID) {
-        toast.error('Не указан other_user_id');
+        toast.error('other_user_id is not specified');
         return;
       }
       api.post('/chats', { otherUserId: otherUserID })
@@ -41,7 +71,7 @@ const isTyping  = typingStatuses[chatIdNum];
           navigate(`/chat/${data.chatId}`, { replace: true });
         })
         .catch(() => {
-          toast.error('Не удалось открыть чат');
+          toast.error('Failed to open chat');
         })
         .finally(() => {
           setLoading(false);
@@ -50,7 +80,7 @@ const isTyping  = typingStatuses[chatIdNum];
       setLoading(true);
       fetchMessages(page);
     }
-  }, [chatId, page, location.search, navigate]);
+  }, [chatId, page, location.search, navigate. fetchMessages]);
   const fetchMessages = async (p = 1) => {
     try {
     const { data } = await api.get(`/chats/${chatId}`, {
@@ -59,20 +89,69 @@ const isTyping  = typingStatuses[chatIdNum];
       setTotalCount(data.totalCount);
       setMessages(chatId, data.messages);
     } catch {
-      toast.error('Ошибка загрузки сообщений');
+      toast.error('Error loading messages');
     } finally {
       setLoading(false);
     }
   };
   useEffect(() => {
+    /**
+     * Subscribes to WebSocket updates for this chat on mount, unsubscribes on unmount.
+     */
     if (chatId && chatId !== 'new') {
       subscribe(chatId);
       return () => unsubscribe(chatId);
     }
   }, [chatId, subscribe, unsubscribe]);
   useEffect(() => {
+    /**
+     * Scrolls to the bottom of the message list when messages change.
+     */
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  useEffect(() => {
+    if (!user || !chatId || chatId === 'new' || messages.length === 0) return;
+    const hasUnread = messages.some(
+      m => m.sender_id !== user.id && !m.read
+    );
+    if (hasUnread) {
+      sendRead(chatId);
+    }
+  }, [chatId, user, messages, sendRead]);
+  // Load otherUser profile from API, fallback to cache on network error
+  useEffect(() => {
+    let ignore = false;
+    const loadOtherUser = async () => {
+      if (!otherUserId) return;
+      try {
+        const res = await api.get(`/users/${otherUserId}`);
+        if (!ignore) {
+          setOtherUser(res.data);
+          setOtherUserError(null);
+        }
+      } catch (err) {
+        if (err.response && err.response.status === 404) {
+          // If 404, user not found
+          setOtherUser(null);
+          setOtherUserError('notfound');
+        } else {
+          // On network error, keep cached data
+          setOtherUserError('network');
+        }
+      }
+    };
+    loadOtherUser();
+    return () => { ignore = true; };
+  }, [otherUserId]);
+  useEffect(() => {
+    if (!otherUserId || !presence?.[otherUserId]) return;
+    api.get(`/users/${otherUserId}`).then(res => res.data && setOtherUser(res.data));
+  }, [presence?.[otherUserId]]);
+  /**
+   * handleSend
+   * Sends a new message to the backend and via WebSocket, updates state.
+   * Handles optimistic UI update and error reporting.
+   */
   const handleSend = async (e) => {
     e.preventDefault();
     const content = newMessage.trim();
@@ -90,9 +169,13 @@ const isTyping  = typingStatuses[chatIdNum];
       setMessages(chatId, [...messages, normalized]);
       setNewMessage('');
     } catch {
-      toast.error('Ошибка отправки сообщения');
+      toast.error('Error sending message');
     }
   };
+  /**
+   * handleChange
+   * Handles input change for new message, sends typing notifications with debounce.
+   */
   const handleChange = (e) => {
     setNewMessage(e.target.value);
     sendTyping(chatId, true);
@@ -101,10 +184,54 @@ const isTyping  = typingStatuses[chatIdNum];
       sendTyping(chatId, false);
     }, 1500);
   };
+  if (!user) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Loading...
+        </Typography>
+        <CircularProgress />
+      </Container>
+    );
+  }
+  if (otherUserError === 'notfound') {
+    // Show only if API returned 404
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Typography variant="h5">User not found</Typography>
+      </Container>
+    );
+  }
+  // If network error, show cached data (otherUser), even if offline
+/*   if (!otherUser && !otherUserError && !chat?.otherUser) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Typography variant="h5">Loading user data...</Typography>
+        <CircularProgress />
+      </Container>
+    );
+  } */
+  
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
-        {chatId === 'new' ? 'Создание чата...' : `Чат ${chatId}`}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Badge
+            color={isOnline ? 'success' : 'error'}
+            variant="dot"
+            overlap="circular"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          >
+            <Avatar
+              src={otherUser?.photoUrl}
+              alt={otherUserName}
+              sx={{ width: 40, height: 40 }}
+            >
+              {!otherUser?.photoUrl && '👤'}
+            </Avatar>
+          </Badge>
+          {otherUserName || `Chat ${chatId}`}
+        </Box>
       </Typography>
       
       <Box sx={{
@@ -123,17 +250,19 @@ const isTyping  = typingStatuses[chatIdNum];
           <>
              <List>
           {messages.map(msg => (
-            <Fragment key={msg.id}>
-              <ChatBubble
-                message={msg}
-                isOwn={msg.sender_id === user.id}
-              />
-              <Divider component="li" />
-            </Fragment>
+            msg && msg.id ? (
+              <Fragment key={msg.id}>
+                <ChatBubble
+                  message={msg}
+                  isOwn={msg.sender_id === user.id}
+                />
+                <Divider component="li" />
+              </Fragment>
+            ) : null
           ))}
          {isTyping && (
         <Typography variant="body2" color="textSecondary" sx={{ mb: 1, fontStyle: 'italic' }}>
-          Пользователь печатает...
+          User is typing...
         </Typography>
       )}
         </List>
@@ -164,7 +293,7 @@ const isTyping  = typingStatuses[chatIdNum];
           sx={{ display: 'flex', gap: 1 }}
         >
           <TextField
-            label="Новое сообщение"
+            label="New message"
             value={newMessage}
             onChange={handleChange}
             fullWidth
@@ -172,7 +301,7 @@ const isTyping  = typingStatuses[chatIdNum];
             rows={2}
           />
           <Button variant="contained" type="submit">
-            Отправить
+            Send
           </Button>
         </Box>
       )}

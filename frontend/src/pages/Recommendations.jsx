@@ -1,3 +1,4 @@
+// m/frontend/src/pages/Recommendations.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Grid, Card, CardContent, CardMedia, Typography, Button, CardActions,
@@ -21,11 +22,19 @@ const cityOptions = [
   { name: 'Pori', lat: 61.4850, lon: 21.7973 },
   { name: 'Jyväskylä', lat: 62.2426, lon: 25.7473 },
 ];
-const interestsOptions = ["кино","спорт","музыка","технологии","искусство"];
-const hobbiesOptions   = ["чтение","бег","рисование","игры","готовка"];
-const musicOptions     = ["рок","джаз","классика","поп","хип-хоп"];
-const foodOptions      = ["итальянская","азиатская","русская","французская","мексиканская"];
-const travelOptions    = ["пляж","горы","города","экспедиции","экотуризм"];
+const interestsOptions = ["movies", "sports", "music", "technology", "art"];
+const hobbiesOptions   = ["reading", "running", "drawing", "gaming", "cooking"];
+const musicOptions     = ["rock", "jazz", "classical", "pop", "hip-hop"];
+const foodOptions      = ["italian", "asian", "russian", "french", "mexican"];
+const travelOptions    = ["beach", "mountains", "cities", "expeditions", "ecotourism"];
+/**
+ * Recommendations.jsx
+ * 
+ * Main recommendations page. Handles user matching logic, filtering, and connection requests.
+ * Integrates with backend API for recommendations, user info, and connections.
+ * Supports two modes: affinity (profile-based) and desire (custom search).
+ * Handles batch loading, filtering, and error-driven navigation.
+ */
 const Recommendations = () => {
   const navigate = useNavigate();
   const [mode, setMode] = useState('affinity');
@@ -46,6 +55,7 @@ const Recommendations = () => {
   const [decliningId, setDecliningId] = useState(null);
 
 useEffect(() => {
+  // Batch-load connections and pending requests on mount
   Promise.all([getConnections(), getPendingConnections()])
     .then(([conns, pend]) => {
       setConnections(conns);
@@ -56,6 +66,7 @@ useEffect(() => {
 const [sent, setSent] = useState([]);
 
 useEffect(() => {
+  // Batch-load pending and sent requests for up-to-date state
   Promise.all([
     getPendingConnections(),
     getSentConnections()
@@ -66,6 +77,7 @@ useEffect(() => {
 }, []);
 
 const fetchLinks = async () => {
+  // Loads all connection-related lists in parallel, updates state, handles errors
   try {
     const [conns, pend, sent] = await Promise.all([
       getConnections(),
@@ -76,7 +88,7 @@ const fetchLinks = async () => {
     setPending(pend);
     setSent(sent);
     } catch {
-      toast.error('Не удалось загрузить связи');
+      toast.error('Failed to load connections');
     }
   };
   
@@ -85,6 +97,12 @@ const fetchLinks = async () => {
   }, []);
 
 
+  /**
+   * handleSearch
+   * Submits the recommendation search form. Builds query params based on mode and filters.
+   * Handles API errors, including profile validation errors (redirects to edit profile).
+   * Updates recommendations state with filtered results.
+   */
   const handleSearch = async e => {
     e.preventDefault();
     await fetchLinks();
@@ -123,44 +141,56 @@ const fetchLinks = async () => {
         })
       );
 
-const filtered = recData
-    .filter(r => r && r.firstName && r.lastName)
-    .filter(r => !connections.includes(r.id));
+      const filtered = recData
+        .filter(r => r && r.firstName && r.lastName)
+        .filter(r => !connections.includes(r.id));
 
-setRecommendations(filtered.slice(0, 10));
+      setRecommendations(filtered.slice(0, 10));
 
     } catch (err) {
-      const msg = err.response?.data || 'Ошибка загрузки рекомендаций';
+      const msg = err.response?.data || 'Error loading recommendations';
       toast.error(msg);
-      if (/заполните/i.test(msg)) {
+      if (/fill in/i.test(msg)) {
         setTimeout(() => navigate('/edit-profile'), 2000);
       }
     } finally {
       setLoading(false);
     }
   };
+  /**
+   * handleDecline
+   * Declines a recommendation, updates UI optimistically, handles errors.
+   */
   const handleDecline = async id => {
     setDecliningId(id);
     try {
       await declineRecommendation(id);
       setRecommendations(prev => prev.filter(r => r.id !== id));
-      toast.success('Рекомендация отклонена');
+      toast.success('Recommendation declined');
     } catch {
-      toast.error('Ошибка при отклонении');
+      toast.error('Error declining recommendation');
     } finally {
       setDecliningId(null);
     }
   };
+  /**
+   * handleConnect
+   * Sends a connection request, updates pending state, handles errors.
+   */
   const handleConnect = async id => {
     try {
       await sendConnectionRequest(id);
-      toast.success('Запрос отправлен');
+      toast.success('Request sent');
       setPending(prev => [...prev, id]);
     } catch {
-      toast.error('Ошибка при запросе');
+      toast.error('Error sending request');
     }
   };
   
+  /**
+   * switchMode
+   * Switches between affinity and desire modes, resets recommendations.
+   */
   const switchMode = (newMode) => {
     if (newMode !== mode) {
       setMode(newMode);
@@ -189,18 +219,18 @@ setRecommendations(filtered.slice(0, 10));
               onChange={e => setUseProfileFilters(e.target.checked)}
             />
           }
-          label="Использовать данные профиля"
+          label="Use profile data"
           sx={{ ml: 2 }}
         />
       </Box>
-      <Typography variant="h4" gutterBottom>Рекомендации</Typography>
+      <Typography variant="h4" gutterBottom>Recommendations</Typography>
       <Box component="form" onSubmit={handleSearch} sx={{ mb: 4 }}>
         <FormControl sx={{ minWidth: 200, mr: 2 }}
         disabled={useProfileFilters}>
-          <InputLabel>Город</InputLabel>
+          <InputLabel>City</InputLabel>
           <Select
             value={form.city.name}
-            label="Город"
+            label="City"
             onChange={e => {
               const sel = cityOptions.find(c => c.name === e.target.value);
               setForm(f => ({ ...f, city: sel }));
@@ -214,11 +244,11 @@ setRecommendations(filtered.slice(0, 10));
         {mode === 'affinity' ? (
           <>
             {[
-              ['Интересы', 'interests', interestsOptions, 'priorityInterests'],
-              ['Хобби',    'hobbies',   hobbiesOptions,   'priorityHobbies'],
-              ['Музыка',   'music',     musicOptions,     'priorityMusic'],
-              ['Еда',      'food',      foodOptions,      'priorityFood'],
-              ['Путешествия','travel',  travelOptions,    'priorityTravel']
+              ['Interests', 'interests', interestsOptions, 'priorityInterests'],
+              ['Hobbies', 'hobbies', hobbiesOptions, 'priorityHobbies'],
+              ['Music', 'music', musicOptions, 'priorityMusic'],
+              ['Food', 'food', foodOptions, 'priorityFood'],
+              ['Travel', 'travel', travelOptions, 'priorityTravel']
             ].map(([label, key, opts, prioKey]) => (
               <FormControl key={key} sx={{ minWidth: 200, mr: 2, mt: 2 }}
               disabled={useProfileFilters}>
@@ -250,7 +280,7 @@ setRecommendations(filtered.slice(0, 10));
           </>
         ) : (
           <TextField
-            label="Кого вы ищете"
+            label="Who are you looking for"
             value={form.lookingFor}
             onChange={e => setForm(f => ({ ...f, lookingFor: e.target.value }))}
             disabled={useProfileFilters}
@@ -263,7 +293,7 @@ setRecommendations(filtered.slice(0, 10));
           sx={{ mt: 2 }}
           disabled={loading}
         >
-          Искать
+          Match
         </Button>
       </Box>
       {loading ? (
@@ -271,7 +301,7 @@ setRecommendations(filtered.slice(0, 10));
           <CircularProgress />
         </Box>
       ) : recommendations.length === 0 ? (
-        <Typography>Нет доступных рекомендаций.</Typography>
+        <Typography>No recommendations available.</Typography>
       ) : (
         <Grid container spacing={3}>
           {recommendations.map(rec => (
@@ -290,38 +320,37 @@ setRecommendations(filtered.slice(0, 10));
                   </Typography>
                   {typeof rec.distance === 'number' && (
                     <Typography variant="body2" color="text.secondary">
-                      Расстояние: {rec.distance.toFixed(1)} км
+                      Distance: {rec.distance.toFixed(1)} km
                     </Typography>
                   )}
                   {typeof rec.score === 'number' && (
                     <Typography variant="body2" color="text.secondary">
-                      Совпадение: {(rec.score * 100).toFixed(0)} %
+                      Match: {(rec.score * 100).toFixed(0)} %
                     </Typography>
                   )}
                   <Typography variant="body2" color="text.secondary">
                     {rec.bio.interests
-                      ? `Интересы: ${rec.bio.interests}`
-                      : 'Информация отсутствует'}
+                      ? `Interests: ${rec.bio.interests}`
+                      : 'Information not available'}
                   </Typography>
                 </CardContent>
                 </CardActionArea>
                 <CardActions>
                   {(() => {
-                    const isFriend     = connections.includes(rec.id);
+                    const isFriend = connections.includes(rec.id);
                     const isPendingReq = pending.includes(rec.id) || sent.includes(rec.id);
-
 
                     if (isFriend) {
                       return (
                         <Button size="small" variant="contained" disabled>
-                          В друзьях
+                          Friends
                         </Button>
                       );
                     }
                     if (isPendingReq) {
                       return (
                         <Button size="small" variant="contained" disabled>
-                          Запрос отправлен
+                          Request Sent
                         </Button>
                       );
                     }
@@ -331,7 +360,7 @@ setRecommendations(filtered.slice(0, 10));
                         variant="contained"
                         onClick={() => handleConnect(rec.id)}
                       >
-                        Подключиться
+                        Connect
                       </Button>
                     );
                   })()}
@@ -342,7 +371,7 @@ setRecommendations(filtered.slice(0, 10));
                     onClick={() => handleDecline(rec.id)}
                     disabled={decliningId === rec.id}
                   >
-                    {decliningId === rec.id ? 'Отклонение…' : 'Отклонить'}
+                    {decliningId === rec.id ? 'Declining...' : 'Decline'}
                   </Button>
                 </CardActions>
               </Card>

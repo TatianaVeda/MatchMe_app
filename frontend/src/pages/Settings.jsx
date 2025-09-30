@@ -12,6 +12,13 @@ import {
 import axios from '../api/index';
 import { toast } from 'react-toastify';
 
+/**
+ * Settings.jsx
+ *
+ * User settings page. Allows changing email, password, and recommendation preferences.
+ * Integrates with backend API, handles batch loading and error reporting.
+ */
+
 const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [savingPrefs, setSavingPrefs] = useState(false);
@@ -20,7 +27,7 @@ const Settings = () => {
   const [preferences, setPreferences] = useState({
     maxRadius: ''    
   });
-  const [saving, setSaving] = useState(false);
+ // const [saving, setSaving] = useState(false);
 
    const [email, setEmail] = useState({
     currentEmail: '',
@@ -42,7 +49,7 @@ const Settings = () => {
         const meRes = await axios.get('/me');
         setEmail(email => ({ ...email, currentEmail: meRes.data.email || '' }));
       } catch (err) {
-        toast.error('Ошибка загрузки настроек');
+        toast.error('Error loading settings');
       } finally {
         setLoading(false);
       }
@@ -62,15 +69,19 @@ const Settings = () => {
     setPreferences({ maxRadius: e.target.value });
   };
   const submitPreferences = async e => {
+    /**
+     * Saves recommendation preferences (maxRadius) to backend.
+     * Handles API errors and loading state.
+     */
     e.preventDefault();
     setSavingPrefs(true);
     try {
       await axios.put('/me/preferences', {
         maxRadius: Number(preferences.maxRadius)
       });
-      toast.success('Настройки рекомендаций сохранены');
+      toast.success('Recommendation settings saved');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Ошибка сохранения настроек');
+      toast.error(err.response?.data?.message || 'Error saving settings');
     } finally {
       setSavingPrefs(false);
     }
@@ -80,9 +91,13 @@ const Settings = () => {
     setEmail({ ...email, newEmail: e.target.value });
   };
   const submitEmail = async e => {
+    /**
+     * Updates user email in backend.
+     * Handles validation, API errors, and loading state.
+     */
     e.preventDefault();
     if (!email.newEmail) {
-      toast.error('Введите новый e-mail');
+      toast.error('Please enter new email');
       return;
     }
     setSavingEmail(true);
@@ -91,9 +106,9 @@ const Settings = () => {
         email: email.newEmail
       });
       setEmail({ currentEmail: data.email, newEmail: '' });
-      toast.success('E-mail успешно изменён');
+      toast.success('Email successfully updated');
     } catch (err) {
-      toast.error(err.response?.data || 'Ошибка изменения e-mail');
+      toast.error(err.response?.data || 'Error updating email');
     } finally {
       setSavingEmail(false);
     }
@@ -103,10 +118,14 @@ const Settings = () => {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
   const submitPassword = async e => {
+    /**
+     * Updates user password in backend.
+     * Handles validation, API errors, and loading state.
+     */
     e.preventDefault();
     const { current, next, confirm } = passwords;
     if (!current || !next || next !== confirm) {
-      toast.error('Проверьте поля пароля');
+      toast.error('Please check password fields');
       return;
     }
     setSavingPassword(true);
@@ -116,9 +135,9 @@ const Settings = () => {
         new: next
       });
       setPasswords({ current: '', next: '', confirm: '' });
-      toast.success('Пароль успешно изменён');
+      toast.success('Password successfully updated');
     } catch (err) {
-      toast.error(err.response?.data || 'Ошибка изменения пароля');
+      toast.error(err.response?.data || 'Error updating password');
     } finally {
       setSavingPassword(false);
     }
@@ -126,19 +145,19 @@ const Settings = () => {
 
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>Настройки</Typography>
+      <Typography variant="h4" gutterBottom>Settings</Typography>
 
       <Box component="form" onSubmit={submitEmail} sx={{ p: 2, mb: 3, border: '1px solid #ccc', borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom>Сменить e-mail</Typography>
+        <Typography variant="h6" gutterBottom>Change Email</Typography>
         <TextField
-          label="Текущий e-mail"
+          label="Current Email"
           value={email.currentEmail}
           fullWidth
           margin="normal"
           InputProps={{ readOnly: true }}
         />
         <TextField
-          label="Новый e-mail"
+          label="New Email"
           name="newEmail"
           value={email.newEmail}
           onChange={handleEmailChange}
@@ -152,16 +171,16 @@ const Settings = () => {
           disabled={savingEmail}
           sx={{ mt: 1 }}
         >
-          {savingEmail ? 'Сохраняем...' : 'Сохранить e-mail'}
+          {savingEmail ? 'Saving...' : 'Save Email'}
         </Button>
       </Box>
 
       <Divider />
 
       <Box component="form" onSubmit={submitPassword} sx={{ p: 2, my: 3, border: '1px solid #ccc', borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom>Сменить пароль</Typography>
+        <Typography variant="h6" gutterBottom>Change Password</Typography>
         <TextField
-          label="Текущий пароль"
+          label="Current Password"
           name="current"
           type="password"
           value={passwords.current}
@@ -171,7 +190,7 @@ const Settings = () => {
           required
         />
         <TextField
-          label="Новый пароль"
+          label="New Password"
           name="next"
           type="password"
           value={passwords.next}
@@ -181,7 +200,7 @@ const Settings = () => {
           required
         />
         <TextField
-          label="Подтвердите новый пароль"
+          label="Confirm New Password"
           name="confirm"
           type="password"
           value={passwords.confirm}
@@ -196,16 +215,16 @@ const Settings = () => {
           disabled={savingPassword}
           sx={{ mt: 1 }}
         >
-          {savingPassword ? 'Сохраняем...' : 'Сохранить пароль'}
+          {savingPassword ? 'Saving...' : 'Save Password'}
         </Button>
       </Box>
 
       <Divider />
 
       <Box component="form" onSubmit={submitPreferences} sx={{ p: 2, mt: 3, border: '1px solid #ccc', borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom>Параметры рекомендаций</Typography>
+        <Typography variant="h6" gutterBottom>Recommendation Settings</Typography>
         <TextField
-          label="Максимальный радиус (км)"
+          label="Maximum Radius (km)"
           name="maxRadius"
           type="number"
           value={preferences.maxRadius}
@@ -220,7 +239,7 @@ const Settings = () => {
           disabled={savingPrefs}
           sx={{ mt: 1 }}
         >
-          {savingPrefs ? 'Сохраняем...' : 'Сохранить параметры'}
+          {savingPrefs ? 'Saving...' : 'Save Settings'}
         </Button>
       </Box>
     </Container>

@@ -2,6 +2,13 @@
 
 import api from './index';
 
+/**
+ * connections.js
+ *
+ * API functions for managing user connections (friends, requests, pending).
+ * Wraps HTTP requests to backend endpoints, handles errors.
+ */
+
 export const getConnections = async () => {
   const response = await api.get('/connections');
   return response.data;

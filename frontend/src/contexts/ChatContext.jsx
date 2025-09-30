@@ -10,7 +10,18 @@ const initialState = {
   typingStatuses: {},
   presence: {},
 };
+/**
+ * ChatContext.jsx
+ *
+ * Provides chat state and dispatch for the app.
+ * Handles chat list, active chat, messages, typing statuses, and presence.
+ * Integrates with WebSocket for real-time updates and exposes hooks for state and actions.
+ */
 function chatReducer(state, action) {
+  /**
+   * Reducer for chat state. Handles chat list, messages, typing, and presence updates.
+   * Action types: SET_CHATS, SET_ACTIVE_CHAT, SET_MESSAGES, RECEIVE_MESSAGE, SET_TYPING_STATUS, SET_PRESENCE.
+   */
   switch (action.type) {
     case 'SET_CHATS':
       return { ...state, chats: action.payload };
@@ -50,6 +61,16 @@ function chatReducer(state, action) {
          [action.userId]: action.isOnline
        }
      };
+    case 'MARK_READ':
+      return {
+        ...state,
+        messages: {
+          ...state.messages,
+          [action.chatId]: state.messages[action.chatId].map(message =>
+            message.id === action.messageId ? { ...message, read: true } : message
+          ),
+        },
+      };
     default:
       return state;
   }
@@ -59,6 +80,10 @@ export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const handleIncoming = useCallback(
     (data) => {
+      /**
+       * Handles incoming WebSocket events: message, typing, presence.
+       * Dispatches to reducer based on event type.
+       */
       if (!user || !user.id) return;
       switch (data.type) {
         case 'message':
@@ -84,6 +109,13 @@ export const ChatProvider = ({ children }) => {
          isOnline: data.is_online
        });
        break;
+        case 'read':
+          dispatch({ 
+            type: 'MARK_READ',
+            chatId: data.chat_id,
+            messageId: data.message_id
+           });
+          break;
         default:
           break;
       }
@@ -100,7 +132,8 @@ export const ChatProvider = ({ children }) => {
   const setMessages = (chatId, messages) => {
     dispatch({ type: 'SET_MESSAGES', chatId, payload: messages });
   };
-  return (
+  const resetState = () => dispatch({ type: 'RESET' });
+   return (
     <ChatStateContext.Provider value={state}>
       <ChatDispatchContext.Provider
         value={{
@@ -109,6 +142,7 @@ export const ChatProvider = ({ children }) => {
           setMessages,
           sendMessage,
           sendTyping,
+          resetState,
         }}
       >
         {children}
@@ -116,5 +150,13 @@ export const ChatProvider = ({ children }) => {
     </ChatStateContext.Provider>
   );
 };
+/**
+ * useChatState
+ * Returns current chat state (chats, messages, typing, presence).
+ */
 export const useChatState = () => useContext(ChatStateContext);
+/**
+ * useChatDispatch
+ * Returns dispatch/actions for updating chat state and sending events.
+ */
 export const useChatDispatch = () => useContext(ChatDispatchContext);

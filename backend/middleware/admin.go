@@ -12,39 +12,46 @@ import (
 	"gorm.io/gorm"
 )
 
+// AdminOnly is a middleware that allows access only to administrators (email from config).
+// Checks userID in context, looks up the user in the database, and compares the email.
 func AdminOnly(db *gorm.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+			// Extract userID from request context (must be authenticated)
 			userIDStr, ok := r.Context().Value("userID").(string)
 			if !ok {
-				logrus.Warn("AdminOnly: userID не найден в контексте")
+				logrus.Warn("AdminOnly: userID not found in context")
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
+			// Parse userID as UUID
 			uid, err := uuid.Parse(userIDStr)
 			if err != nil {
-				logrus.Errorf("AdminOnly: неверный userID: %v", err)
+				logrus.Errorf("AdminOnly: invalid userID: %v", err)
 				http.Error(w, "Invalid user id", http.StatusBadRequest)
 				return
 			}
 
+			// Look up user in the database
 			var user models.User
 			if err := db.First(&user, "id = ?", uid).Error; err != nil {
-				logrus.Errorf("AdminOnly: пользователь %s не найден: %v", uid, err)
+				logrus.Errorf("AdminOnly: user %s not found: %v", uid, err)
 				http.Error(w, "User not found", http.StatusUnauthorized)
 				return
 			}
 
+			// Check if user's email matches the admin email from config
 			if user.Email != config.AdminEmail {
-				logrus.Warnf("AdminOnly: пользователь %s не является администратором", uid)
+				logrus.Warnf("AdminOnly: user %s is not an administrator", uid)
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(map[string]string{"error": "Admin access required"})
 				return
 			}
 
-			logrus.Infof("AdminOnly: административный доступ подтвержден для пользователя %s", uid)
+			logrus.Infof("AdminOnly: admin access granted for user %s", uid)
+			// Call the next handler if admin check passes
 			next.ServeHTTP(w, r)
 		})
 	}

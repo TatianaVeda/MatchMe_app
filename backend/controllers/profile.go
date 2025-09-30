@@ -22,12 +22,15 @@ import (
 
 var profileDB *gorm.DB
 
+// InitProfileController initializes the profile controller with the database connection.
 func InitProfileController(db *gorm.DB) {
 	profileDB = db
 	logrus.Info("Profile controller initialized")
 }
 
+// UpdateCurrentUserProfile updates the current user's profile information.
 func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
+	// Extract userID from context (must be authenticated)
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
 		logrus.Error("UpdateCurrentUserProfile: userID not found in context")
@@ -41,6 +44,7 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse and validate request body fields
 	var reqBody struct {
 		FirstName string  `json:"firstName"`
 		LastName  string  `json:"lastName"`
@@ -55,28 +59,30 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	// Validate string lengths and required fields
 	if err := utils.ValidateStringLength(reqBody.FirstName, 255); err != nil {
-		http.Error(w, "Слишком длинное имя", http.StatusBadRequest)
+		http.Error(w, "First name is too long", http.StatusBadRequest)
 		return
 	}
 	if err := utils.ValidateStringLength(reqBody.LastName, 255); err != nil {
-		http.Error(w, "Слишком длинная фамилия", http.StatusBadRequest)
+		http.Error(w, "Last name is too long, max 255 chars", http.StatusBadRequest)
 		return
 	}
 	if err := utils.ValidateStringLength(reqBody.About, 1000); err != nil {
-		http.Error(w, "Описание слишком длинное", http.StatusBadRequest)
+		http.Error(w, "Description is too long, max 1000 chars", http.StatusBadRequest)
 		return
 	}
 	if reqBody.City == "" {
-		http.Error(w, "Город не может быть пустым", http.StatusBadRequest)
+		http.Error(w, "City cannot be empty", http.StatusBadRequest)
 		return
 	}
 
+	// Try to find existing profile for user
 	var profile models.Profile
 	err = profileDB.First(&profile, "user_id = ?", currentUserID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-
+			// If not found, create new profile
 			profile = models.Profile{
 				UserID:    currentUserID,
 				FirstName: reqBody.FirstName,
@@ -98,6 +104,7 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
+		// Update fields in existing profile
 		profile.FirstName = reqBody.FirstName
 		profile.LastName = reqBody.LastName
 		profile.About = reqBody.About
@@ -115,6 +122,7 @@ func UpdateCurrentUserProfile(w http.ResponseWriter, r *http.Request) {
 		logrus.Infof("Profile for user %s updated successfully", currentUserID)
 	}
 
+	// Update PostGIS earth_loc if coordinates are present
 	if profile.Latitude != 0 && profile.Longitude != 0 {
 		if err := profileDB.Exec(`
 		UPDATE profiles
@@ -198,7 +206,9 @@ func UpdateCurrentUserLocation(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(profile)
 }
 
+// UpdateCurrentUserBio updates the current user's bio information.
 func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
+	// Extract userID from context (must be authenticated)
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
 		logrus.Error("UpdateCurrentUserBio: userID not found in context")
@@ -212,6 +222,7 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse and validate request body fields
 	var reqBody struct {
 		Interests         string `json:"interests"`
 		Hobbies           string `json:"hobbies"`
@@ -234,6 +245,7 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Find or create bio for user
 	var bio models.Bio
 	if err := profileDB.First(&bio, "user_id = ?", currentUserID).Error; err != nil {
 		logrus.Errorf("UpdateCurrentUserBio: bio not found for user %s: %v", currentUserID, err)
@@ -241,6 +253,7 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update bio fields
 	bio.Interests = reqBody.Interests
 	bio.Hobbies = reqBody.Hobbies
 	bio.Music = reqBody.Music
@@ -254,6 +267,7 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Find or create user preferences
 	var pref models.Preference
 	if err := profileDB.
 		Where("user_id = ?", currentUserID).
@@ -288,14 +302,16 @@ func UpdateCurrentUserBio(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// UploadUserPhoto handles uploading a new profile photo for the current user.
 func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
-
+	// Parse multipart form (limit: 5MB)
 	if err := r.ParseMultipartForm(5 << 20); err != nil {
 		logrus.Errorf("UploadUserPhoto: error parsing multipart form: %v", err)
 		http.Error(w, "Could not parse multipart form", http.StatusBadRequest)
 		return
 	}
 
+	// Extract userID from context (must be authenticated)
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
 		logrus.Error("UploadUserPhoto: userID not found in context")
@@ -309,6 +325,7 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get uploaded file from form
 	file, fileHeader, err := r.FormFile("photo")
 	if err != nil {
 		logrus.Errorf("UploadUserPhoto: error retrieving file: %v", err)
@@ -317,6 +334,7 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	// Check file type (only JPEG/PNG allowed)
 	fileBytes := make([]byte, 512)
 	if _, err := file.Read(fileBytes); err != nil {
 		logrus.Errorf("UploadUserPhoto: error reading file: %v", err)
@@ -331,10 +349,12 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 	file.Seek(0, 0)
 
+	// Generate new file name and path
 	ext := filepath.Ext(fileHeader.Filename)
 	newFileName := currentUserID.String() + "_" + strconv.FormatInt(time.Now().Unix(), 10) + ext
 	uploadDir := config.AppConfig.MediaUploadDir
 
+	// Ensure upload directory exists
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
 		logrus.Errorf("UploadUserPhoto: error creating upload directory: %v", err)
 		http.Error(w, "Error creating upload directory", http.StatusInternalServerError)
@@ -356,6 +376,7 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update profile with new photo URL
 	var profile models.Profile
 	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
 		logrus.Errorf("UploadUserPhoto: profile not found for user %s: %v", currentUserID, err)
@@ -375,48 +396,53 @@ func UploadUserPhoto(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(profile)
 }
 
+// DeleteUserPhoto deletes the current user's profile photo and resets it to default.
 func DeleteUserPhoto(w http.ResponseWriter, r *http.Request) {
+	// Extract userID from context (must be authenticated)
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		logrus.Error("DeleteUserPhoto: userID не найден в контексте")
+		logrus.Error("DeleteUserPhoto: userID not found in context")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		logrus.Errorf("DeleteUserPhoto: неверный userID: %v", err)
+		logrus.Errorf("DeleteUserPhoto: invalid userID: %v", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
 
+	// Find profile for user
 	var profile models.Profile
 	if err := profileDB.First(&profile, "user_id = ?", currentUserID).Error; err != nil {
-		logrus.Errorf("DeleteUserPhoto: профиль для пользователя %s не найден: %v", currentUserID, err)
+		logrus.Errorf("DeleteUserPhoto: profile not found for user %s: %v", currentUserID, err)
 		http.Error(w, "Profile not found", http.StatusNotFound)
 		return
 	}
 
 	defaultPhotoURL := "/static/images/default.png"
 
+	// Remove old photo file if not default
 	if profile.PhotoURL != "" && profile.PhotoURL != defaultPhotoURL {
 		uploadDir := config.AppConfig.MediaUploadDir
 		fileName := strings.TrimPrefix(profile.PhotoURL, "/static/images/")
 		filePath := filepath.Join(uploadDir, fileName)
 		if err := os.Remove(filePath); err != nil {
-			logrus.Warnf("DeleteUserPhoto: ошибка удаления файла %s: %v", filePath, err)
+			logrus.Warnf("DeleteUserPhoto: error deleting file %s: %v", filePath, err)
 		} else {
-			logrus.Infof("DeleteUserPhoto: файл %s успешно удалён", filePath)
+			logrus.Infof("DeleteUserPhoto: file %s deleted successfully", filePath)
 		}
 	}
 
+	// Set photo URL to default
 	profile.PhotoURL = defaultPhotoURL
 	if err := profileDB.Save(&profile).Error; err != nil {
-		logrus.Errorf("DeleteUserPhoto: ошибка обновления профиля для пользователя %s: %v", currentUserID, err)
+		logrus.Errorf("DeleteUserPhoto: error updating profile for user %s: %v", currentUserID, err)
 		http.Error(w, "Error updating profile", http.StatusInternalServerError)
 		return
 	}
 
-	logrus.Infof("DeleteUserPhoto: фото профиля для пользователя %s сброшено на значение по умолчанию", currentUserID)
+	logrus.Infof("DeleteUserPhoto: profile photo for user %s reset to default", currentUserID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(profile)
 }

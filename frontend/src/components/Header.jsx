@@ -1,12 +1,12 @@
 // m/frontend/src/components/Header.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, /* useCallback */ } from 'react';
 import {
   AppBar, Toolbar, Typography, IconButton,
   Button, Drawer, List, ListItem, ListItemButton,
   ListItemText, Box, Badge
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import { useChatState } from '../contexts/ChatContext';
 import useWebSocket from '../hooks/useWebSocket';
@@ -14,19 +14,27 @@ import { getPendingConnections } from '../api/connections';
 import axios from '../api/index';
 import { toast } from 'react-toastify';
 import { ADMIN_ID } from '../config';
+import RecommendIcon from '@mui/icons-material/Recommend';
+import ChatIcon from '@mui/icons-material/Chat';
+import PersonIcon from '@mui/icons-material/Person';
+import SettingsIcon from '@mui/icons-material/Settings';
+import GroupIcon from '@mui/icons-material/Group';
+import LogoutIcon from '@mui/icons-material/Logout';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 const navItems = [
-  { label: 'Рекомендации', to: '/recommendations' },
-  { label: 'Чаты',        to: '/chats' },
-  { label: 'Профиль',     to: '/me' },
-  { label: 'Настройки',   to: '/settings' },
-  { label: 'Друзья',      to: '/friends' },
+  { label: 'Recommendations', to: '/recommendations', icon: <RecommendIcon sx={{ mr: 1 }} /> },
+  { label: 'Chats',        to: '/chats', icon: <ChatIcon sx={{ mr: 1 }} /> },
+  { label: 'Profile',     to: '/me', icon: <PersonIcon sx={{ mr: 1 }} /> },
+  { label: 'Settings',   to: '/settings', icon: <SettingsIcon sx={{ mr: 1 }} /> },
+  { label: 'Friends',      to: '/friends', icon: <GroupIcon sx={{ mr: 1 }} /> },
 ];
 
 export default function Header() {
   const { user } = useAuthState();
   const dispatch = useAuthDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const { chats } = useChatState();
@@ -34,7 +42,7 @@ export default function Header() {
 
   const [pendingFriends, setPendingFriends] = useState(0);
 
-  const { subscribe, unsubscribe } = useWebSocket((data) => {
+  const { /* subscribe, unsubscribe */ } = useWebSocket((data) => {
     if (!user) return;
     switch (data.type) {
       case 'message':
@@ -52,27 +60,21 @@ export default function Header() {
 
   useEffect(() => {
     if (!user) return;
-
-    setUnreadMessages(chats.reduce((sum, c) => sum + (c.unreadCount || 0), 0));
-
-    chats.forEach(c => subscribe(c.id));
-
-    return () => {
-      chats.forEach(c => unsubscribe(c.id));
-    };
-  }, [user, chats, subscribe, unsubscribe]);
+    const chatsArray = Array.isArray(chats) ? chats : [];
+    setUnreadMessages(chatsArray.reduce((sum, c) => sum + (c.unreadCount || 0), 0));
+  }, [user, chats]);
 
   useEffect(() => {
     if (!user) return;
     getPendingConnections()
       .then(list => setPendingFriends(list.length))
-      .catch(() => {/* тихий фоллбек */});
+      .catch(() => {/* silent fallback */});
   }, [user]);
 
   const handleLogout = async () => {
     try { await axios.post('/logout'); } catch {}
     dispatch({ type: 'LOGOUT' });
-    toast.info('Вы вышли из системы');
+    toast.info('You have logged out');
     navigate('/login');
   };
 
@@ -85,12 +87,14 @@ export default function Header() {
           <>
             <ListItem disablePadding>
               <ListItemButton component={Link} to="/admin">
+                <AdminPanelSettingsIcon sx={{ mr: 1 }} />
                 <ListItemText primary="Admin" />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
-                <ListItemText primary="Выход" />
+                <LogoutIcon sx={{ mr: 1 }} />
+                <ListItemText primary="Logout" />
               </ListItemButton>
             </ListItem>
           </>
@@ -98,21 +102,34 @@ export default function Header() {
           <>
             {navItems.map(item => (
               <ListItem key={item.to} disablePadding>
-                <ListItemButton component={Link} to={item.to}>
+                <ListItemButton
+                  component={Link}
+                  to={item.to}
+                  sx={{
+                    fontWeight: location.pathname === item.to ? 'bold' : 'normal',
+                    backgroundColor: location.pathname === item.to ? 'primary.main' : 'inherit',
+                    color: location.pathname === item.to ? 'white' : 'inherit',
+                    border: location.pathname === item.to ? '2px solid #fff' : '2px solid transparent',
+                    transition: 'all 0.2s',
+                    boxShadow: location.pathname === item.to ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
+                  }}
+                >
+                  {item.icon}
                   <ListItemText primary={item.label} />
                 </ListItemButton>
               </ListItem>
             ))}
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
-                <ListItemText primary="Выход" />
+                <LogoutIcon sx={{ mr: 1 }} />
+                <ListItemText primary="Logout" />
               </ListItemButton>
             </ListItem>
           </>
         ) : (
           <ListItem disablePadding>
             <ListItemButton component={Link} to="/login">
-              <ListItemText primary="Вход" />
+              <ListItemText primary="Login" />
             </ListItemButton>
           </ListItem>
         )}
@@ -139,18 +156,20 @@ export default function Header() {
             to="/"
             sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}
           >
-            m – Рекомендации
+            Match Me – Recommendations
           </Typography>
 
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
             {user ? (
               user.id === ADMIN_ID ? (
                 <>
-                  <Button color="inherit" component={Link} to="/admin">
+                  <Button color="inherit" component={Link} to="/admin" sx={{ ml: 1 }}>
+                    <AdminPanelSettingsIcon sx={{ mr: 1 }} />
                     Admin
                   </Button>
-                  <Button color="inherit" onClick={handleLogout}>
-                    Выход
+                  <Button color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
+                    <LogoutIcon sx={{ mr: 1 }} />
+                    Logout
                   </Button>
                 </>
               ) : (
@@ -169,7 +188,16 @@ export default function Header() {
                             color="inherit"
                             component={Link}
                             to={item.to}
+                            sx={{
+                              fontWeight: location.pathname === item.to ? 'bold' : 'normal',
+                              backgroundColor: location.pathname === item.to ? 'primary.main' : 'inherit',
+                              color: location.pathname === item.to ? 'white' : 'inherit',
+                              border: location.pathname === item.to ? '2px solid #fff' : '2px solid transparent',
+                              transition: 'all 0.2s',
+                              boxShadow: location.pathname === item.to ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
+                            }}
                           >
+                            {item.icon}
                             {item.label}
                           </Button>
                         </Badge>
@@ -188,7 +216,16 @@ export default function Header() {
                             color="inherit"
                             component={Link}
                             to={item.to}
+                            sx={{
+                              fontWeight: location.pathname === item.to ? 'bold' : 'normal',
+                              backgroundColor: location.pathname === item.to ? 'primary.main' : 'inherit',
+                              color: location.pathname === item.to ? 'white' : 'inherit',
+                              border: location.pathname === item.to ? '2px solid #fff' : '2px solid transparent',
+                              transition: 'all 0.2s',
+                              boxShadow: location.pathname === item.to ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
+                            }}
                           >
+                            {item.icon}
                             {item.label}
                           </Button>
                         </Badge>
@@ -200,8 +237,17 @@ export default function Header() {
                         color="inherit"
                         component={Link}
                         to={item.to}
-                        sx={{ ml: 1 }}
+                        sx={{
+                          ml: 1,
+                          fontWeight: location.pathname === item.to ? 'bold' : 'normal',
+                          backgroundColor: location.pathname === item.to ? 'primary.main' : 'inherit',
+                          color: location.pathname === item.to ? 'white' : 'inherit',
+                          border: location.pathname === item.to ? '2px solid #fff' : '2px solid transparent',
+                          transition: 'all 0.2s',
+                          boxShadow: location.pathname === item.to ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
+                        }}
                       >
+                        {item.icon}
                         {item.label}
                       </Button>
                     );
@@ -211,13 +257,14 @@ export default function Header() {
                     onClick={handleLogout}
                     sx={{ ml: 1 }}
                   >
-                    Выход
+                    <LogoutIcon sx={{ mr: 1 }} />
+                    Logout
                   </Button>
                 </>
               )
             ) : (
               <Button color="inherit" component={Link} to="/login">
-                Вход
+                Login
               </Button>
             )}
           </Box>

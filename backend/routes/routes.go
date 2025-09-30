@@ -11,8 +11,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// InitRoutes initializes all application routes, connects controllers, middleware, and services.
+// Uses mux.Router, GORM, and services for users, chats, recommendations, etc.
 func InitRoutes(router *mux.Router, db *gorm.DB, ps *services.PresenceService) {
 	logrus.Info("Initializing routes...")
+	// Initialize all controllers with the database connection
 	controllers.InitUserController(db)
 	controllers.InitConnectionsController(db)
 
@@ -25,17 +28,21 @@ func InitRoutes(router *mux.Router, db *gorm.DB, ps *services.PresenceService) {
 	controllers.InitCitiesController(db)
 	presenceCtrl := controllers.NewPresenceController(ps)
 
+	// Public routes (no authentication required)
 	router.HandleFunc("/signup", controllers.Signup).Methods(http.MethodPost)
 	router.HandleFunc("/refresh", controllers.RefreshToken).Methods(http.MethodPost)
 	router.HandleFunc("/login", controllers.Login).Methods(http.MethodPost)
 	router.HandleFunc("/cities", controllers.GetCities).Methods(http.MethodGet)
 
+	// Presence status endpoints
 	router.HandleFunc("/api/user/online", presenceCtrl.GetOnlineStatus).Methods("GET")
 	router.HandleFunc("/api/user/online/batch", presenceCtrl.GetMultipleOnlineStatus).Methods("GET")
 
+	// Authenticated routes (require AuthMiddleware)
 	authRouter := router.PathPrefix("/").Subrouter()
 	authRouter.Use(controllers.AuthMiddleware)
 
+	// User info and profile routes
 	authRouter.HandleFunc("/users/{id}", controllers.GetUser).Methods(http.MethodGet)
 	authRouter.HandleFunc("/users/{id}/bio", controllers.GetUserBio).Methods(http.MethodGet)
 	authRouter.HandleFunc("/users/{id}/profile", controllers.GetUserProfile).Methods(http.MethodGet)
@@ -54,6 +61,7 @@ func InitRoutes(router *mux.Router, db *gorm.DB, ps *services.PresenceService) {
 	authRouter.HandleFunc("/me/email", controllers.UpdateEmail).Methods(http.MethodPut)
 	authRouter.HandleFunc("/me/password", controllers.UpdatePassword).Methods(http.MethodPut)
 
+	// Recommendation and connection routes
 	authRouter.HandleFunc("/recommendations", controllers.GetRecommendations).Methods(http.MethodGet)
 	authRouter.HandleFunc("/recommendations/{id}/decline", controllers.DeclineRecommendation).Methods(http.MethodPost)
 	authRouter.HandleFunc("/connections", controllers.GetConnections).Methods(http.MethodGet)
@@ -68,6 +76,8 @@ func InitRoutes(router *mux.Router, db *gorm.DB, ps *services.PresenceService) {
 	authRouter.HandleFunc("/chats/{chatId}/messages", controllers.PostMessage).Methods(http.MethodPost)
 	authRouter.HandleFunc("/me/preferences", controllers.GetPreferences).Methods(http.MethodGet)
 	authRouter.HandleFunc("/me/preferences", controllers.UpdatePreferences).Methods(http.MethodPut)
+
+	// Admin-only routes (require AdminOnly middleware)
 	adminOnly := middleware.AdminOnly(db)
 	adminRouter := authRouter.PathPrefix("/admin").Subrouter()
 	adminRouter.Use(adminOnly)

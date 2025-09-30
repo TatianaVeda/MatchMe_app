@@ -10,6 +10,13 @@ import { getConnections, getPendingConnections, updateConnectionRequest, deleteC
 import { getUser, getBatchOnlineStatus } from '../api/user';
 import { useChatState, useChatDispatch } from '../contexts/ChatContext';
 
+/**
+ * Connections.jsx
+ *
+ * User connections page. Shows friends and pending requests, allows accepting, declining, and blocking users.
+ * Integrates with backend API, presence, and chat context. Handles batch loading and polling.
+ */
+
 const Connections = () => {
   const navigate = useNavigate();
   const { setChats } = useChatDispatch();
@@ -26,70 +33,88 @@ const Connections = () => {
   };
 
   const loadUsers = async (ids) => {
-        const rawUsers = await Promise.all(ids.map(id => getUser(id)));
-
-        const presenceMap = await getBatchOnlineStatus(ids);
-
-        return rawUsers.map(u => ({
-          ...u,
-          online: Boolean(presenceMap[u.id])
-        }));
-      };
-
-  
+    /**
+     * Batch loads user data and online status for a list of user IDs.
+     * Integrates with presence API.
+     */
+    const rawUsers = await Promise.all(ids.map(id => getUser(id)));
+    const presenceMap = await getBatchOnlineStatus(ids);
+    return rawUsers.map(u => ({
+      ...u,
+      online: Boolean(presenceMap[u.id])
+    }));
+  };
 
   const fetchData = async () => {
+    /**
+     * Loads pending and connected users, updates state.
+     * Handles API errors and loading state.
+     */
     setLoading(true);
     try {
       const pendingIds = await getPendingConnections();
       setPending(await loadUsers(pendingIds));
-
       const connIds = await getConnections();
       setConnections(await loadUsers(connIds));
     } catch {
-      toast.error('Ошибка загрузки подключений');
+      toast.error('Error loading connections');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    /**
+     * Loads connections and pending requests on mount, sets up polling every 2 minutes.
+     */
     fetchData();
     const interval = setInterval(fetchData, 120000);
     return () => clearInterval(interval);
   }, []);
 
   const handleAccept = async (id) => {
+    /**
+     * Accepts a pending connection request, updates state and shows notification.
+     * Handles API errors.
+     */
     try {
       await updateConnectionRequest(id, 'accept');
-      toast.success('Запрос принят');
+      toast.success('Request accepted');
       const user = pending.find(u => u.id === id);
       setPending(p => p.filter(u => u.id !== id));
       setConnections(c => [...c, user]);
     } catch {
-      toast.error('Ошибка при принятии');
+      toast.error('Error accepting request');
     }
   };
 
   const handleDecline = async (id) => {
+    /**
+     * Declines a pending connection request, updates state and shows notification.
+     * Handles API errors.
+     */
     try {
       await updateConnectionRequest(id, 'decline');
-      toast.info('Запрос отклонён');
+      toast.info('Request declined');
       setPending(p => p.filter(u => u.id !== id));
     } catch {
-      toast.error('Ошибка при отклонении');
+      toast.error('Error declining request');
     }
   };
 
   const handleDisconnect = async (id) => {
+    /**
+     * Removes a connection (blocks user), updates state and chat list.
+     * Handles API errors.
+     */
     try {
       await deleteConnection(id);
-      toast.success('Подключение удалено');
+      toast.success('Connection removed');
       setConnections(c => c.filter(u => u.id !== id));
       setChats(chs => chs.filter(c => c.otherUserID !== id));
       if (window.location.pathname === `/chat/${id}`) navigate('/chats');
     } catch {
-      toast.error('Ошибка при отключении');
+      toast.error('Error disconnecting');
     }
   };
 
@@ -103,15 +128,15 @@ const Connections = () => {
 
   return (
     <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>Подключения</Typography>
+      <Typography variant="h4" gutterBottom>Connections</Typography>
       <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 3 }}>
-        <Tab label="Существующие" />
-        <Tab label="Запросы" />
+        <Tab label="Existing" />
+        <Tab label="Requests" />
       </Tabs>
 
       {tab === 0 && (
         connections.length === 0
-          ? <Typography>Нет подключённых профилей.</Typography>
+          ? <Typography>No connected profiles.</Typography>
           : (
             <Grid container spacing={2}>
               {connections.map(u => (
@@ -124,7 +149,7 @@ const Connections = () => {
                   />
                   <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
                     <Button variant="outlined" color="error" size="small" onClick={() => handleDisconnect(u.id)}>
-                      Отключить
+                      Block
                     </Button>
                   </Box>
                 </Grid>
@@ -135,7 +160,7 @@ const Connections = () => {
 
       {tab === 1 && (
         pending.length === 0
-          ? <Typography>Нет входящих запросов.</Typography>
+          ? <Typography>No incoming requests.</Typography>
           : (
             <Grid container spacing={2}>
               {pending.map(u => (
@@ -147,10 +172,10 @@ const Connections = () => {
                   />
                   <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
                     <Button size="small" variant="contained" sx={{ mr: 1 }} onClick={() => handleAccept(u.id)}>
-                      Принять
+                      Accept
                     </Button>
                     <Button size="small" variant="outlined" onClick={() => handleDecline(u.id)}>
-                      Отклонить
+                      Decline
                     </Button>
                   </Box>
                 </Grid>

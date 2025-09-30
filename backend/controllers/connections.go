@@ -15,21 +15,23 @@ import (
 
 var connectionsDB *gorm.DB
 
+// InitConnectionsController initializes the connections controller with the database connection.
 func InitConnectionsController(db *gorm.DB) {
 	connectionsDB = db
 	logrus.Info("Connections controller initialized")
 }
 
+// GetConnections returns a list of accepted connections for the current user.
 func GetConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		logrus.Error("GetConnections: userID не найден в контексте")
+		logrus.Error("GetConnections: userID not found in context")
 		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
 		return
 	}
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		logrus.Errorf("GetConnections: неверный userID: %v", err)
+		logrus.Errorf("GetConnections: invalid userID: %v", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
@@ -38,7 +40,7 @@ func GetConnections(w http.ResponseWriter, r *http.Request) {
 	if err := connectionsDB.
 		Where("(user_id = ? OR connection_id = ?) AND status = ?", currentUserID, currentUserID, "accepted").
 		Find(&connections).Error; err != nil {
-		logrus.Errorf("GetConnections: ошибка получения подключений для пользователя %s: %v", currentUserID, err)
+		logrus.Errorf("GetConnections: error fetching connections for user %s: %v", currentUserID, err)
 		http.Error(w, "Error fetching connections", http.StatusInternalServerError)
 		return
 	}
@@ -51,21 +53,22 @@ func GetConnections(w http.ResponseWriter, r *http.Request) {
 			connectedIDs = append(connectedIDs, conn.UserID)
 		}
 	}
-	logrus.Infof("GetConnections: найдено %d подключений для пользователя %s", len(connectedIDs), currentUserID)
+	logrus.Infof("GetConnections: found %d connections for user %s", len(connectedIDs), currentUserID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(connectedIDs)
 }
 
+// PostConnection handles sending a connection request to another user.
 func PostConnection(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		logrus.Error("PostConnection: userID не найден в контексте")
+		logrus.Error("PostConnection: userID not found in context")
 		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
 		return
 	}
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		logrus.Errorf("PostConnection: неверный userID: %v", err)
+		logrus.Errorf("PostConnection: invalid userID: %v", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
@@ -74,12 +77,12 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 	targetIDStr := vars["id"]
 	targetUserID, err := uuid.Parse(targetIDStr)
 	if err != nil {
-		logrus.Errorf("PostConnection: неверный target user ID: %v", err)
+		logrus.Errorf("PostConnection: invalid target user ID: %v", err)
 		http.Error(w, "Invalid target user ID", http.StatusBadRequest)
 		return
 	}
 	if currentUserID == targetUserID {
-		logrus.Warn("PostConnection: попытка отправки запроса самому себе")
+		logrus.Warn("PostConnection: attempt to send request to self")
 		http.Error(w, "Cannot send connection request to yourself", http.StatusBadRequest)
 		return
 	}
@@ -90,18 +93,18 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		First(&existing).Error; err == nil {
 		existing.Status = "accepted"
 		if err := connectionsDB.Save(&existing).Error; err != nil {
-			logrus.Errorf("PostConnection: ошибка обновления запроса от %s к %s: %v", targetUserID, currentUserID, err)
+			logrus.Errorf("PostConnection: error updating request from %s to %s: %v", targetUserID, currentUserID, err)
 			http.Error(w, "Error updating connection request", http.StatusInternalServerError)
 			return
 		}
-		logrus.Infof("PostConnection: взаимное подключение между %s и %s", currentUserID, targetUserID)
+		logrus.Infof("PostConnection: mutual connection between %s and %s", currentUserID, targetUserID)
 
 		chatService := services.NewChatService(connectionsDB)
 		chat, err := chatService.CreateChat(targetUserID, currentUserID)
 		if err != nil {
-			logrus.Errorf("PostConnection: ошибка создания чата между %s и %s: %v", targetUserID, currentUserID, err)
+			logrus.Errorf("PostConnection: error creating chat between %s and %s: %v", targetUserID, currentUserID, err)
 		} else {
-			logrus.Infof("PostConnection: чат с ID %d создан между %s и %s", chat.ID, targetUserID, currentUserID)
+			logrus.Infof("PostConnection: chat with ID %d created between %s and %s", chat.ID, targetUserID, currentUserID)
 		}
 		json.NewEncoder(w).Encode(map[string]string{"message": "Connection mutually accepted"})
 		return
@@ -112,7 +115,7 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?))",
 			currentUserID, targetUserID, targetUserID, currentUserID).
 		First(&duplicate).Error; err == nil {
-		logrus.Warnf("PostConnection: дублирующий запрос между %s и %s", currentUserID, targetUserID) //!!!!!!!!!!!!!!Gi
+		logrus.Warnf("PostConnection: duplicate request between %s and %s", currentUserID, targetUserID)
 		http.Error(w, "Connection request already exists or connection already established", http.StatusBadRequest)
 		return
 	}
@@ -123,27 +126,28 @@ func PostConnection(w http.ResponseWriter, r *http.Request) {
 		Status:       "pending",
 	}
 	if err := connectionsDB.Create(&newConn).Error; err != nil {
-		logrus.Errorf("PostConnection: ошибка создания запроса от %s к %s: %v", currentUserID, targetUserID, err)
+		logrus.Errorf("PostConnection: error creating request from %s to %s: %v", currentUserID, targetUserID, err)
 		http.Error(w, "Error creating connection request", http.StatusInternalServerError)
 		return
 	}
-	logrus.Infof("PostConnection: запрос на подключение отправлен от %s к %s", currentUserID, targetUserID)
+	logrus.Infof("PostConnection: connection request sent from %s to %s", currentUserID, targetUserID)
 
 	go sockets.BroadcastNotification(targetUserID, `{"type":"connection_request"}`)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Connection request sent"})
 }
 
+// PutConnection handles accepting a connection request.
 func PutConnection(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		logrus.Error("PutConnection: userID не найден в контексте")
+		logrus.Error("PutConnection: userID not found in context")
 		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
 		return
 	}
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		logrus.Errorf("PutConnection: неверный userID: %v", err)
+		logrus.Errorf("PutConnection: invalid userID: %v", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
@@ -152,7 +156,7 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 	senderIDStr := vars["id"]
 	senderUserID, err := uuid.Parse(senderIDStr)
 	if err != nil {
-		logrus.Errorf("PutConnection: неверный sender user ID: %v", err)
+		logrus.Errorf("PutConnection: invalid sender user ID: %v", err)
 		http.Error(w, "Invalid sender user ID", http.StatusBadRequest)
 		return
 	}
@@ -161,7 +165,7 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 	if err := connectionsDB.
 		Where("user_id = ? AND connection_id = ? AND status = ?", senderUserID, currentUserID, "pending").
 		First(&connection).Error; err != nil {
-		logrus.Warnf("PutConnection: запрос от %s к %s не найден", senderUserID, currentUserID)
+		logrus.Warnf("PutConnection: request from %s to %s not found", senderUserID, currentUserID)
 		http.Error(w, "Connection request not found", http.StatusNotFound)
 		return
 	}
@@ -170,7 +174,7 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 		Action string `json:"action"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		logrus.Errorf("PutConnection: ошибка декодирования тела запроса: %v", err)
+		logrus.Errorf("PutConnection: error decoding request body: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -179,48 +183,49 @@ func PutConnection(w http.ResponseWriter, r *http.Request) {
 	case "accept":
 		connection.Status = "accepted"
 		if err := connectionsDB.Save(&connection).Error; err != nil {
-			logrus.Errorf("PutConnection: ошибка обновления запроса от %s к %s: %v", senderUserID, currentUserID, err)
+			logrus.Errorf("PutConnection: error updating request from %s to %s: %v", senderUserID, currentUserID, err)
 			http.Error(w, "Error updating connection", http.StatusInternalServerError)
 			return
 		}
-		logrus.Infof("PutConnection: пользователь %s принял запрос от %s", currentUserID, senderUserID)
+		logrus.Infof("PutConnection: user %s accepted request from %s", currentUserID, senderUserID)
 
 		go sockets.BroadcastNotification(senderUserID, `{"type":"connection_request_accepted"}`)
 		chatService := services.NewChatService(connectionsDB)
 		chat, err := chatService.CreateChat(senderUserID, currentUserID)
 		if err != nil {
-			logrus.Errorf("PutConnection: ошибка создания чата между %s и %s: %v", senderUserID, currentUserID, err)
+			logrus.Errorf("PutConnection: error creating chat between %s and %s: %v", senderUserID, currentUserID, err)
 		} else {
-			logrus.Infof("PutConnection: чат с ID %d создан между %s и %s", chat.ID, senderUserID, currentUserID)
+			logrus.Infof("PutConnection: chat with ID %d created between %s and %s", chat.ID, senderUserID, currentUserID)
 		}
 		json.NewEncoder(w).Encode(map[string]string{"message": "Connection accepted"})
 	case "decline":
 		if err := connectionsDB.Delete(&connection).Error; err != nil {
-			logrus.Errorf("!!!!!!!11PutConnection: ошибка удаления запроса от %s к %s: %v", senderUserID, currentUserID, err)
+			logrus.Errorf("PutConnection: error deleting request from %s to %s: %v", senderUserID, currentUserID, err)
 			http.Error(w, "Error deleting connection request", http.StatusInternalServerError)
 			return
 		}
-		logrus.Infof("PutConnection: пользователь %s отклонил запрос от %s", currentUserID, senderUserID)
+		logrus.Infof("PutConnection: user %s declined request from %s", currentUserID, senderUserID)
 
 		go sockets.BroadcastNotification(senderUserID, `{"type":"connection_request_declined"}`)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Connection declined"})
 	default:
-		logrus.Warn("PutConnection: получено неверное действие")
+		logrus.Warn("PutConnection: invalid action received")
 		http.Error(w, "Invalid action. Must be 'accept' or 'decline'", http.StatusBadRequest)
 		return
 	}
 }
 
+// DeleteConnection handles deleting or declining a connection.
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		logrus.Error("DeleteConnection: userID не найден в контексте")
+		logrus.Error("DeleteConnection: userID not found in context")
 		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
 		return
 	}
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		logrus.Errorf("DeleteConnection: неверный userID: %v", err)
+		logrus.Errorf("DeleteConnection: invalid userID: %v", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
@@ -228,7 +233,7 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	targetIDStr := vars["id"]
 	targetUserID, err := uuid.Parse(targetIDStr)
 	if err != nil {
-		logrus.Errorf("DeleteConnection: неверный target user ID: %v", err)
+		logrus.Errorf("DeleteConnection: invalid target user ID: %v", err)
 		http.Error(w, "Invalid target user ID", http.StatusBadRequest)
 		return
 	}
@@ -237,38 +242,39 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 		Where("((user_id = ? AND connection_id = ?) OR (user_id = ? AND connection_id = ?)) AND status = ?",
 			currentUserID, targetUserID, targetUserID, currentUserID, "accepted").
 		First(&connection).Error; err != nil {
-		logrus.Warnf("DeleteConnection: взаимное подключение между %s и %s не найдено", currentUserID, targetUserID)
+		logrus.Warnf("DeleteConnection: mutual connection between %s and %s not found", currentUserID, targetUserID)
 		http.Error(w, "Connection not found", http.StatusNotFound)
 		return
 	}
 	if err := connectionsDB.Delete(&connection).Error; err != nil {
-		logrus.Errorf("DeleteConnection: ошибка удаления подключения между %s и %s: %v", currentUserID, targetUserID, err)
+		logrus.Errorf("DeleteConnection: error deleting connection between %s and %s: %v", currentUserID, targetUserID, err)
 		http.Error(w, "Error deleting connection", http.StatusInternalServerError)
 		return
 	}
-	logrus.Infof("DeleteConnection: подключение между %s и %s успешно удалено", currentUserID, targetUserID)
+	logrus.Infof("DeleteConnection: connection between %s and %s successfully deleted", currentUserID, targetUserID)
 
 	if err := connectionsDB.
 		Where("(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",
 			currentUserID, targetUserID, targetUserID, currentUserID).
 		Delete(&models.Chat{}).Error; err != nil {
-		logrus.Warnf("DeleteConnection: не удалось удалить чат между %s и %s: %v", currentUserID, targetUserID, err)
+		logrus.Warnf("DeleteConnection: failed to delete chat between %s and %s: %v", currentUserID, targetUserID, err)
 	} else {
-		logrus.Infof("DeleteConnection: чат между %s и %s успешно удалён", currentUserID, targetUserID)
+		logrus.Infof("DeleteConnection: chat between %s and %s successfully deleted", currentUserID, targetUserID)
 	}
 	json.NewEncoder(w).Encode(map[string]string{"message": "Disconnected successfully"})
 }
 
+// GetPendingConnections returns a list of pending connection requests for the current user.
 func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		logrus.Error("GetPendingConnections: userID не найден в контексте")
+		logrus.Error("GetPendingConnections: userID not found in context")
 		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
 		return
 	}
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		logrus.Errorf("GetPendingConnections: неверный userID: %v", err)
+		logrus.Errorf("GetPendingConnections: invalid userID: %v", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
@@ -277,7 +283,7 @@ func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
 	if err := connectionsDB.
 		Where("connection_id = ? AND status = ?", currentUserID, "pending").
 		Find(&conns).Error; err != nil {
-		logrus.Errorf("GetPendingConnections: ошибка получения входящих запросов: %v", err)
+		logrus.Errorf("GetPendingConnections: error fetching incoming requests: %v", err)
 		http.Error(w, "Error fetching pending connections", http.StatusInternalServerError)
 		return
 	}
@@ -287,21 +293,22 @@ func GetPendingConnections(w http.ResponseWriter, r *http.Request) {
 		incomingIDs = append(incomingIDs, c.UserID)
 	}
 
-	logrus.Infof("GetPendingConnections: найдено %d входящих запросов для %s", len(incomingIDs), currentUserID)
+	logrus.Infof("GetPendingConnections: found %d incoming requests for %s", len(incomingIDs), currentUserID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(incomingIDs)
 }
 
+// GetSentConnections returns a list of sent connection requests by the current user.
 func GetSentConnections(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
-		logrus.Error("GetSentConnections: userID не найден в контексте")
+		logrus.Error("GetSentConnections: userID not found in context")
 		http.Error(w, "Unauthorized: userID not found in context", http.StatusUnauthorized)
 		return
 	}
 	currentUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		logrus.Errorf("GetSentConnections: неверный userID: %v", err)
+		logrus.Errorf("GetSentConnections: invalid userID: %v", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
@@ -310,7 +317,7 @@ func GetSentConnections(w http.ResponseWriter, r *http.Request) {
 	if err := connectionsDB.
 		Where("user_id = ? AND status = ?", currentUserID, "pending").
 		Find(&conns).Error; err != nil {
-		logrus.Errorf("GetSentConnections: ошибка получения исходящих запросов для %s: %v", currentUserID, err)
+		logrus.Errorf("GetSentConnections: error fetching outgoing requests for %s: %v", currentUserID, err)
 		http.Error(w, "Error fetching sent connections", http.StatusInternalServerError)
 		return
 	}
@@ -320,7 +327,7 @@ func GetSentConnections(w http.ResponseWriter, r *http.Request) {
 		sentIDs = append(sentIDs, c.ConnectionID)
 	}
 
-	logrus.Infof("GetSentConnections: найдено %d исходящих запросов для %s", len(sentIDs), currentUserID)
+	logrus.Infof("GetSentConnections: found %d outgoing requests for %s", len(sentIDs), currentUserID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(sentIDs)
 }

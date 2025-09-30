@@ -14,36 +14,41 @@ import { getUser, getUserProfile, getUserBio } from '../../api/user';
 import { getConnections, deleteConnection } from '../../api/connections';
 import { toast } from 'react-toastify';
 import { useChatState, useChatDispatch } from '../../contexts/ChatContext';
+//import useWebSocket from '../../hooks/useWebSocket';
 
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { chats, presence } = useChatState();
   const { setChats } = useChatDispatch();
-
+  //const { subscribe, unsubscribe } = useWebSocket();
+  
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [bio, setBio] = useState(null);
   const [connectedIds, setConnectedIds] = useState([]);
+  
   const [loading, setLoading] = useState(true);
 
   const handleRemoveFriend = async (friendId) => {
     try {
       await deleteConnection(friendId);
-      toast.success('Пользователь удалён из друзей');
+      toast.success('User removed from friends');
       setConnectedIds(prev => prev.filter(uid => uid !== friendId));
       setChats(chs => chs.filter(c => c.otherUserID !== friendId));
       if (window.location.pathname === `/chat/${friendId}`) {
         navigate('/chats');
       }
     } catch {
-      toast.error('Не удалось удалить друга');
+      toast.error('Failed to remove friend');
     }
   };
-
+  
   useEffect(() => {
+   let ignore = false;
     const load = async () => {
       setLoading(true);
+      let lastUser = user;
       try {
         const [u, conns] = await Promise.all([
           getUser(id),
@@ -55,29 +60,47 @@ const UserProfile = () => {
           return;
         }
         setUser(u);
+        lastUser = u;
         setConnectedIds(conns);
-      } catch {
-        toast.error('Ошибка загрузки данных пользователя');
-        navigate('/recommendations');
+      } catch (err) {
+        toast.error('Error loading user data');
+        setLoading(false);
         return;
       }
       try {
         const p = await getUserProfile(id);
         setProfile(p);
-      } catch {
-        setProfile(null);
+      } catch (err) {
+      // if network error, do not reset profile
       }
       try {
         const b = await getUserBio(id);
         setBio(b);
-      } catch {
-        setBio(null);
+      } catch (err) {
+        // if network error, do not reset bio)
       }
       setLoading(false);
     };
     load();
-  }, [id, navigate]);
+    return () => { ignore = true; };
+  }, [id]);
 
+  // reload profie if online
+  useEffect(() => {
+    if (!user || !presence?.[user.id]) return;
+    //reload profile if onlaine again
+    getUser(id).then(u => u && setUser(u));
+    getUserProfile(id).then(p => p && setProfile(p));
+    getUserBio(id).then(b => b && setBio(b));
+  }, [presence?.[user?.id]]);
+
+  const chatWithUser = chats.find(c => c.otherUserID === id);
+  const isOnline =
+    (typeof chatWithUser?.otherUserOnline === 'boolean' && chatWithUser.otherUserOnline) ||
+    //(typeof user?.online === 'boolean' && user.online) ||
+    Boolean(presence?.[user?.id]); 
+    //!!presence[user?.id];
+ 
   const handleChat = () => {
     const existing = chats.find(c => c.otherUserID === id);
     navigate(existing ? `/chat/${existing.id}` : `/chat/new?other_user_id=${id}`);
@@ -94,14 +117,10 @@ const UserProfile = () => {
   if (!user) {
     return (
       <Container sx={{ textAlign: 'center', mt: 4 }}>
-        <Typography variant="h5">Пользователь не найден</Typography>
+        <Typography variant="h5">User not found</Typography>
       </Container>
     );
   }
-
-  const isOnline = typeof user.online === 'boolean'
-    ? user.online
-    : Boolean(presence[user.id]);
 
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
@@ -126,21 +145,21 @@ const UserProfile = () => {
       </Box>
 
       <Typography variant="body1" sx={{ mb: 2 }}>
-        {profile?.about || 'Информация недоступна'}
+        {profile?.about || 'Information not available'}
       </Typography>
 
-      <Typography variant="h6" gutterBottom>Биография</Typography>
+      <Typography variant="h6" gutterBottom>Biography</Typography>
       {bio ? (
         <>
-          <Typography>Интересы: {bio.interests}</Typography>
-          <Typography>Хобби: {bio.hobbies}</Typography>
-          <Typography>Музыка: {bio.music}</Typography>
-          <Typography>Еда: {bio.food}</Typography>
-          <Typography>Путешествия: {bio.travel}</Typography>
-          <Typography>Ищу: {bio.lookingFor}</Typography>
+          <Typography>Interests: {bio.interests}</Typography>
+          <Typography>Hobbies: {bio.hobbies}</Typography>
+          <Typography>Music: {bio.music}</Typography>
+          <Typography>Cuisine: {bio.food}</Typography>
+          <Typography>Travel: {bio.travel}</Typography>
+          <Typography>Looking for: {bio.lookingFor}</Typography>
         </>
       ) : (
-        <Typography>Биография недоступна</Typography>
+        <Typography>Biography not available</Typography>
       )}
 
       {connectedIds.includes(id) && (
@@ -151,14 +170,14 @@ const UserProfile = () => {
             sx={{ mr: 1 }}
             onClick={handleChat}
           >
-            Перейти в чат
+            Go to Chat
           </Button>
           <Button
             variant="outlined"
             color="error"
             onClick={() => handleRemoveFriend(id)}
           >
-            Удалить из друзей
+            Block User
           </Button>
         </Box>
       )}

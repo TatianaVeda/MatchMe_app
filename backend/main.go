@@ -25,6 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// setupLogger configures the global logger (logrus) based on config.
 func setupLogger() {
 	switch config.AppConfig.LogLevel {
 	case "debug":
@@ -57,13 +58,15 @@ func main() {
 	config.LoadConfig()
 
 	setupLogger()
-	log.Infof("Уровень логирования: %s", config.AppConfig.LogLevel)
+	log.Infof("Log level: %s", config.AppConfig.LogLevel)
 
+	// Initialize PostgreSQL database
 	db, err := models.InitDB(config.AppConfig.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Ошибка подключения к БД: %v", err)
+		log.Fatalf("Database connection error: %v", err)
 	}
 
+	// Initialize Redis client for presence and caching
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     config.AppConfig.RedisURL,
 		Password: "",
@@ -71,9 +74,13 @@ func main() {
 	})
 	presenceService := services.NewPresenceService(rdb)
 
+	// Pass DB and presence to controllers and sockets
 	sockets.SetDB(db)
+	sockets.SetChatsDB(db)
 	controllers.InitChatsController(db, presenceService)
 	controllers.InitRecommendationControllerService(db, presenceService)
+
+	// Set up HTTP router and CORS middleware
 	router := mux.NewRouter()
 	router.Use(middleware.CorsMiddleware)
 
@@ -82,13 +89,15 @@ func main() {
 	router.PathPrefix("/static/").Handler(
 		http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
+	// Start WebSocket server in a separate goroutine
 	go func() {
 		wsAddr := ":" + config.AppConfig.WebSocketPort
 		if err := sockets.InitWebSocketServer(presenceService, wsAddr); err != nil {
-			log.Fatalf("Ошибка запуска WebSocket сервера: %v", err)
+			log.Fatalf("WebSocket server startup error: %v", err)
 		}
 	}()
 
+	// Configure and start HTTP server
 	srv := &http.Server{
 		Addr:         ":" + config.AppConfig.ServerPort,
 		Handler:      router,
@@ -98,26 +107,28 @@ func main() {
 	}
 
 	go func() {
-		log.Infof("Сервер запущен на порту %s", config.AppConfig.ServerPort)
+		log.Infof("Server started on port %s", config.AppConfig.ServerPort)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Ошибка при запуске сервера: %v", err)
+			log.Fatalf("Server startup error: %v", err)
 		}
 	}()
 
+	// Graceful shutdown on interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
-	log.Info("Сервер завершает работу...")
+	log.Info("Server is shutting down...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Ошибка при завершении работы сервера: %v", err)
+		log.Fatalf("Server shutdown error: %v", err)
 	}
 
-	log.Info("Сервер успешно завершил работу")
+	log.Info("Server shut down successfully")
 }
 
+// installDependencies installs Go dependencies and runs 'go mod tidy'.
 func installDependencies() {
 	deps := []string{
 		"github.com/golang-jwt/jwt",

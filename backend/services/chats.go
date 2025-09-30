@@ -21,32 +21,36 @@ func NewChatService(db *gorm.DB) *ChatService {
 }
 
 func (cs *ChatService) CreateChat(user1ID, user2ID uuid.UUID) (*models.Chat, error) {
+	// Check if a chat already exists between these two users (in any order)
 	var chat models.Chat
 	if err := cs.DB.
 		Where("(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",
 			user1ID, user2ID, user2ID, user1ID).
 		First(&chat).Error; err == nil {
-		logrus.Debugf("CreateChat: чат уже существует между %s и %s", user1ID, user2ID)
+		logrus.Debugf("CreateChat: chat already exists between %s and %s", user1ID, user2ID)
 		return &chat, nil
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		logrus.Errorf("CreateChat: ошибка при поиске чата: %v", err)
+		// If error is not 'not found', return it
+		logrus.Errorf("CreateChat: error searching for chat: %v", err)
 		return nil, err
 	}
 
+	// If no chat exists, create a new one
 	chat = models.Chat{
 		User1ID:   user1ID,
 		User2ID:   user2ID,
 		CreatedAt: time.Now(),
 	}
 	if err := cs.DB.Create(&chat).Error; err != nil {
-		logrus.Errorf("CreateChat: ошибка создания нового чата: %v", err)
+		logrus.Errorf("CreateChat: error creating new chat: %v", err)
 		return nil, err
 	}
-	logrus.Infof("CreateChat: новый чат создан между %s и %s с ID %d", user1ID, user2ID, chat.ID)
+	logrus.Infof("CreateChat: new chat created between %s and %s with ID %d", user1ID, user2ID, chat.ID)
 	return &chat, nil
 }
 
 func (cs *ChatService) GetChatMessages(chatID uint, page, limit int) ([]models.Message, error) {
+	// Pagination: calculate offset for the requested page
 	offset := (page - 1) * limit
 	var messages []models.Message
 	if err := cs.DB.
@@ -55,14 +59,15 @@ func (cs *ChatService) GetChatMessages(chatID uint, page, limit int) ([]models.M
 		Offset(offset).
 		Limit(limit).
 		Find(&messages).Error; err != nil {
-		logrus.Errorf("GetChatMessages: ошибка получения сообщений для чата %d: %v", chatID, err)
+		logrus.Errorf("GetChatMessages: error fetching messages for chat %d: %v", chatID, err)
 		return nil, err
 	}
-	logrus.Debugf("GetChatMessages: получено %d сообщений для чата %d", len(messages), chatID)
+	logrus.Debugf("GetChatMessages: %d messages fetched for chat %d", len(messages), chatID)
 	return messages, nil
 }
 
 func TypingNotification(userID uuid.UUID, chatID uint, isTyping bool) ([]byte, error) {
+	// Create a typing notification payload for WebSocket broadcast
 	notification := map[string]interface{}{
 		"type":      "typing",
 		"userId":    userID.String(),
@@ -72,9 +77,9 @@ func TypingNotification(userID uuid.UUID, chatID uint, isTyping bool) ([]byte, e
 	}
 	data, err := json.Marshal(notification)
 	if err != nil {
-		logrus.Errorf("TypingNotification: ошибка маршалинга уведомления: %v", err)
+		logrus.Errorf("TypingNotification: error marshaling notification: %v", err)
 		return nil, err
 	}
-	logrus.Debugf("TypingNotification: уведомление о наборе текста сформировано для пользователя %s в чате %d", userID, chatID)
+	logrus.Debugf("TypingNotification: typing notification created for user %s in chat %d", userID, chatID)
 	return data, nil
 }

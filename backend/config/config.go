@@ -32,6 +32,8 @@ type Config struct {
 
 var AppConfig *Config
 
+// LoadConfig loads application configuration from environment variables and sets the global AppConfig.
+// Validates parameters and sets the logging level.
 func LoadConfig() {
 	AppConfig = &Config{
 		ServerPort:          getEnv("SERVER_PORT", "8080"),
@@ -56,7 +58,7 @@ func LoadConfig() {
 	AppConfig.IsProd = AppConfig.Environment == "production"
 
 	if err := AppConfig.Validate(); err != nil {
-		logrus.Fatalf("Ошибка конфигурации: %v", err)
+		logrus.Fatalf("Configuration error: %v", err)
 	}
 
 	level, err := logrus.ParseLevel(AppConfig.LogLevel)
@@ -67,40 +69,42 @@ func LoadConfig() {
 
 	if AppConfig.IsDev {
 		logrus.SetReportCaller(true)
-		logrus.Infof("Режим разработки: детальное логирование включено")
+		logrus.Infof("Development mode: detailed logging enabled")
 	}
 
-	logrus.Info("✅ Конфигурация загружена")
+	logrus.Info("✅ Configuration loaded")
 }
 
+// Validate checks the correctness and completeness of the configuration.
 func (c *Config) Validate() error {
 	if c.ServerPort == "" {
-		return errors.New("SERVER_PORT не может быть пустым")
+		return errors.New("SERVER_PORT cannot be empty")
 	}
 	if c.DatabaseURL == "" {
-		return errors.New("DATABASE_URL не может быть пустым")
+		return errors.New("DATABASE_URL cannot be empty")
 	}
 	if c.JWTSecret == "" {
-		return errors.New("JWT_SECRET не может быть пустым")
+		return errors.New("JWT_SECRET cannot be empty")
 	}
 	if c.JWTExpiresIn <= 0 {
-		return errors.New("JWT_EXPIRES_IN должен быть больше нуля")
+		return errors.New("JWT_EXPIRES_IN must be greater than zero")
 	}
 	if len(c.AllowedOrigins) == 0 {
-		return errors.New("ALLOWED_ORIGINS должны быть указаны")
+		return errors.New("ALLOWED_ORIGINS must be specified")
 	}
 	if c.SMTPServer == "" {
-		return errors.New("SMTP_SERVER не может быть пустым")
+		return errors.New("SMTP_SERVER cannot be empty")
 	}
 	if c.SMTPPort <= 0 {
-		return errors.New("SMTP_PORT должен быть больше нуля")
+		return errors.New("SMTP_PORT must be greater than zero")
 	}
 	if c.LogLevel == "" {
-		return errors.New("LOG_LEVEL не может быть пустым")
+		return errors.New("LOG_LEVEL cannot be empty")
 	}
 	return nil
 }
 
+// getEnv returns the value of an environment variable or a default value.
 func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
@@ -108,6 +112,7 @@ func getEnv(key, defaultVal string) string {
 	return defaultVal
 }
 
+// getEnvAsInt returns the value of an environment variable as int or a default value.
 func getEnvAsInt(name string, defaultVal int) int {
 	valStr := os.Getenv(name)
 	if valStr == "" {
@@ -116,7 +121,7 @@ func getEnvAsInt(name string, defaultVal int) int {
 
 	val, err := strconv.Atoi(valStr)
 	if err != nil {
-		logrus.Warnf("Не удалось преобразовать %s в int: %v. Используется значение по умолчанию.", name, err)
+		logrus.Warnf("Failed to convert %s to int: %v. Using default value.", name, err)
 		return defaultVal
 	}
 

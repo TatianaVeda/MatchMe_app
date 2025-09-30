@@ -13,11 +13,20 @@ import (
 
 var preferencesDB *gorm.DB
 
+// preferences.go - Handles HTTP endpoints for user search and recommendation preferences.
+// Provides endpoints to get and update user preferences (e.g., max search radius).
+// Automatically creates default preferences if not found.
+
+// InitPreferencesController initializes the preferences controller with a database connection.
+// Should be called once at startup.
 func InitPreferencesController(db *gorm.DB) {
 	preferencesDB = db
 	logrus.Info("Preferences controller initialized")
 }
 
+// GetPreferences handles GET /me/preferences endpoint.
+// Returns the current user's preferences. If not found, creates default preferences.
+// Responds with JSON. Handles DB errors and returns appropriate HTTP status.
 func GetPreferences(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
@@ -55,6 +64,9 @@ func GetPreferences(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pref)
 }
 
+// UpdatePreferences handles PUT /me/preferences endpoint.
+// Updates the current user's preferences (e.g., max search radius).
+// If preferences do not exist, creates them. Handles DB errors and returns updated preferences as JSON.
 func UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {

@@ -23,7 +23,7 @@ const MyProfile = () => {
       if (status === 404) {
         setProfile(null);
       } else {
-        toast.error(error.response?.data?.message || 'Ошибка загрузки профиля');
+        toast.error(error.response?.data?.message || 'Error loading profile');
       }
     } finally {
       setLoading(false);
@@ -36,7 +36,7 @@ const MyProfile = () => {
       const data = await getMyBio();
       setBio(data);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Ошибка загрузки биографии');
+      toast.error(error.response?.data?.message || 'Error loading biography');
     }
   };
 
@@ -72,9 +72,9 @@ const MyProfile = () => {
   if (!profile) {
     return (
       <Container sx={{ mt: 4 }}>
-        <Typography variant="h6">Профиль не найден. Пожалуйста, заполните ваш профиль.</Typography>
+        <Typography variant="h6">Profile not found. Please fill in your profile.</Typography>
         <Button variant="contained" color="primary" onClick={handleEdit} sx={{ mt: 2 }}>
-          Редактировать профиль
+          Edit Profile
         </Button>
       </Container>
     );
@@ -97,36 +97,36 @@ const MyProfile = () => {
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="body1" color="textSecondary">
-          {profile.about || 'Информация о пользователе не заполнена.'}
+          {profile.about || 'User information is not filled in.'}
         </Typography>
       </Box>
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="body1">
-          Город: {profile.city || 'Не указан'}
+          City: {profile.city || 'Not specified'}
         </Typography>
       </Box>
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Биография
+          Biography
         </Typography>
         {bio ? (
           <>
-            <Typography variant="body1">Интересы: {bio.interests || 'Не указаны'}</Typography>
-            <Typography variant="body1">Хобби: {bio.hobbies || 'Не указаны'}</Typography>
-            <Typography variant="body1">Музыка: {bio.music || 'Не указана'}</Typography>
-            <Typography variant="body1">Еда: {bio.food || 'Не указана'}</Typography>
-            <Typography variant="body1">Путешествия: {bio.travel || 'Не указаны'}</Typography>
-            <Typography variant="body1">Ищу: {bio.lookingFor || 'Не указано'}</Typography>
+            <Typography variant="body1">Interests: {bio.interests || 'Not specified'}</Typography>
+            <Typography variant="body1">Hobbies: {bio.hobbies || 'Not specified'}</Typography>
+            <Typography variant="body1">Music: {bio.music || 'Not specified'}</Typography>
+            <Typography variant="body1">Cuisine: {bio.food || 'Not specified'}</Typography>
+            <Typography variant="body1">Travel: {bio.travel || 'Not specified'}</Typography>
+            <Typography variant="body1">Looking for: {bio.lookingFor || 'Not specified'}</Typography>
           </>
         ) : (
-          <Typography variant="body1">Биография не заполнена.</Typography>
+          <Typography variant="body1">Biography is not filled yet.</Typography>
         )}
       </Box>
 
       <Button variant="contained" color="primary" onClick={handleEdit}>
-        Редактировать профиль
+        Edit Profile
       </Button>
     </Container>
   );
