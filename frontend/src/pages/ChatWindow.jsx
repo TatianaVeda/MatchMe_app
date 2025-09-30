@@ -1,6 +1,6 @@
 // m/frontend/src/pages/ChatWindow.jsx
 
-import React, { useState, useEffect, useRef, Fragment, useMemo } from 'react';
+import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container, Box, Typography, TextField, Button,
@@ -36,27 +36,12 @@ const ChatWindow = () => {
   const [totalCount, setTotalCount] = useState(0);    
   const pageSize = 10;                                 
   const pageCount = Math.ceil(totalCount / pageSize);  
-  // Memoize messages array to avoid unnecessary re-renders and effects.
-// This ensures that 'messages' only changes when 'allMessages' or 'chatId'
-  const messages = useMemo(() => allMessages[chatId] || [], [allMessages, chatId]);
+  const messages = allMessages[chatId] || [];
   const chatIdNum = Number(chatId);
   const isTyping  = typingStatuses[chatIdNum];
   const chat = chats.find(c => c.id === Number(chatId));
   const otherUserId = chat?.otherUserID;
- 
-  const [otherUser, setOtherUser] = useState(chat?.otherUser || null);
-  const [otherUserError, setOtherUserError] = useState(null); // Store error state for otherUser
- /*  const displayUser = otherUser || chat?.otherUser;
-  const otherUserName =
-    displayUser && (displayUser.firstName || displayUser.lastName)
-      ? `${displayUser.firstName || ''} ${displayUser.lastName || ''}`.trim()
-      : displayUser && `User ${otherUserId || ''}`; */
-   //const isOnline = Boolean(chat?.otherUserOnline);
-  //const isOnline = !!presence[otherUserId];
-  
-  const otherUserName = otherUser
-   ? `${otherUser.firstName} ${otherUser.lastName}`
-   : chat?.otherUser?.firstName + ' ' + chat?.otherUser?.lastName; 
+  const otherUserName = chat?.otherUser?.firstName + ' ' + chat?.otherUser?.lastName;
   const isOnline = Boolean(chat?.otherUserOnline);
 
   useEffect(() => {
@@ -80,7 +65,7 @@ const ChatWindow = () => {
       setLoading(true);
       fetchMessages(page);
     }
-  }, [chatId, page, location.search, navigate. fetchMessages]);
+  }, [chatId, page, location.search, navigate]);
   const fetchMessages = async (p = 1) => {
     try {
     const { data } = await api.get(`/chats/${chatId}`, {
@@ -118,35 +103,6 @@ const ChatWindow = () => {
       sendRead(chatId);
     }
   }, [chatId, user, messages, sendRead]);
-  // Load otherUser profile from API, fallback to cache on network error
-  useEffect(() => {
-    let ignore = false;
-    const loadOtherUser = async () => {
-      if (!otherUserId) return;
-      try {
-        const res = await api.get(`/users/${otherUserId}`);
-        if (!ignore) {
-          setOtherUser(res.data);
-          setOtherUserError(null);
-        }
-      } catch (err) {
-        if (err.response && err.response.status === 404) {
-          // If 404, user not found
-          setOtherUser(null);
-          setOtherUserError('notfound');
-        } else {
-          // On network error, keep cached data
-          setOtherUserError('network');
-        }
-      }
-    };
-    loadOtherUser();
-    return () => { ignore = true; };
-  }, [otherUserId]);
-  useEffect(() => {
-    if (!otherUserId || !presence?.[otherUserId]) return;
-    api.get(`/users/${otherUserId}`).then(res => res.data && setOtherUser(res.data));
-  }, [presence?.[otherUserId]]);
   /**
    * handleSend
    * Sends a new message to the backend and via WebSocket, updates state.
@@ -194,24 +150,6 @@ const ChatWindow = () => {
       </Container>
     );
   }
-  if (otherUserError === 'notfound') {
-    // Show only if API returned 404
-    return (
-      <Container sx={{ mt: 4 }}>
-        <Typography variant="h5">User not found</Typography>
-      </Container>
-    );
-  }
-  // If network error, show cached data (otherUser), even if offline
-/*   if (!otherUser && !otherUserError && !chat?.otherUser) {
-    return (
-      <Container sx={{ mt: 4 }}>
-        <Typography variant="h5">Loading user data...</Typography>
-        <CircularProgress />
-      </Container>
-    );
-  } */
-  
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
@@ -223,11 +161,11 @@ const ChatWindow = () => {
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           >
             <Avatar
-              src={otherUser?.photoUrl}
+              src={chat?.otherUser?.photoUrl}
               alt={otherUserName}
               sx={{ width: 40, height: 40 }}
             >
-              {!otherUser?.photoUrl && '👤'}
+              {!chat?.otherUser?.photoUrl && '👤'}
             </Avatar>
           </Badge>
           {otherUserName || `Chat ${chatId}`}

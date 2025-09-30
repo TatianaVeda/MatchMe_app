@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from '@mui/material/styles';
 import { ToastContainer } from 'react-toastify';
 import theme from './theme';
+import { Toolbar } from '@mui/material';
 
 import { AuthProvider, useAuthState } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
@@ -34,6 +35,7 @@ function App() {
         <ChatProvider>
           <Router>
             <Header />
+            <Toolbar />
             <AppRoutes />
             <ToastContainer position="top-right" autoClose={2000} />
           </Router>

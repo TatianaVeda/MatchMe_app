@@ -1,48 +1,14 @@
 # Match Me - Meeting Application
 
-> **Match Me** is a social app for finding new friends with similar interests. The recommendation system suggests users based on shared hobbies, music, food, travel preferences, and the "Looking For" field. The top 10 recommendations are selected by profile similarity and proximity, prioritizing users who match your interests and are geographically closer.
+**Match Me** is a social app for finding new friends with similar interests. The recommendation system suggests users based on shared hobbies, music, food, travel preferences, and the "Looking For" field. The top 10 recommendations are selected by profile similarity and proximity, prioritizing users who match your interests and are geographically closer.
 
 To start a real-time chat, you first need to send a connection request to a recommended user. Once the user accepts your request, a real-time chat becomes available and messages are delivered instantly.
 
 > *(See below for technical details and setup instructions.)*
 
-## Features
+## Final review branch
 
-- Real-time chat and notifications (WebSocket)
-- Online presence tracking (Redis)
-- Instant user notifications (React Toastify)
-- JWT authentication
-- Dockerized setup
-- An offline/online indicator is shown on profile and chat views.
-- Batch Presence API: Efficiently check online status for multiple users
-- Real-time Notifications: Instant updates for chat and social features via WebSocket and Redis
-- Image Upload: Support for avatars and media content
-- Data Validation: Strict validation of input data
-- CORS: Configured security for cross-domain requests
-
-## Technologies
-
-### Backend:
-- **Go** - main development language
-- **Gorilla Mux** - HTTP router
-- **Gorilla WebSocket** - WebSocket support
-- **GORM** - ORM for database operations
-- **JWT** - user authentication
-- **PostgreSQL** - data storage
-- **Redis** - in-memory store for online presence and real-time features
-
-### Frontend:
-- **React** - UI library
-- **React Router** - routing
-- **Material UI** - interface components
-- **Formik** and **Yup** - form management and validation
-- **Axios** - HTTP client
-- **React Toastify** - notifications
-
-### Infrastructure:
-- **Docker** and **Docker Compose** - containerization
-- **Redis** (v7+) - required for presence and real-time features (auto-started via Docker Compose)
-- **Concurrently** - parallel service execution
+The final version for review is in the branch **final**.
 
 ## Architecture Overview
 
@@ -82,6 +48,7 @@ flowchart LR
 - [Environment Variables](#environment-variables)
 - [Security](#security)
 
+
 ## Requirements
 
 - **Node.js** (v16+)
@@ -91,22 +58,21 @@ flowchart LR
 
 ## Installation and Setup
 
+**Project location:**  
+[https://gitea.kood.tech/ihorshaposhnik/m](https://gitea.kood.tech/ihorshaposhnik/m)
+
+
 ### Automatic Installation (Recommended)
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/ihorshaposhnik/m.git
-   cd m
+   git clone https://gitea.kood.tech/ihorshaposhnik/m
+   
    ```
 
-2. Make the setup script executable:
+2. Run the setup script:
    ```bash
-   chmod +x setup.sh
-   ```
-
-3. Run the setup script:
-   ```bash
-   ./setup.sh
+   npm run all
    ```
    The script will automatically configure everything needed: install Docker (if missing), create PostgreSQL and Redis containers, install dependencies for both backend and frontend.
 
@@ -131,6 +97,7 @@ If automatic installation doesn't suit your needs, perform these steps manually:
 3. Install backend dependencies:
    ```bash
    cd backend
+   
    go mod tidy
    go run main.go -deps
    cd ..
@@ -139,6 +106,7 @@ If automatic installation doesn't suit your needs, perform these steps manually:
    ```bash
    cd frontend
    npm install
+   npm start
    cd ..
    ```
 5. Start the application:
@@ -165,6 +133,44 @@ For setting up Docker on different operating systems, follow these steps:
    - Install Docker using your distribution's package manager (e.g., `apt` for Ubuntu).
    - Ensure Docker is running as a daemon.
    - Use Docker commands in the terminal as usual.
+
+## Features
+
+- Real-time chat and notifications (WebSocket)
+- Online presence tracking (Redis)
+- Instant user notifications (React Toastify)
+- JWT authentication
+- Dockerized setup
+- An offline/online indicator is shown on profile and chat views.
+- Batch Presence API: Efficiently check online status for multiple users
+- Real-time Notifications: Instant updates for chat and social features via WebSocket and Redis
+- Image Upload: Support for avatars and media content
+- Data Validation: Strict validation of input data
+- CORS: Configured security for cross-domain requests
+
+## Technologies
+
+### Backend:
+- **Go** - main development language
+- **Gorilla Mux** - HTTP router
+- **Gorilla WebSocket** - WebSocket support
+- **GORM** - ORM for database operations
+- **JWT** - user authentication
+- **PostgreSQL** - data storage
+- **Redis** - in-memory store for online presence and real-time features
+
+### Frontend:
+- **React** - UI library
+- **React Router** - routing
+- **Material UI** - interface components
+- **Formik** and **Yup** - form management and validation
+- **Axios** - HTTP client
+- **React Toastify** - notifications
+
+### Infrastructure:
+- **Docker** and **Docker Compose** - containerization
+- **Redis** (v7+) - required for presence and real-time features (auto-started via Docker Compose)
+- **Concurrently** - parallel service execution
 
 ## Project Structure
 
@@ -251,7 +257,7 @@ To search for recommendations within a specific geographical radius, navigate to
 
 These features are available only to the administrator via the admin panel in the frontend.
 
-- To access the admin panel, log in with AdminEmail and the AdminPassword (specified in `config/constants.go`).
+- To access the admin panel, register first and then log in with AdminEmail and the AdminPassword (specified in `config/constants.go`).
 - The admin panel provides buttons for database reset (`/admin/reset-fixtures`) and dummy user generation (`/admin/generate-fixtures?num=N`).
 - When resetting the database, the admin user is created automatically using the config data.
 

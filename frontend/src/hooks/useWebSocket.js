@@ -18,14 +18,14 @@ const useWebSocket = (onMessage) => {
      * On mount: connects WebSocket for current user and subscribes to onMessage.
      * On unmount: removes listener. Re-subscribes if user or callback changes.
      */
-      if (!user || !onMessage) return;
-    
-      WebSocketService.connect(user.id);
-      WebSocketService.addListener(onMessage);
-    
-      return () => {
-        WebSocketService.removeListener(onMessage);
-      };
+    if (!user || !onMessage) return;
+  
+    WebSocketService.connect(user.id);
+    WebSocketService.addListener(onMessage);
+  
+    return () => {
+      WebSocketService.removeListener(onMessage);
+    };
   }, [user, onMessage]);
 
   /**
@@ -52,19 +52,16 @@ const useWebSocket = (onMessage) => {
   /**
    * Memoized function to subscribe to a chat via WebSocket.
    */
-  const subscribe = useCallback((chatId) => {
+  const subscribe      = useCallback((chatId) => {
         WebSocketService.subscribe(chatId);
       }, []);
   /**
    * Memoized function to unsubscribe from a chat via WebSocket.
    */
-  const unsubscribe = useCallback((chatId) => {
+  const unsubscribe    = useCallback((chatId) => {
         WebSocketService.unsubscribe(chatId);
       }, []);
 
-  /**
-   * Memoized function to send read status via WebSocket.
-   */
   const sendRead = useCallback((chatId) => {
     WebSocketService.sendRead(chatId);
   }, []);

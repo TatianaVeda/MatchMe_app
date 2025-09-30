@@ -1,6 +1,6 @@
 // /m/frontend/src/pages/Profile/UserProfile.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -19,6 +19,11 @@ import { useChatState, useChatDispatch } from '../../contexts/ChatContext';
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+ const { distance, score } = location.state || {};
+ 
+  console.log('UserProfile location.state →', location.state);
+  
   const { chats, presence } = useChatState();
   const { setChats } = useChatDispatch();
   //const { subscribe, unsubscribe } = useWebSocket();
@@ -45,10 +50,8 @@ const UserProfile = () => {
   };
   
   useEffect(() => {
-   let ignore = false;
     const load = async () => {
       setLoading(true);
-      let lastUser = user;
       try {
         const [u, conns] = await Promise.all([
           getUser(id),
@@ -60,47 +63,32 @@ const UserProfile = () => {
           return;
         }
         setUser(u);
-        lastUser = u;
         setConnectedIds(conns);
-      } catch (err) {
+      } catch {
         toast.error('Error loading user data');
-        setLoading(false);
+        navigate('/recommendations');
         return;
       }
       try {
         const p = await getUserProfile(id);
         setProfile(p);
-      } catch (err) {
-      // if network error, do not reset profile
+      } catch {
+        setProfile(null);
       }
       try {
         const b = await getUserBio(id);
         setBio(b);
-      } catch (err) {
-        // if network error, do not reset bio)
+      } catch {
+        setBio(null);
       }
       setLoading(false);
     };
     load();
-    return () => { ignore = true; };
-  }, [id]);
-
-  // reload profie if online
-  useEffect(() => {
-    if (!user || !presence?.[user.id]) return;
-    //reload profile if onlaine again
-    getUser(id).then(u => u && setUser(u));
-    getUserProfile(id).then(p => p && setProfile(p));
-    getUserBio(id).then(b => b && setBio(b));
-  }, [presence?.[user?.id]]);
-
-  const chatWithUser = chats.find(c => c.otherUserID === id);
-  const isOnline =
-    (typeof chatWithUser?.otherUserOnline === 'boolean' && chatWithUser.otherUserOnline) ||
-    //(typeof user?.online === 'boolean' && user.online) ||
-    Boolean(presence?.[user?.id]); 
-    //!!presence[user?.id];
+  }, [id, navigate]);
  
+  const isOnline =
+    (typeof user?.online === 'boolean' && user.online) ||
+    Boolean(presence?.[user?.id]);
   const handleChat = () => {
     const existing = chats.find(c => c.otherUserID === id);
     navigate(existing ? `/chat/${existing.id}` : `/chat/new?other_user_id=${id}`);
@@ -143,6 +131,17 @@ const UserProfile = () => {
           {user.firstName} {user.lastName}
         </Typography>
       </Box>
+
+{(distance !== undefined && score !== undefined) && (
+  <Box sx={{ mb: 2 }}>
+    <Typography variant="body2" color="text.secondary">
+    Distance: {distance.toFixed(1)} км
+    </Typography>
+    <Typography variant="body2" color="text.secondary">
+    Score: {(score * 100).toFixed(0)} %
+    </Typography>
+  </Box>
+)}
 
       <Typography variant="body1" sx={{ mb: 2 }}>
         {profile?.about || 'Information not available'}

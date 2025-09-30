@@ -79,23 +79,17 @@ func userHasAccess(currentUserID, requestedUserID uuid.UUID) (bool, error) {
 	if err != nil {
 		logrus.Errorf("userHasAccess: error fetching recommendations for user %s: %v", currentUserID, err)
 	} else {
-		found := false
 		for _, id := range recIDs {
 			if id == requestedUserID {
-				found = true
-				break
+				logrus.Infof("userHasAccess: access granted — user %s is in recommendations for %s", requestedUserID, currentUserID)
+				return true, nil
 			}
 		}
-		if found {
-			logrus.Infof("userHasAccess: access granted — user %s is in recommendations for %s", requestedUserID, currentUserID)
-			return true, nil
-		} else {
-			logrus.Debugf("userHasAccess: user %s not found in recommendations for %s", requestedUserID, currentUserID)
-		}
+		logrus.Debugf("userHasAccess: user %s not found in recommendations for %s", requestedUserID, currentUserID)
 	}
 
 	// If none of the above, deny access
-	logrus.Warnf("userHasAccess: access denied — user %s cannot access data for user %s (no connection, no recommendation)", currentUserID, requestedUserID)
+	logrus.Warnf("userHasAccess: access denied — user %s cannot access data for user %s", currentUserID, requestedUserID)
 	return false, nil
 }
 
@@ -133,14 +127,13 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Internal error during access check
 		logrus.Errorf("GetUser: error checking access for user %s: %v", requestedUserID, err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusNotFound)
 		return
 	}
 	if !allowed {
 		// Access denied: do not reveal if user exists
-		//logrus.Errorf("NOT ALLOWED TO SEE USER %s: %v", requestedUserID, err)
-		http.Error(w, "User not found", http.StatusNotFound) //404, The users endpoints return HTTP404 when the id is not found
-		logrus.Warnf("GetUser: access denied for user %s to user %s (see userHasAccess logs)", currentUserID, requestedUserID)
+		logrus.Errorf("NOT ALLOWERD TO SEE USER %s: %v", requestedUserID, err)
+		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
 
@@ -152,6 +145,18 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// recsWithDist, err := recommendationService.GetRecommendationsWithDistance(currentUserID, "affinity")
+	// var distance, score float64
+	// if err == nil {
+	// 	for _, rec := range recsWithDist {
+	// 		if rec.UserID == requestedUserID {
+	// 			distance = rec.Distance
+	// 			score = rec.Score
+	// 			break
+	// 		}
+	// 	}
+	// }
+
 	// Respond with basic public info (id, firstName, lastName, photoUrl)
 	logrus.Infof("User %s data retrieved by user %s", requestedUserID, currentUserID)
 	response := map[string]interface{}{
@@ -159,6 +164,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		"firstName": user.Profile.FirstName,
 		"lastName":  user.Profile.LastName,
 		"photoUrl":  user.Profile.PhotoURL,
+		// "distance":  distance,
+		// "score":     score,
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -194,11 +201,12 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	allowed, err := userHasAccess(currentUserID, requestedUserID)
 	if err != nil {
 		logrus.Errorf("GetUserProfile: error checking access: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusNotFound)
 		return
 	}
 	if !allowed {
-		http.Error(w, "Not found", http.StatusNotFound)
+		// No content if not allowed
+		http.Error(w, "", http.StatusNotFound)
 		return
 	}
 
@@ -249,11 +257,12 @@ func GetUserBio(w http.ResponseWriter, r *http.Request) {
 	allowed, err := userHasAccess(currentUserID, requestedUserID)
 	if err != nil {
 		logrus.Errorf("GetUserBio: error checking access: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusNotFound)
 		return
 	}
 	if !allowed {
-		http.Error(w, "Not found", http.StatusNotFound)
+		// No content if not allowed
+		http.Error(w, "", http.StatusNotFound)
 		return
 	}
 

@@ -1,5 +1,5 @@
 // m/frontend/src/components/Header.jsx
-import React, { useState, useEffect, /* useCallback */ } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   AppBar, Toolbar, Typography, IconButton,
   Button, Drawer, List, ListItem, ListItemButton,
@@ -37,12 +37,12 @@ export default function Header() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { chats } = useChatState();
+  const { chats, messages } = useChatState();
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   const [pendingFriends, setPendingFriends] = useState(0);
 
-  const { /* subscribe, unsubscribe */ } = useWebSocket((data) => {
+  const { subscribe, unsubscribe } = useWebSocket((data) => {
     if (!user) return;
     switch (data.type) {
       case 'message':
@@ -81,7 +81,7 @@ export default function Header() {
   const toggleDrawer = () => setMobileOpen(o => !o);
 
   const drawer = (
-    <Box onClick={toggleDrawer} sx={{ width: 250 }}>
+    <Box onClick={toggleDrawer} sx={{ width: 320 }}>
       <List>
         {user && user.id === ADMIN_ID ? (
           <>
@@ -109,12 +109,24 @@ export default function Header() {
                     fontWeight: location.pathname === item.to ? 'bold' : 'normal',
                     backgroundColor: location.pathname === item.to ? 'primary.main' : 'inherit',
                     color: location.pathname === item.to ? 'white' : 'inherit',
-                    border: location.pathname === item.to ? '2px solid #fff' : '2px solid transparent',
+                    border: location.pathname === item.to ? '1.5px solid #fff' : '1.5px solid transparent',
+                    borderRadius: location.pathname === item.to ? '8px' : 0,
+                    margin: location.pathname === item.to ? '4px 8px' : '0',
                     transition: 'all 0.2s',
                     boxShadow: location.pathname === item.to ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
                   }}
                 >
-                  {item.icon}
+                  {item.to === '/chats' ? (
+                    <Badge color="error" badgeContent={unreadMessages} invisible={unreadMessages === 0} sx={{ mr: 1 }}>
+                      {item.icon}
+                    </Badge>
+                  ) : item.to === '/friends' ? (
+                    <Badge color="error" badgeContent={pendingFriends} invisible={pendingFriends === 0} sx={{ mr: 1 }}>
+                      {item.icon}
+                    </Badge>
+                  ) : (
+                    item.icon
+                  )}
                   <ListItemText primary={item.label} />
                 </ListItemButton>
               </ListItem>
@@ -139,13 +151,13 @@ export default function Header() {
 
   return (
     <>
-      <AppBar position="static">
+      <AppBar position="fixed">
         <Toolbar>
           <IconButton
             color="inherit"
             edge="start"
             onClick={toggleDrawer}
-            sx={{ display: { sm: 'none' }, mr: 2 }}
+            sx={{ display: { md: 'none' }, mr: 2 }}
           >
             <MenuIcon />
           </IconButton>
@@ -159,7 +171,7 @@ export default function Header() {
             Match Me – Recommendations
           </Typography>
 
-          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
             {user ? (
               user.id === ADMIN_ID ? (
                 <>
@@ -192,7 +204,9 @@ export default function Header() {
                               fontWeight: location.pathname === item.to ? 'bold' : 'normal',
                               backgroundColor: location.pathname === item.to ? 'primary.main' : 'inherit',
                               color: location.pathname === item.to ? 'white' : 'inherit',
-                              border: location.pathname === item.to ? '2px solid #fff' : '2px solid transparent',
+                              border: location.pathname === item.to ? '1.5px solid #fff' : '1.5px solid transparent',
+                              borderRadius: location.pathname === item.to ? '8px' : 0,
+                              margin: location.pathname === item.to ? '4px 8px' : '0',
                               transition: 'all 0.2s',
                               boxShadow: location.pathname === item.to ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
                             }}
@@ -220,7 +234,9 @@ export default function Header() {
                               fontWeight: location.pathname === item.to ? 'bold' : 'normal',
                               backgroundColor: location.pathname === item.to ? 'primary.main' : 'inherit',
                               color: location.pathname === item.to ? 'white' : 'inherit',
-                              border: location.pathname === item.to ? '2px solid #fff' : '2px solid transparent',
+                              border: location.pathname === item.to ? '1.5px solid #fff' : '1.5px solid transparent',
+                              borderRadius: location.pathname === item.to ? '8px' : 0,
+                              margin: location.pathname === item.to ? '4px 8px' : '0',
                               transition: 'all 0.2s',
                               boxShadow: location.pathname === item.to ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
                             }}
@@ -242,7 +258,9 @@ export default function Header() {
                           fontWeight: location.pathname === item.to ? 'bold' : 'normal',
                           backgroundColor: location.pathname === item.to ? 'primary.main' : 'inherit',
                           color: location.pathname === item.to ? 'white' : 'inherit',
-                          border: location.pathname === item.to ? '2px solid #fff' : '2px solid transparent',
+                          border: location.pathname === item.to ? '1.5px solid #fff' : '1.5px solid transparent',
+                          borderRadius: location.pathname === item.to ? '8px' : 0,
+                          margin: location.pathname === item.to ? '4px 8px' : '0',
                           transition: 'all 0.2s',
                           boxShadow: location.pathname === item.to ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
                         }}

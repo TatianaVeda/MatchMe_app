@@ -132,8 +132,7 @@ export const ChatProvider = ({ children }) => {
   const setMessages = (chatId, messages) => {
     dispatch({ type: 'SET_MESSAGES', chatId, payload: messages });
   };
-  const resetState = () => dispatch({ type: 'RESET' });
-   return (
+  return (
     <ChatStateContext.Provider value={state}>
       <ChatDispatchContext.Provider
         value={{
@@ -142,7 +141,6 @@ export const ChatProvider = ({ children }) => {
           setMessages,
           sendMessage,
           sendTyping,
-          resetState,
         }}
       >
         {children}

@@ -10,6 +10,7 @@ import { getUser, getUserBio } from '../api/user';
 import { sendConnectionRequest } from '../api/connections';
 import { getConnections, getPendingConnections } from '../api/connections';
 import { getSentConnections } from '../api/connections';
+import axios from 'axios';
 const cityOptions = [
   { name: 'Helsinki', lat: 60.1699, lon: 24.9384 },
   { name: 'Espoo', lat: 60.2055, lon: 24.6559 },
@@ -53,6 +54,7 @@ const Recommendations = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [decliningId, setDecliningId] = useState(null);
+  const [radius, setRadius] = useState(null);
 
 useEffect(() => {
   // Batch-load connections and pending requests on mount
@@ -96,6 +98,12 @@ const fetchLinks = async () => {
     fetchLinks();
   }, []);
 
+useEffect(() => {
+  // Get maxRadius from user settings
+  axios.get('/me/preferences')
+    .then(res => setRadius(res.data.maxRadius))
+    .catch(() => setRadius(null));
+}, []);
 
   /**
    * handleSearch
@@ -107,7 +115,7 @@ const fetchLinks = async () => {
     e.preventDefault();
     await fetchLinks();
     setLoading(true);
-    const params = { mode, withDistance: true, useProfile: useProfileFilters };
+     const params = { mode, withDistance: true, useProfile: useProfileFilters };
     if (!useProfileFilters) {
       params.cityLat = form.city.lat;
       params.cityLon = form.city.lon;
@@ -129,11 +137,11 @@ const fetchLinks = async () => {
     try {
       const recs = await getRecommendations({ params: { ...params, limit: 20 } });
       const recData = await Promise.all(
-        recs.map(async ({ id, distance, score }) => {
+        recs.map(async ({ id,  distance, score  }) => {
           try {
             const user = await getUser(id);
             const bio  = await getUserBio(id);
-            return { id, distance, score, ...user, bio };
+            return { id,  distance, score , ...user, bio };
           } catch (err) {
             console.error(`[ERROR] Failed to load user ${id}:`, err);
             return null;
@@ -199,6 +207,11 @@ const fetchLinks = async () => {
   };
   return (
     <Container sx={{ mt: 4 }}>
+      <Box sx={{ mb: 2, p: 2, background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 2 }}>
+        <Typography variant="body1">
+          Let's help you find great matches! ) Just set your search radius in <Button size="small" onClick={() => navigate('/settings')}>Settings</Button> to get started.
+        </Typography>
+      </Box>
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Button
           variant={mode === 'affinity' ? 'contained' : 'outlined'}
@@ -293,7 +306,7 @@ const fetchLinks = async () => {
           sx={{ mt: 2 }}
           disabled={loading}
         >
-          Match
+          Match Me
         </Button>
       </Box>
       {loading ? (
@@ -307,7 +320,13 @@ const fetchLinks = async () => {
           {recommendations.map(rec => (
             <Grid item xs={12} sm={6} md={4} key={rec.id}>
               <Card>
-              <CardActionArea onClick={() => navigate(`/users/${rec.id}`)}>
+              {/* <CardActionArea onClick={() => navigate(`/users/${rec.id}`)}> */}
+              <CardActionArea
+   onClick={() =>
+     navigate(`/users/${rec.id}`, {
+       state: { distance: rec.distance, score: rec.score }
+     })
+   }>
                 <CardMedia
                   component="img"
                   height="140"
@@ -318,7 +337,7 @@ const fetchLinks = async () => {
                   <Typography variant="h5">
                     {rec.firstName} {rec.lastName}
                   </Typography>
-                  {typeof rec.distance === 'number' && (
+                  {/* {typeof rec.distance === 'number' && (
                     <Typography variant="body2" color="text.secondary">
                       Distance: {rec.distance.toFixed(1)} km
                     </Typography>
@@ -327,7 +346,7 @@ const fetchLinks = async () => {
                     <Typography variant="body2" color="text.secondary">
                       Match: {(rec.score * 100).toFixed(0)} %
                     </Typography>
-                  )}
+                  )} */}
                   <Typography variant="body2" color="text.secondary">
                     {rec.bio.interests
                       ? `Interests: ${rec.bio.interests}`
