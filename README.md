@@ -6,10 +6,6 @@ To start a real-time chat, you first need to send a connection request to a reco
 
 > *(See below for technical details and setup instructions.)*
 
-## Final review branch
-
-The final version for review is in the branch **final**.
-
 ## Architecture Overview
 
 ```mermaid
