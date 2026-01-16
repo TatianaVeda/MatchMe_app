@@ -62,7 +62,7 @@ flowchart LR
 
 1. Clone the repository:
    ```bash
-   git clone https://address 
+   git clone https://[repo link] 
    
    ```
 
