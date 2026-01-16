@@ -58,15 +58,11 @@ flowchart LR
 
 ## Installation and Setup
 
-**Project location:**  
-[https://gitea.kood.tech/ihorshaposhnik/m](https://gitea.kood.tech/ihorshaposhnik/m)
-
-
 ### Automatic Installation (Recommended)
 
 1. Clone the repository:
    ```bash
-   git clone https://gitea.kood.tech/ihorshaposhnik/m
+   git clone https://[repo link]
    
    ```
 
